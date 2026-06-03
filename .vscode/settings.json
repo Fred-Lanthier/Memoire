@@ -1,7 +1,7 @@
 {
     "latex-workshop.view.pdf.viewer": "tab",
     "latex-workshop.view.pdf.internal.synctex.keybinding": "double-click",
-    "latex-workshop.latex.outDir": "%DIR%",
+    "latex-workshop.latex.outDir": "%WORKSPACE_FOLDER%/memoire",
     "latex-workshop.latex.autoBuild.run": "onFileChange",
     "latex-workshop.formatting.latex": "none",
     "latex-workshop.latex.tools": [
@@ -21,6 +21,10 @@
             ]
         }
     ],
+    "github.copilot.enable": {
+        "*": false
+    },
+    "editor.inlineSuggest.enabled": false,
     "[latex]": {
         "editor.wordWrap": "on"
     }

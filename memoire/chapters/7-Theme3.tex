@@ -1,4 +1,104 @@
+% !TEX root = ../Document.tex
 \Chapter{RÉSULTATS ET DISCUSSION}\label{sec:Theme3}
 Présentation avec CBF et sans CBF
 
 Présentation de la détection avec SAM 3
+
+Listes des figures pour les résultats
+
+\begin{itemize}
+    \item Trajectoire de la pointe de la fourchette dans le nuage persistent map;
+    \begin{enumerate}
+        \item Nuage de points de la scène;
+        \item Trajectoire sans CBF.
+        \item Trajectoire avec CBF.
+        \item Cible.
+    \end{enumerate}
+    \item Évolution de $h(q)$ en fonction du temps;
+    \begin{enumerate}
+        \item $h_{\text{corr}}$;
+        \item ligne zéro.
+        \item zones où le CBF est actif (en rouge par exemple).
+    \end{enumerate}
+    \item Distance obstalce-robot en fonction du temps
+    \item Décomposition des vitesses en fonction du temps
+    \begin{enumerate}
+        \item $\lvert dq_{ff} \rvert$;
+        \item $\lvert dq_{feedback} \rvert$;
+        \item $\lvert dq_{base} \rvert$
+        \item $\lvert dq_{cbf_delta} \rvert$
+        \item $\lvert dq_{escape} \rvert$
+        \item $\lvert dq_{safe} \rvert$.
+        \item Objectif : Expliquer le comportement du système et montré quand le FLow Matching dirige le robot seul, quand le CBF intervient, quand l'échappement est nécessaire, si la vitesse corrigée devient trop aggressive, etc.
+    \end{enumerate}
+    \item Effet du filtre passe bas
+    \begin{enumerate}
+        \item Vitesse avant CBF brute
+        \item Vitesse avant CBF filtrée
+    \end{enumerate}
+    \item Temps de calcul du pipeline. Faire un boxplot (ou un tableau) sur :
+    \begin{enumerate}
+        \item Temps de détection avec SAM3
+        \item Temps de suivi avec SAM2
+        \item Temps de mise à jour persistent map
+        \item Temps de génération de trajectoire avec Flow Matching
+        \item Temps de calcul de la cinématique inverse
+        \item Temps de calcul des points critiques
+        \item Temps de calcul de la correction de trajectoire
+        \item Temps total du pipeline
+    \end{enumerate}
+    \item Résistance faces aux occlusions et pertes de détection.
+    \begin{enumerate}
+        \item Détection dispo / indispo dans le temps
+        \item Images présentants pertes de détection puis redétection
+    \end{enumerate}
+    \item NE PAS OUBLIER LA DÉTECTION INITALE DES FORK TEETH
+    \item Cas d'échec (comme la figure de Félix).
+\end{itemize}
+
+% =================================================================
+\section{Présentation des expériences}
+% =================================================================
+\subsection{Objectifs expérimentaux}
+\subsection{Scénarios évalués}
+Tenter de faire une simulation pour un environnement de pick and place, puis mettre un mur entre où je dois aller et le cube. Le robot doit alors contourner le mur pour atteindre la cible.
+
+Évaluer le taux de succès avec l'environnement de robot assisted feeding
+
+\subsection{Métriques d'évaluation}
+
+\subsection{Conditions de répétition des essais}
+
+% =================================================================
+\section{Validation Qualitative}
+\subsection{Exécution d'une tâche sans obstacle}
+\subsection{Comparaison avec et sans CBF}
+\subsubsection{Trajectoire sans CBF}
+\subsubsection{Trajectoire avec CBF}
+\subsubsection{}
+% =================================================================
+
+% =================================================================
+\section{Validation Quantitative}
+\subsection{Évolution de $h(q)$ en fonction du temps}
+\subsection{}
+
+% =================================================================
+\section{Perception sémantique et spatiale}
+% =================================================================
+\subsection{Détection par VLM}
+\subsection{Segmentation initiale par SAM3}
+\subsection{Tracking par SAM2}
+\subsection
+
+% =================================================================
+\section{Étude d'ablation}
+% =================================================================
+\subsection{Trajectoires avec Flow Matching seulement}
+\subsection{Trajectoires avec Flow Matching + CBF}
+\subsection{Trajectoires avec Flow Matching + CBF et échappement tangent}
+\subsection{Impact du filtre passe bas}
+
+% =================================================================
+\section{Discussion}
+% =================================================================
