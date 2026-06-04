@@ -1,31 +1,29 @@
 \Chapter{DESIGN DU SYSTÈME}\label{sec:Theme2}
-
-% =================================================================
-\section{Formulation du problème}
-% =================================================================
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\textwidth]{pdf/Drawing.pdf}
-    \caption{Architecture globale du système}
-    \label{fig:architecture}
-\end{figure}
-
-
 % =================================================================
 \section{Plateforme Expérimentale Et Architecture Globale}
 % =================================================================
+\subsection{Scène robotique, capteur RGB-D, robot manipulateur}
+\subsection{Architecture modulaire du système}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{pdf/Drawing.pdf}
+    \caption{Architecture globale du système}\label{fig:architecture}
+\end{figure}
 
 % =================================================================
 \section{Perception Sémantique et Reconstruction 3D}
 % =================================================================
 \subsection{Extraction Sémantique}
 Parler de l'utilisation de VLM et de SAM 3 qui prends en entrée prompt de VLM pour détecter le target. Tu vas avoir un output mask qui va permettre de voir ou se trouve le target au premier frame.
+\subsection{Suivi temporel de la cible avec SAM2 tiny}
+\subsection{Projection RGB-D vers l'espace 3D}
+\subsection{Séparation cible, obstacles et outil visible}
+\subsection{Nettoyage spatial du nuage d'obstacles}
 
 % =================================================================
 \section{Cartes Persistantes de la scène}
 % =================================================================
-\subsection{Motivation : robustesse aux pertes de détection et occlusion}
+\subsection{Motivation: robustesse aux pertes de détection et occlusion}
 On veut pouvoir éviter les occlusions et les pertes de détection de SAM 3, en gardant en mémoire les surfaces des objets
 \subsection{Génération des cartes persistantes}
 
@@ -38,7 +36,7 @@ Suppresion des doublons dans chaque Voxelisation
 
 fusion avec la carte existante
 
-jusqu'à la limite $max\_voxels$ (suppresion des points par vieillissement temporel pour voir les points les plus proches et les nouveaux points)
+jusqu'à la limite $\max\_voxels$ (suppresion des points par vieillissement temporel par la suite pour voir les points les plus proches et les nouveaux points)
 
 Suppresion des voxels supprimées si $z_{mesure} - z_{voxel} > seuil$ (car la caméra voit là où le voxel était supposé caché)
 
@@ -51,7 +49,7 @@ Pour séparer cible de l'environnement, on utilise une sphère. Cette sphère cr
 \subsection{Protocol de collecte des démonstrations}
 Avec des données réelles et avec Maniskill pour augmenter le Dataset et parce que le robot a brisé.
 
-Qu'est ce que je récupère ? Sous quel format ? Comment est-ce que je classe toutes mes données / les entrepose
+Qu'est ce que je récupère? Sous quel format? Comment est-ce que je classe toutes mes données / les entrepose
 \subsection{Prétraitement des données}
 Détection avec SAM3
 
@@ -73,12 +71,22 @@ Présenter la provenance et les mathématiques
 \subsection{Architecture du modèle}
 Présenter les entrants, les extrants, l'architecture du modèle (EMA, normalisation, MLP pour encodeur, application du conditionnement des trajectoires), comment il résout l'ODE (avec approximation d'Euler) et comment j'obtiens les positions finales
 \subsection{Entraînement du modèle}
-Présentation des hyperparamètres choisis, Loss curve, résultats des temps d'inférence ?
+Présentation des hyperparamètres choisis, Loss curve, résultats des temps d'inférence?
 
-Résultats de précisions ?
+Résultats de précisions?
 
-Exemple de graphique de trajectoires générées ?
+Exemple de graphique de trajectoires générées?
 
+% =================================================================
+\section{Conversion et exécution de la trajectoire nominale}
+% =================================================================
+\subsection{Conversion outil - TCP}
+\subsection{Cinématique inverse pour obtenir la trajectoire articulaire nominale}
+\subsection{Retiming temporel de la trajectoire articulaire}
+\subsection{Calcul de la vitesse feedforward nominale \texorpdfstring{$dq_{ff}$}{dq_ff}}
+\subsection{Interpolation temporelle et exécution nominale}
+Calcul de cinématique inverse pour obtenir \texorpdfstring{$\mathbf{q}$}{q}
+Présentation de la méthode pour calculer la cinématique inverse (code C++ avec Pinocchio), puis retiming pour conserver une vitesse constante malgré des waypoints non-equidistants
 % =================================================================
 \section{Filtre de sécurité réactif SDF-CBF}
 % =================================================================
@@ -87,18 +95,16 @@ Exemple de graphique de trajectoires générées ?
 \subsection{Génération du SDF du robot}
 Présenter les étapes pour générer le SDF du robot à partir des polynômes de Bernstein pour calculer le gradient et la distance $h(\mathbf{q})$ et $\nabla h(\mathbf{q})$. Bref, présenter l'article
 
-\subsection{Calcul de cinématique inverse pour obtenir \texorpdfstring{$\mathbf{q}$}{q}}
-Présentation de la méthode pour calculer la cinématique inverse (code C++ avec Pinocchio), puis retiming pour conserver une vitesse constante malgré des waypoints non-equidistants
-
 \subsection{Sélection des points critiques}
-Pruning des points qui ne sont pas à portée du robot, puis sélection des 100 points les plus proches du SDF qui peuvent potentiellement entrer en contact avec le robot. (calcul de h(q))
+Pruning des points qui ne sont pas à portée du robot, puis sélection des 100 points les plus proches du SDF qui peuvent potentiellement entrer en contact avec le robot. (calcul de $h(q)$ basé sur le SDF robot-obstacles)
 
-Calcul du gradient de h(q) via différentiation automatique
+Calcul du gradient de $h(q)$ via différentiation automatique
 
 \subsection{mathématique des fonctions barrières contraintes}
 \subsection{Construction de la vitesse d'évitement de collision}
 
 Calcul de $dq_{nom}$
+\subsection{Filtrage de la vitesse}
 % =================================================================
 \section{Intégration temps réel}
 % =================================================================

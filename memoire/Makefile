@@ -23,12 +23,24 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+ifeq ($(OS),Windows_NT)
+  ifneq ($(wildcard C:/Program\ Files/Git/usr/bin/sh.exe),)
+    PATH := C:/Program Files/Git/usr/bin;$(PATH)
+  else ifneq ($(wildcard C:/Program\ Files\ \(x86\)/Git/usr/bin/sh.exe),)
+    PATH := C:/Program Files (x86)/Git/usr/bin;$(PATH)
+  else ifneq ($(wildcard $(subst \,/,$(USERPROFILE))/AppData/Local/Programs/Git/usr/bin/sh.exe),)
+    PATH := $(USERPROFILE)/AppData/Local/Programs/Git/usr/bin;$(PATH)
+  endif
+  SHELL = sh.exe
+endif
+
+
 TEXINPUTS += :./dia:./gnuplot:./images:./modules
 export TEXINPUTS
 
 SRC	= Document.tex
-LATEX	= latex -output-format=dvi -synctex=1 -shell-escape
-PDFLATEX= pdflatex -synctex=1 -shell-escape
+LATEX	= latex -output-format=dvi -synctex=1 -shell-escape -interaction=nonstopmode
+PDFLATEX= pdflatex -synctex=1 -shell-escape -interaction=nonstopmode
 BIBTEX	= bibtex
 XDVI	= xdvi -paper us
 DVIPDF  = dvipdfm -p letter

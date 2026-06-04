@@ -189,7 +189,7 @@ Ce\ifthenelse{\equal{\monDiplome}{M}}{~mémoire intitulé}{tte thèse intitulée
 présenté\ifthenelse{\equal{\monDiplome}{M}}{}{e}
 par~\textbf{\mbox{\monPrenom~\MakeUppercase{\monNom}}}\\
 en vue de l'obtention du diplôme de~\emph{\mbox{\monDipl}}\\
-a été dûment accepté\ifthenelse{\equal{\monDiplome}{M}}{}{e} par le jury d'examen constitué de :\end{center}
+a été dûment accepté\ifthenelse{\equal{\monDiplome}{M}}{}{e} par le jury d'examen constitué de:\end{center}
 \vspace*{\stretch{2}}
 \monJury
 
@@ -257,8 +257,7 @@ a été dûment accepté\ifthenelse{\equal{\monDiplome}{M}}{}{e} par le jury d'e
 
 \include{chapters/4-Sigles_Abrev}       % Liste des sigles et abréviations.
 \ifthenelse{\equal{\AnnexesPresentes}{O}}{\listofappendices}{}
-\mainmatter
-\include{chapters/5-Introduction}       % Introduction au sujet de recherche.
+\mainmatter\include{chapters/5-Introduction}       % Introduction au sujet de recherche.
 \include{chapters/6-Revue_litterature}  % Revue de littérature / Literature review
 \include{chapters/7-Theme1}             % Premier thème (Doctorat) ou "Détails de la Solution" (Maîtrise) / First topic (PhD) or "Details of the Solution" (Master's).
 \include{chapters/7-Theme2}             % Second thème (Doctorat) ou "Résultats théoriques et expérimentaux" (Maîtrise) / Second theme (PhD) or "Theoretical and experimental results" (Master's)
