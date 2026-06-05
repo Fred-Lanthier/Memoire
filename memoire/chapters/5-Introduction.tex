@@ -6,5 +6,21 @@
 % la réalisation. En fait, l'introduction présente au lecteur ce
 % qu'il doit savoir pour comprendre la recherche et en connaître la
 % portée.
-\Chapter{INTRODUCTION}\label{sec:Introduction}  % 10-12 lignes pour introduire le sujet.
+\Chapter{INTRODUCTION}\label{sec:Introduction}  % 10-12 lignes pour 
 
+Présenter la problématique de recherche, comme quoi l'utilisation des modèles d'IA générative pour des tâches robotiques réelles ne sont pas courramment utiliser puisqu'ils nécessite le positionnement d'une caméra externe, parce que c'est dans des environnements dynamiques et que si on veut qu'ils soient réactifs aux collisions, il faut entraîner le modèle sur plusieurs centaines de données au lieu d'une quarantaine pour une tâche afin de lui faire faire apprendre l'évitement de collision. cela complexifie alors parler aussi des robotos collaboratifs qui permettent de réaliser des tâches, mais que ces tâches sont pour la plupart hardcoder et ne réagissent pas aux stimulis environnants, ce qui peut générer des trajectoires dangereuses.
+
+Parler de la motivation de la recherche. Pour moi, serait que la génération de trajectoire par intelligence artificielle, pour ne pas accumuler des centaines de données pour faire de l'évitement de collision doit avoir un système d'évitement de collision sur la trajectoire réalisée. Ce système peut se trouver lors de l'inférence du modèle ou bien après l'inférence du modèle. Lors de l'inférence du modèle, c'est trop long pour des environnements dynamiques et après il faut considérer l'environnement, ce qui nécessite l'entraînement d'un réseau que pour l'environnement. De plus, les systèmes actuels nécessites une caméra externe calibrée adéquatement, ce qui n'est pas utilisable pour un usage quotidien. Ce qu'on propose c'est un système d'évitement de collision pour des environnements dynamiques pour des environnements non vues pendant l'entraînement avec une seule caméra au niveau de l'effecteur du robot.
+
+Faire un paragraphe par rapport à la structure du mémoire. Celle de Félix c'était : Chapter 2 reviews the literature on
+robot-assisted feeding, highlighting current challenges in perception, task planning, and ma-
+nipulation. Chapter 3 defines the specific scope and research objectives of this project.
+Chapter 4 details the design of the system, describing the system architecture, the integra-
+tion of Vision-Language Models (VLMs) for autonomous food acquisition planning, and the
+implementation of the food perception and manipulation modules. Chapter 5 presents the
+experimental results, including an analysis of VLM-based food acquisition planning perfor-
+mance and a validation of the system on a physical robot. Finally, Chapter 6 summarizes
+the main contributions, discusses the system’s limitations, and proposes directions for future
+research.
+
+Donc nous cela pourrait être "Le chapitre 2 présente la revue de littérature en lien avec la génération de trajectoires robotiques en utilisant l'IA générative mettant en évidence l'exécution des trajectoires la vision par ordinateur et le suivi de cible ainsi que l'évitement de collision. Le chapitre 3 présente la question de recherche ainsi que les sous objectifs associées pour répondre à cette hypothèse. Le chapitre 4 présente le design du système, mettant de l'avant son architecture, l'intégration des systèmes de vision par ordinateur pour détecter et suivre la cible, l'acquisition des données pour entraîner le modèle de Flow Matching, l génération des trajectoires générées par IA ainsi, la capture des obstacles, le filtre de sécurité utilisé et l'intégration du temps réel. Le chapitre 5 présente les résultats expérimentaux, la validation du modèle géométrique de sécurité, la qualité de la trajectoire nominale, l'analyse des vitesses, la sécurité et l'évitement d'obstacle, les performances computationnelles ainsi que les limites du système. "
