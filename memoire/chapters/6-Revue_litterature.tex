@@ -1,48 +1,120 @@
 \Chapter{REVUE DE LITTÉRATURE}\label{sec:RevLitt}
 
 % =================================================================
-\section{Génération de mouvement robotique en environnements non structurés}
+\section{Génération de trajectoires robotisées}
 % =================================================================
-\subsection{Planification de mouvement et contrôle réactif}
-\subsection{Manipulation robotique en présence d'obstacles}
+
+\noindent\textbf{Objectif de la section :} Analyser le développement théorique et les limites connues des méthodes de génération de mouvements afin de situer le choix du \textit{Flow Matching} conditionnel comme planificateur d'intention nominale.
+
+\subsection{Planification classique par échantillonnage et optimisation}
+Cette sous-section présente les approches algorithmiques traditionnelles de la planification de mouvements. Les méthodes basées sur l'échantillonnage de l'espace des configurations, telles que celles implémentées dans l'environnement OMPL (comme RRT*), offrent une complétude probabiliste mais tendent à générer des trajectoires géométriques rugueuses. À l'inverse, les méthodes fondées sur l'optimisation locale (CHOMP, TrajOpt) lissent la trajectoire en minimisant des fonctionnels de coût cinématiques sous contraintes d'obstacles. Elles manifestent toutefois une sensibilité prononcée au profil d'initialisation, risquant la convergence vers des minima locaux sous-optimaux, parfois incompatibles avec les contraintes de collision selon l'initialisation et la qualité du champ de distance.
+
+\subsection{Apprentissage par démonstration, Behavior Cloning et RL}
+Cette partie évalue les lois de contrôle fondées sur l'apprentissage supervisé et par renforcement. Le clonage de comportement (\textit{Behavior Cloning} - BC) standard utilise l'apprentissage profond supervisé pour régresser des actions à partir de données expertes, mais demeure assujetti à l'erreur cumulative (\textit{compounding errors}) et au risque d'effondrement de la multimodalité sous l'usage de fonctions de perte de type Erreur Quadratique Moyenne (MSE). L'Apprentissage par Renforcement (\textit{Reinforcement Learning} - RL) résout la multimodalité par exploration active, mais présente une inefficacité de collecte de données (\textit{sample inefficiency}) ainsi que des risques de collision délicats à gérer lors de l'apprentissage direct sur plateforme physique.
+
+\subsection{Modèles génératifs, politiques de diffusion et Flow Matching}
+Cette section étudie la fine pointe des planificateurs génératifs continus. Les architectures basées sur la \textit{Diffusion Policy} modélisent efficacement les distributions complexes et multimodales de trajectoires expertes par débruitage stochastique, mais leur latence de calcul limite parfois leur fréquence d'inférence en boucle fermée. Le \textit{Conditional Flow Matching} (CFM) et ses formulations accélérées (\textit{Consistency Flow}, \textit{Meanflow Policy}) s'affranchissent de cette lourdeur en s'appuyant sur des équations différentielles ordinaires (ODE) déterministes et redressées, autorisant une génération de trajectoires nominales de haute qualité en un nombre réduit d'étapes d'inférence (NFE).
 
 % =================================================================
-\section{Perception visuelle pour la manipulation robotique}
+\section{Perception visuelle et mémoire spatiale}
 % =================================================================
-\subsection{Perception RGB-D et reconstruction 3D locale}
-\subsection{Détetection sémantique par modèle vision-langage}
-\subsection{Segmentation de la cible}
-\subsection{Suivi temps réel de la cible}
+
+\noindent\textbf{Objectif de la section :} Documenter les mécanismes permettant de convertir un flux de données visuelles bidimensionnelles et bruitées en un signal de conditionnement géométrique stable et persistant.
+
+\subsection{Vision-langage, segmentation zéro-shot et suivi visuel}
+Ce segment traite de l'extraction sémantique et de l'ancrage de la tâche. Les architectures \textit{Vision-Language-Action} (VLA) monolithiques unifient la perception et l'action mais présentent une latence d'inférence parfois incompatible avec le contrôle à haute fréquence. Les approches modulaires permettent de découpler l'exécution : un modèle visuel fondateur interprète l'invite textuelle de la tâche, tandis que le modèle *Segment Anything 3* (SAM3) segmente l'instance correspondant précisément à cette invite textuelle. Le modèle SAM2 assure ensuite la propagation temporelle et le suivi du masque sémantique sur le flux de trames visuelles.
+
+\subsection{Reconstruction RGB-D et représentation par nuages de points}
+Cette sous-section analyse le passage de l'espace image bidimensionnel vers l'espace cartésien tridimensionnel à l'aide de capteurs RGB-D. La rétroprojection géométrique des masques sémantiques isolés par SAM permet d'extraire la géométrie tridimensionnelle de la cible et des obstacles sous forme de nuages de points. Cette technique capture l'organisation spatiale locale et non structurée de l'environnement sans nécessiter de modèles CAO ou de primitives analytiques connus a priori.
+
+\subsection{Cartes persistantes face aux occlusions et pertes de détection}
+Cette section étudie les couches de mémoire spatio-temporelle explicites. En environnement non structuré et dynamique, les occlusions physiques causées par le corps du robot lui-même ou par les modifications de la scène perturbent l'inférence des politiques visuo-motrices. L'état de l'art documente l'intégration de structures de données cartographiques persistantes (grilles d'occupation historiques, voxelisation locale) pour conserver la trace spatiale de la cible et des obstacles durant les pertes de détection ou les masquages temporaires.
 
 % =================================================================
-\section{Apprentissage de trajectoires par imitation}
+\section{Représentations géométriques pour la collision}
 % =================================================================
-\subsection{Apprentissage par démonstration}
-\subsection{Apprentissage par renforcement}
-\subsection{Modèle de diffusion}
-\subsection{Modèle de Flow Matching}
-\subsection{Vision-Language-Action}
+
+\noindent\textbf{Objectif de la section :} Évaluer les méthodes de modélisation de l'encombrement spatial du robot et des obstacles pour formuler des métriques de distance différentiables.
+
+\subsection{ESDF de l'environnement et limites computationnelles}
+Cette section se concentre sur les champs de distance signés euclidiens (\textit{Euclidean Signed Distance Fields} - ESDF) centrés sur la scène. Des bibliothèques de cartographie volumétrique telles que nvblox maintiennent un champ de distance continu de l'espace libre pour l'évaluation immédiate des collisions. Cependant, leur mise à jour peut devenir coûteuse lorsque la scène est dynamique, dense ou fortement bruitée, surtout si l'on cherche à maintenir une boucle de correction à haute fréquence.
+
+\subsection{Primitives conservatives et modèles géométriques simplifiés}
+Cette partie examine la simplification géométrique requise pour le calcul en temps réel. L'approche classique en ingénierie consiste à encapsuler les liens cinématiques du robot sous forme de volumes englobants discrets (enveloppes de sphères ou de capsules), massivement parallélisés sur GPU (comme développé dans cuRobo). Ces représentations conservatives autorisent des requêtes de collision rapides, mais introduisent un caractère restrictif qui réduit l'espace libre exploitable dans les zones confinées.
+
+\subsection{SDF du robot, RDF et approximation par polynômes de Bernstein}
+Cette sous-section présente le changement de paradigme des *Robot Distance Fields* (RDF). Au lieu de cartographier la scène, la géométrie du bras articulé est modélisée par une approximation polynomiale de Bernstein. Cette formulation fournit une approximation différentiable du SDF du robot, rendant ses gradients analytiques (ou calculables par différentiation automatique pour cette approximation) directement interrogeables par rapport aux points de l'environnement. On note cependant que l'usage d'opérateurs de pooling (\textit{min} sur les liens et \textit{soft-min} sur les points) implique que la fonction complète n'est pas strictement continue-dérivable ($C^\infty$) partout.
 
 % =================================================================
-\section{Représentation géométrique pour la sécurité}
+\section{Sécurité réactive et Control Barrier Functions}
 % =================================================================
-\subsection{Perception RGB-D et reconstruction 3D locale}
-\subsection{Détetection sémantique par modèle vision-langage}
-\subsection{Segmentation de la cible}
-\subsection{Suivi temps réel de la cible}
+
+\noindent\textbf{Objectif de la section :} Analyser les lois de commande réactives issues de la théorie du contrôle afin d'imposer une contrainte de sécurité en vitesse sous certaines hypothèses.
+
+\subsection{Champs de potentiel et méthodes réactives classiques}
+Cette partie traite des lois de répulsion classiques. Les approches par Champs de Potentiel Artificiels (APF) génèrent des forces répulsives virtuelles à proximité des obstacles pour dévier localement le robot. Bien que légères computationalement, ces méthodes présentent des limites structurelles bien connues, notamment des oscillations prononcées près des parois, l'absence de garanties rigoureuses face à des dynamiques complexes et des risques majeurs de blocage au sein de minima locaux concaves.
+
+\subsection{CBF, invariance avant et projection de commande}
+Cette section détaille les fondements des fonctions barrières de contrôle (\textit{Control Barrier Functions} - CBF). Pour un ensemble sûr caractérisé par une fonction barrière locale $h(q)$, la contrainte différentielle $\nabla h(q)^T \dot{q} \geq -\kappa h(q)$ permet de formuler des conditions de sécurité vérifiables localement. Lorsque cette contrainte est formulée en vitesse articulaire, le filtre agit comme une projection de type QP-CBF, équivalent à une projection minimale de la vitesse nominale pour respecter la frontière d'évitement.
+
+\subsection{Limites des CBF sous perception bruitée et contrôle discret}
+Cette sous-section analyse les contraintes liées à l'implémentation physique réelle du contrôle basé sur les CBF. Contrairement aux formulations théoriques continues, l'application des barrières sur une plateforme réelle souffre du bruit de mesure des nuages de points et des délais d'échantillonnage du contrôle discret. De plus, les non-linéarités induites par les approximations géométriques lisses du robot et le suivi par un contrôleur en position bas niveau limitent la validité absolue des preuves d'invariance globale.
 
 % =================================================================
-\section{Filtre de sécurité}
+\section{Couplage entre modèles génératifs et filtres de sécurité}
 % =================================================================
-\subsection{Perception RGB-D et reconstruction 3D locale}
-\subsection{Détetection sémantique par modèle vision-langage}
-\subsection{Segmentation de la cible}
-\subsection{Suivi temps réel de la cible}
+
+\noindent\textbf{Objectif de la section :} Examiner les différentes stratégies d'unification de l'IA générative et des lois de commande sécuritaires afin de positionner la méthode de découplage retenue.
+
+\subsection{Contraintes intégrées dans la génération}
+Cette section analyse les cadres intégrant la sécurité pendant le processus de génération de la trajectoire (tels que *SafeFlowMatcher*, CASF ou *OmniGuide*). Ces méthodes appliquent des contraintes souples, des métriques riemanniennes ou des corrections itératives à chaque étape de l'intégration de l'ODE générative (guidage intra-ODE). Bien qu'efficaces en simulation, elles augmentent le temps de calcul et induisent un risque de dérive distributionnelle (\textit{distributional drift}) en forçant le modèle dans des états latents hors distribution.
+
+\subsection{Filtres de sécurité appliqués à l'exécution}
+Cette partie étudie les approches appliquant un mécanisme de filtrage sur la trajectoire finale produite par l'IA (frameworks inspirés de PACS). Ces méthodes préservent la distribution nominale apprise en boucle ouverte en ne modifiant la trajectoire qu'au moment du déploiement ou de l'exécution physique, agissant comme un bouclier cinématique externe sans perturber la dynamique interne du modèle génératif.
+
+\subsection{Découplage entre intention nominale et sécurité réactive}
+Cette sous-section apporte la justification de l'architecture découplée retenue. L'analyse des sections précédentes motive l'isolation fonctionnelle complète entre un planificateur \textit{Flow Matching}, qui gère l'intention globale à long terme sans risque de dérive distributionnelle, et un filtre de sécurité réactif local agissant en continu à l'exécution. Ce découplage permet de concilier l'expressivité des distributions apprises et l'impératif de réactivité requis pour intercepter les risques de collision sur la plateforme réelle.
 
 % =================================================================
 \section{Synthèse critique et positionnement}
 % =================================================================
-\subsection{Perception RGB-D et reconstruction 3D locale}
-\subsection{Détetection sémantique par modèle vision-langage}
-\subsection{Segmentation de la cible}
-\subsection{Suivi temps réel de la cible}
+
+\noindent\textbf{Objectif de la section :} Résumer les lacunes de l'état de l'art, formaliser l'hypothèse de recherche et présenter un tableau comparatif synthétique des architectures de la littérature.
+
+\subsection{Lacunes identifiées dans la littérature}
+L'analyse croisée de la littérature scientifique contemporaine met en exergue trois lacunes majeures :
+\begin{enumerate}
+    \item \textbf{L'hypothèse d'une perception parfaite :} Les frameworks actuels validant l'alliance du \textit{Flow Matching} et des CBF supposent des obstacles analytiques parfaits connus a priori, se montrant inadaptés face aux nuages de points 3D bruts et bruités.
+    \item \textbf{L'absence de persistance temporelle des modèles génératifs :} Les planificateurs génératifs souffrent d'une vulnérabilité cinématique lors d'occlusions temporaires de la cible, faute d'une couche cartographique persistante capable de stabiliser les points de conditionnement.
+    \item \textbf{Le coût numérique des représentations globales :} Les approches basées sur la mise à jour de champs de distance globaux ou de \textit{Neural SDF} s'avèrent trop lourdes pour garantir une boucle de rétroaction à haute fréquence face à des obstacles imprévus.
+\end{enumerate}
+
+\subsection{Positionnement de l'architecture proposée}
+Pour répondre à ces limites, cette thèse soutient la pertinence d'une \textit{architecture découplée entre génération nominale et filtrage réactif de sécurité}. L'intention globale est générée en boucle ouverte par un modèle \textit{Flow Matching} conditionné par une observation géométrique persistante issue de la perception RGB-D et du suivi SAM2, tandis que la sécurité immédiate est déléguée à un filtre de projection CBF articulaire bas niveau s'appuyant sur une approximation polynomiale de Bernstein du SDF local du robot.
+
+\subsection{Hypothèse de recherche}
+L'hypothèse centrale de cette recherche s'énonce ainsi :
+\begin{quote}
+    « L’utilisation d’un filtre SDF-CBF fondé sur un SDF local du robot, approximé par des polynômes de Bernstein et alimenté par une carte perceptuelle persistante, permet de corriger en temps réel les vitesses nominales générées par un modèle Flow Matching, afin d’améliorer l’exécution sécuritaire de trajectoires dans des environnements non structurés et inconnus, sans réentraîner le modèle génératif ni construire un champ de distance global de l’environnement. »
+\end{quote}
+
+\vspace{1em}
+\noindent Le Tableau~\ref{tab:etat_art} résume le positionnement de l'approche proposée vis-à-vis des frameworks de référence de la littérature.
+
+\begin{table}[h!]
+\centering
+\caption{Tableau comparatif des frameworks de planification et de sécurité de l'état de l'art.}
+\label{tab:etat_art}
+\begin{tabular}{p{2.2cm}p{2.2cm}p{2.3cm}p{2.6cm}p{2.4cm}p{1.8cm}p{2.2cm}}
+\hline
+\textbf{Cadre / Méthode} & \textbf{Modèle nominal} & \textbf{Sécurité} & \textbf{Représentation} & \textbf{Correction} & \textbf{Occlusions} & \textbf{Réactivité} \\ \hline
+Diffusion Policy & Diffusion & Implicite & Espace latent & Aucune / boucle ouverte & Non & Limitée par le débruitage \\
+OmniGuide & Flow Matching & Souple & Grille / énergie & Guidage intra-ODE & Non & Moyenne \\
+CASF & Streaming Flow & Souple & Neural SDF & Déformation intra-ODE & Partielle & Élevée mais coûteuse \\
+SafeFlowMatcher & Flow Matching & Explicite CBF & Obstacles analytiques & Correction intra-génération & Non & Élevée en simulation \\
+\textbf{Notre approche} & \textbf{Flow Matching} & \textbf{Explicite : projection SDF-CBF} & \textbf{Nuage filtré persistant + SDF robot} & \textbf{Correction vitesse articulaire à l'exécution} & \textbf{Oui, via persistance} & \textbf{Élevée, mesurée expérimentalement} \\ \hline
+\end{tabular}
+\end{table}
+
+\vspace{1em}
+En somme, l'examen critique de la littérature scientifique met en évidence un compromis persistant entre l'expressivité des politiques génératives et la rigueur des algorithmes de préservation de la sécurité. Si le \textit{Flow Matching} lissant et déterministe permet de capturer efficacement la multimodalité des mouvements experts tout en réduisant la latence propre aux processus de diffusion stochastique, son exécution en boucle ouverte au sein d'environnements réels et changeants demeure sujette aux incertitudes perceptives. Les méthodes contemporaines tentant d'incorporer des contraintes au cours de la phase de génération tendent à alourdir le temps de calcul ou à provoquer une dérive distributionnelle nuisible pour le succès de la tâche. Afin d'apporter une solution pragmatique à ces verrous technologiques, le Chapitre 3 détaillera la méthodologie de l'architecture découplée proposée dans ce travail. Nous y exposerons comment un pipeline de perception persistant s'articule de manière synchrone avec un filtre réactif basé sur une approximation par polynômes de Bernstein pour améliorer, en temps réel et sous des contraintes vérifiables localement, l'exécution sécurisée définie au cœur de notre hypothèse de recherche.
