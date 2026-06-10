@@ -69,10 +69,39 @@ Listes des figures pour les résultats
 % =================================================================
 \section{validation du modèle géométrique de sécurité}
 % =================================================================
+La section suivante sert à présenter la continuité du gradient et de la distance mesurée par polynôme de bernstein sur le robot et la comparer avec le ground truth en plus de comparer le temps de calcul nécessaire entre ground truth et approximation par polynôme de Bernstein.
 \subsection{Précision du SDF du robot}
+Mettre une image présentant la comparaison entre la distance et le gradient calculé par l'approximation et le ground truth.
+
+\begin{figure}[htpb]
+    \centering
+    \includegraphics[width=\textwidth]{images/Results/fig1_distance_accuracy.png}
+    \caption{Comparaison entre distance réelles et distances approximée par le modèle}\label{fig:distance_SDF}
+\end{figure}
+
+\begin{figure}[htpb]
+    \centering
+    \includegraphics[width=\textwidth]{images/Results/fig2_gradient_accuracy.png}
+    \caption{Erreur de la direction du gradient en fonction de la distance au robot}\label{fig:erreur_grad_SDF}
+\end{figure}
+
+Tout ca permets de justifier la marge de sécurité de 1.5 cm (car dans le pire des cas testées, on a -1cm d'erreur, donc 1.5 cm d'erreur ne fait pas entré le robot en contact avec l'environnement).
 \subsection{Temps d'évaluation du SDF et du gradient}
+Mettre une graphique (boxplot) présentant le temps de calcul pour évaluer le temps de calcul du SDF et le temps de calcul du ground truth pour justifier l'utilisation du SDF
+\begin{figure}[htpb]
+    \centering
+    \includegraphics[width=\textwidth]{images/Results/fig3_speed.png}
+    \caption{Comparaison des temps de calcul pour calculer la distance et le gradient réels et approximés}\label{fig:temps_SDF}
+\end{figure}
 \subsection{Visualisation des points critiques sélectionnés}
-À compléter.
+
+\begin{figure}[htpb]
+    \centering
+    \includegraphics[width=\textwidth]{images/Results/Red_point_cloud.png}
+    \caption{Sélection des points les plus proches pour contraindre le CBF}\label{fig:Red_point}
+\end{figure}
+Enveloppe de sécurité correspondant à l’isosurface ($d_{\mathrm{robot}}=1{,}5\ \mathrm{cm}$).
+
 
 % =================================================================
 \section{Qualité de la génération nominale}
