@@ -83,28 +83,175 @@ Exemple de graphique de trajectoires générées?
 \subsection{Conversion outil - TCP}
 \subsection{Cinématique inverse pour obtenir la trajectoire articulaire nominale}
 \subsection{Retiming temporel de la trajectoire articulaire}
-\subsection{Calcul de la vitesse feedforward nominale \texorpdfstring{$dq_{ff}$}{dq_ff}}
+\subsection{Calcul de la vitesse feedforward nominale \texorpdfstring{$\dot{\mathbf{q}}_{\mathrm{ff}}$}{dq_ff}}\label{subsec:dqff}
+Après la cinématique inverse et le retiming, l'exécuteur de trajectoire interpole la trajectoire articulaire à la fréquence de commande et publie la vitesse feedforward associée :
+\[
+\dot{\mathbf{q}}_{\mathrm{ff}}(t) = \frac{\mathbf{q}_{i+1}-\mathbf{q}_i}{t_{i+1}-t_i},
+\qquad t \in [t_i, t_{i+1}].
+\]
+Cette vitesse représente l'intention instantanée de la trajectoire générée par \textit{Flow Matching}. Grâce au retiming, sa norme est approximativement constante malgré des points de passage non équidistants, ce qui fournit au filtre de sécurité une référence régulière plutôt qu'une différentiation numérique bruitée de la consigne de position.
 \subsection{Interpolation temporelle et exécution nominale}
 Calcul de cinématique inverse pour obtenir \texorpdfstring{$\mathbf{q}$}{q}
 Présentation de la méthode pour calculer la cinématique inverse (code C++ avec Pinocchio), puis retiming pour conserver une vitesse constante malgré des waypoints non-equidistants
 % =================================================================
 \section{Filtre de sécurité réactif SDF-CBF}
 % =================================================================
-\subsection{Motivation : sécurité hors de la boucle Flow Matching pour générer des trajectoires safe dans un environnement dynamique inconnu}
+\subsection{Motivation : sécurité hors de la boucle Flow Matching}
+Le modèle génératif est entraîné sur des démonstrations sans obstacle et exécuté en boucle ouverte : il n'offre aucune garantie vis-à-vis d'un environnement non vu à l'entraînement. Plutôt que de contraindre le processus de génération (au prix d'une dérive distributionnelle et d'un coût de calcul accru, voir le Chapitre~\ref{sec:RevLitt}), la sécurité est déléguée à un filtre réactif agissant sur la vitesse articulaire à la fréquence de commande. Les notations utilisées dans cette section sont :
+\[
+\mathbf{q}\in\mathbb{R}^7,\qquad
+\dot{\mathbf{q}}\in\mathbb{R}^7,\qquad
+\mathbf{p}_i\in\mathbb{R}^3,
+\]
+où $\mathbf{q}$ est la configuration articulaire et $\mathbf{p}_i$ un point obstacle de la carte persistante exprimé dans le repère monde.
 
-\subsection{Génération du SDF du robot}
-Présenter les étapes pour générer le SDF du robot à partir des polynômes de Bernstein pour calculer le gradient et la distance $h(\mathbf{q})$ et $\nabla h(\mathbf{q})$. Bref, présenter l'article
+\subsection{Génération du SDF du robot}\label{subsec:sdf_robot}
+Pour chaque lien protégé $l$, le point obstacle est transformé dans le repère local du lien, puis normalisé par le centroïde $\mathbf{o}_l$ et l'échelle $s_l$ :
+\[
+\mathbf{x}_{l,i}(\mathbf{q}) = \mathbf{T}_l(\mathbf{q})^{-1}\mathbf{p}_i,
+\qquad
+\bar{\mathbf{x}}_{l,i} = \frac{\mathbf{x}_{l,i}-\mathbf{o}_l}{s_l}.
+\]
+Le SDF du lien est approximé par une base tensorielle de polynômes de Bernstein :
+\[
+d_{l,i}(\mathbf{q}) = s_l \sum_{a,b,c} w^{(l)}_{abc}\, B_a^n(u_x)\,B_b^n(u_y)\,B_c^n(u_z),
+\qquad
+B_a^n(u)=\binom{n}{a}u^a(1-u)^{n-a},
+\quad u=\frac{\bar{x}+1}{2},
+\]
+où les poids $w^{(l)}_{abc}$ sont ajustés hors ligne sur la géométrie maillée du lien. Une correction par la distance au domaine borné est ajoutée pour les points situés hors du domaine d'approximation. Cette formulation fournit une distance différentiable par rapport à $\mathbf{q}$, interrogeable en parallèle sur GPU pour l'ensemble des points obstacles.
 
-\subsection{Sélection des points critiques}
-Pruning des points qui ne sont pas à portée du robot, puis sélection des 100 points les plus proches du SDF qui peuvent potentiellement entrer en contact avec le robot. (calcul de $h(q)$ basé sur le SDF robot-obstacles)
+\subsection{Sélection des points critiques}\label{subsec:selection}
+La carte persistante est d'abord élaguée par un préfiltre sphérique autour des liens protégés, puis les $K$ points de plus faible SDF corps-complet sont conservés :
+\[
+\mathcal{P}_{\mathrm{CBF}} = \operatorname{TopK}_{K}\Big( \min_l d_{l}(\mathbf{q},\mathbf{p}_i) \Big),
+\qquad K = 100.
+\]
+Cette sélection est mise à jour à une fréquence inférieure à celle de la boucle de commande (30~Hz contre 80~Hz). L'obsolescence maximale de l'ensemble actif qui en résulte ($\approx 33$~ms) est prise en compte dans le budget de la marge de sécurité $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}).
 
-Calcul du gradient de $h(q)$ via différentiation automatique
+\subsection{Fonction barrière et gradient}\label{subsec:barriere}
+Pour chaque lien, le minimum sur les points obstacles est approché par un soft-min de température $\alpha$, formulé de manière numériquement stable autour de $m_l=\min_i d_{l,i}$ :
+\[
+h_l(\mathbf{q}) = m_l -\alpha\log\!\left[ \sum_{i=1}^{N} \exp\!\left( -\frac{d_{l,i}-m_l}{\alpha} \right) \right] -d_{\mathrm{safe}}.
+\]
+La barrière globale correspond au lien le plus critique, et l'ensemble sûr est défini par :
+\[
+h(\mathbf{q})=\min_l h_l(\mathbf{q}),
+\qquad
+\mathcal{C}=\{\mathbf{q}\mid h(\mathbf{q})\geq 0\}.
+\]
+Le soft-min introduit un biais conservateur borné par $\alpha\log N$ ; la valeur compensée $h_{\mathrm{corr}} = h_{\mathrm{soft}}+\alpha\log N$ est utilisée pour l'interprétation des mesures. Ce terme étant indépendant de $\mathbf{q}$, le gradient n'est pas affecté. Pour le lien actif $l^\star$, le gradient articulaire s'interprète comme :
+\[
+\nabla_{\mathbf{q}}h = \sum_i \omega_i\, \mathbf{J}_{x_{l^\star,i}}(\mathbf{q})^\top \nabla_{\mathbf{x}}d_{l^\star,i},
+\qquad
+\omega_i = \frac{\exp(-d_{l^\star,i}/\alpha)}{\sum_j\exp(-d_{l^\star,j}/\alpha)},
+\]
+et cette règle de chaîne complète est évaluée par différentiation automatique. Le soft-min sur les points lisse la direction du gradient en pondérant les $k$ points les plus proches, au prix du biais mentionné ; le minimum strict sur les liens dirige en revanche la correction vers le lien réellement le plus menacé.
 
-\subsection{mathématique des fonctions barrières contraintes}
-\subsection{Construction de la vitesse d'évitement de collision}
+\subsection{Contrainte de sécurité à vitesse normale bornée}\label{subsec:contrainte}
+La condition CBF classique impose $\nabla h^\top\dot{\mathbf{q}} \geq -\kappa h$. Avec une barrière issue de la perception, le terme linéaire $\kappa h$ présente deux inconvénients pratiques : loin de l'obstacle il autorise des vitesses d'approche arbitrairement grandes, et en violation il exige des vitesses de récupération proportionnelles à la pénétration, amplifiant le bruit de $h$. La contrainte implémentée sature ces deux régimes :
+\[
+\nabla h(\mathbf{q})^{\top}\dot{\mathbf{q}} \;\geq\; b(h),
+\qquad
+b(h) = m_{\mathrm{CBF}} +
+\begin{cases}
+-\,v_{\mathrm{in}}\,\min\!\big(h/h_{\mathrm{act}},\,1\big), & h > 0,\\[4pt]
+\;\;\,v_{\mathrm{rec}}\,\min\!\big(-h/d_{\mathrm{rec}},\,1\big), & h \leq 0,
+\end{cases}
+\]
+la contrainte n'étant évaluée que dans la bande d'activation $h \leq h_{\mathrm{act}}$. Loin de la frontière, la vitesse d'approche normale est ainsi bornée par $v_{\mathrm{in}}$ ; à la frontière ($h=0$), toute vitesse normale entrante est interdite ; en violation, une vitesse de sortie bornée est exigée. Cette formulation appartient à la famille $\nabla h^\top\dot{\mathbf{q}} \geq -\gamma(h)$ avec $\gamma$ une fonction de classe $\mathcal{K}$ saturée.
 
-Calcul de $dq_{nom}$
-\subsection{Filtrage de la vitesse}
+\subsection{Construction de la vitesse nominale}\label{subsec:vitesse_nominale}
+La vitesse désirée combine le feedforward retimé $\dot{\mathbf{q}}_{\mathrm{ff}}$ (Section~\ref{subsec:dqff}) et une correction de suivi proportionnelle saturée :
+\[
+\dot{\mathbf{q}}_{\mathrm{fb}}^{\,0} = \operatorname{sat}\!\big( K_p(\mathbf{q}_{\mathrm{nom}}-\mathbf{q}_{\mathrm{cur}}),\; \dot{q}_{\mathrm{fb,max}} \big).
+\]
+À proximité de la frontière, ce terme de suivi est cependant restreint à sa composante tangentielle d'avancement. En effet, lorsque le filtre dévie le robot de la trajectoire nominale pour des raisons de sécurité, un retour proportionnel complet pointe directement vers la trajectoire — c'est-à-dire contre la correction de sécurité — et les deux termes s'annulent en régime permanent, immobilisant le robot contre la frontière. Avec $\hat{\mathbf{t}} = \dot{\mathbf{q}}_{\mathrm{ff}}/\|\dot{\mathbf{q}}_{\mathrm{ff}}\|$ la direction d'avancement nominale :
+\[
+\dot{\mathbf{q}}_{\mathrm{fb}} =
+\begin{cases}
+\max\!\big(0,\; \hat{\mathbf{t}}^\top\dot{\mathbf{q}}_{\mathrm{fb}}^{\,0}\big)\,\hat{\mathbf{t}}, & h \leq h_{\mathrm{act}},\\[4pt]
+\dot{\mathbf{q}}_{\mathrm{fb}}^{\,0}, & \text{sinon}.
+\end{cases}
+\]
+La vitesse nominale brute $\dot{\mathbf{q}}_{\mathrm{raw}} = \dot{\mathbf{q}}_{\mathrm{ff}} + \dot{\mathbf{q}}_{\mathrm{fb}}$ est ensuite lissée par un filtre passe-bas de constante $\tau_{\mathrm{nom}}$ puis saturée aux limites de vitesse articulaire :
+\[
+\gamma_{\mathrm{nom}} = \frac{\Delta t}{\Delta t+\tau_{\mathrm{nom}}},
+\qquad
+\dot{\mathbf{q}}_{\mathrm{nom},k} = (1-\gamma_{\mathrm{nom}})\, \dot{\mathbf{q}}_{\mathrm{nom},k-1} + \gamma_{\mathrm{nom}}\, \dot{\mathbf{q}}_{\mathrm{raw},k}.
+\]
+
+\subsection{Projection sécuritaire de la vitesse}\label{subsec:projection}
+Si la contrainte est satisfaite par $\dot{\mathbf{q}}_{\mathrm{nom}}$, celle-ci est transmise inchangée. Sinon, la correction minimale est appliquée le long du gradient :
+\[
+\Delta\dot{\mathbf{q}} = \frac{\max\!\big(0,\; b(h) - \nabla h^\top\dot{\mathbf{q}}_{\mathrm{nom}}\big)}{\|\nabla h\|^2+\varepsilon}\,\nabla h,
+\qquad
+\|\Delta\dot{\mathbf{q}}\| \leq \Delta v_{\max},
+\]
+\[
+\dot{\mathbf{q}}_{\mathrm{proj}} = \dot{\mathbf{q}}_{\mathrm{nom}} + \Delta\dot{\mathbf{q}}.
+\]
+Cette projection sur le demi-espace actif préserve intégralement la composante tangentielle de la vitesse nominale : le long d'une surface (table, paroi d'un contenant), le robot glisse en suivant l'intention du modèle génératif au lieu de freiner. Le plafond $\Delta v_{\max}$ borne l'agressivité de la correction. Dans le cas dégénéré $\|\nabla h\|^2 < \epsilon_g$ avec contrainte violée, la vitesse est annulée.
+
+\subsection{Filtrage, réparation et commande de position}\label{subsec:commande}
+Un filtre passe-bas de constante $\tau_{\mathrm{safe}}$ lisse la vitesse projetée. Le filtrage et la saturation pouvant réintroduire une composante dangereuse, la contrainte est réévaluée sur la vitesse filtrée $\dot{\mathbf{q}}_{f}$ sous la forme linéaire :
+\[
+c_f = \nabla h^\top\dot{\mathbf{q}}_{f} + \kappa_{\mathrm{eff}}\, h - m_{\mathrm{CBF}},
+\qquad
+\kappa_{\mathrm{eff}} = \begin{cases} \kappa_{\mathrm{safe}}, & h\geq 0,\\ \kappa_{\mathrm{rec}}, & h<0, \end{cases}
+\]
+et, si $c_f<0$ dans la bande d'activation, une réparation finale est appliquée :
+\[
+\dot{\mathbf{q}}_{\mathrm{final}} = \operatorname{sat}\!\Big( \dot{\mathbf{q}}_{f} + \frac{(-c_f)}{\|\nabla h\|^2+\varepsilon}\,\nabla h \Big).
+\]
+La consigne envoyée au contrôleur de position bas niveau intègre cette vitesse dans une référence persistante :
+\[
+\mathbf{q}_{\mathrm{ref},k} = \mathbf{q}_{\mathrm{ref},k-1} + \dot{\mathbf{q}}_{\mathrm{final},k}\,\Delta t,
+\qquad
+\big|\mathbf{q}_{\mathrm{ref},k}-\mathbf{q}_{\mathrm{cur}}\big| \leq \Delta q_{\mathrm{lead}} \;\; \text{(composante par composante)},
+\]
+où $\Delta t$ est la période réelle de la boucle de commande. Deux propriétés de cette intégration sont essentielles. Premièrement, la référence s'accumule à partir de la consigne précédente et non de la position mesurée : ré-ancrer la consigne sur $\mathbf{q}_{\mathrm{cur}}$ à chaque cycle réduit la vitesse effectivement réalisée à une fraction de la vitesse certifiée, le contrôleur n'ayant jamais le temps de compléter chaque pas — les corrections de sécurité sont alors réabsorbées avant d'être exécutées. Deuxièmement, le pas d'intégration doit être la période réelle $\Delta t$ : tout facteur supplémentaire fait avancer la référence plus vite que la vitesse certifiée par la contrainte, ce qui invalide la garantie en temps discret. La borne $\Delta q_{\mathrm{lead}}$ limite la divergence entre référence et position mesurée. Lorsque le filtre est inactif et ne modifie pas la vitesse nominale, la consigne temporisée de l'exécuteur est transmise directement.
+
+\subsection{Extension multi-contraintes}\label{subsec:multicbf}
+La projection sur un demi-espace unique traite un seul obstacle critique à la fois : deux obstacles menaçant simultanément des liens différents sont agrégés en une contrainte moyenne. La variante multi-contraintes attribue un demi-espace à chaque point actif. Les valeurs $h_i$ de l'ensemble des points sélectionnés sont d'abord évaluées sans gradient, puis l'ensemble actif $\mathcal{A}$ des $K_a$ points les plus critiques vérifiant $h_i \leq h_{\mathrm{act}}$ est retenu, et la matrice des gradients $\mathbf{G} = [\nabla h_1, \ldots, \nabla h_{K_a}]^\top$ est obtenue par un unique produit vecteur-jacobienne groupé. Le problème
+\[
+\min_{\dot{\mathbf{q}}} \tfrac{1}{2}\big\|\dot{\mathbf{q}}-\dot{\mathbf{q}}_{\mathrm{nom}}\big\|^2
+\quad \text{s.c.} \quad
+\nabla h_i^\top \dot{\mathbf{q}} \geq b(h_i) \;\; \forall i \in \mathcal{A}
+\]
+est résolu par projections successives relaxées (méthode de Gauss--Seidel sur les demi-espaces) :
+\[
+\dot{\mathbf{q}} \leftarrow \dot{\mathbf{q}} + \omega\,
+\frac{\max\!\big(0,\; b(h_i) - \nabla h_i^\top\dot{\mathbf{q}}\big)}{\|\nabla h_i\|^2+\varepsilon}\,\nabla h_i,
+\]
+itérées $N_{\mathrm{it}}$ fois sur l'ensemble actif. À cette dimension (7 variables, $K_a$ contraintes), la résolution s'effectue sur CPU en une fraction de milliseconde après un unique transfert GPU--CPU des quantités $\mathbf{G}$, $b$ et $\dot{\mathbf{q}}_{\mathrm{nom}}$.
+
+\subsection{Portée des garanties de sécurité}\label{subsec:garanties}
+L'invariance avant théorique de l'ensemble $\mathcal{C}$ suppose une dynamique en temps continu, un SDF exact, des obstacles correctement observés et immobiles, et un suivi parfait de la commande par le contrôleur bas niveau. L'implémentation s'écarte de ces hypothèses sur quatre points quantifiables : la discrétisation de la commande (80~Hz), l'obsolescence de l'ensemble des points critiques (mise à jour à 30~Hz), l'erreur d'approximation du SDF de Bernstein (caractérisée au Chapitre~\ref{sec:Theme3}) et le biais conservateur du soft-min ($\alpha\log N$). Le système constitue donc un filtrage réactif de sécurité dont la garantie pratique repose sur le dimensionnement de la marge $d_{\mathrm{safe}}$ pour absorber la somme de ces termes, validé expérimentalement au Chapitre~\ref{sec:Theme3}.
+
+\begin{table}[htpb]
+\centering
+\caption{Paramètres du filtre de sécurité SDF-CBF.}
+\label{tab:cbf_params}
+\begin{tabular}{lll}
+\hline
+\textbf{Symbole} & \textbf{Description} & \textbf{Valeur} \\ \hline
+$d_{\mathrm{safe}}$ & marge de sécurité du SDF & $15$~mm \\
+$\alpha$ & température du soft-min & $0{,}001$ \\
+$K$ & points critiques sélectionnés & $100$ \\
+$h_{\mathrm{act}}$ & bande d'activation de la contrainte & $6$~mm \\
+$v_{\mathrm{in}}$ & vitesse d'approche normale maximale & $0{,}20$~rad/s \\
+$d_{\mathrm{rec}}$ & profondeur de saturation en récupération & $10$~mm \\
+$\Delta v_{\max}$ & correction de projection maximale & $0{,}35$~rad/s \\
+$m_{\mathrm{CBF}}$ & marge numérique de la contrainte & $0{,}001$ \\
+$\kappa_{\mathrm{safe}}$, $\kappa_{\mathrm{rec}}$ & gains de la réparation finale & $3$, $5$ \\
+$K_p$, $\dot{q}_{\mathrm{fb,max}}$ & suivi proportionnel et saturation & $5$, $0{,}5$~rad/s \\
+$\tau_{\mathrm{nom}}$, $\tau_{\mathrm{safe}}$ & constantes des filtres passe-bas & $0{,}05$~s, $0{,}2$~s \\
+$\Delta q_{\mathrm{lead}}$ & avance maximale de la référence & $0{,}05$~rad \\
+$K_a$, $N_{\mathrm{it}}$, $\omega$ & QP multi-contraintes & $4$, $3$, $1{,}0$ \\
+\hline
+\end{tabular}
+\end{table}
 % =================================================================
 \section{Intégration temps réel}
 % =================================================================
@@ -119,223 +266,3 @@ Inférence modèle Flow Matching / Temps de calcul de contrainte, de SAM2, etc.
 
 Gestion des pertes de la cibles
 
-1. Variables
-
-\[
-\mathbf{q}\in\mathbb{R}^7,\qquad
-\dot{\mathbf{q}}\in\mathbb{R}^7,\qquad
-\mathbf{p}_i\in\mathbb{R}^3
-\]
-où $\mathbf{q}$ est la configuration articulaire et $\mathbf{p}_i$ un point obstacle exprimé dans le repère monde.
-
-2. SDF du robot
-
-Pour chaque lien protégé $l$, le point obstacle est transformé dans son repère local :
-\[
-\mathbf{x}_{l,i}(\mathbf{q}) = \mathbf{T}_l(\mathbf{q})^{-1}\mathbf{p}_i .
-\]
-Après normalisation par le centroïde $\mathbf{o}_l$ et l'échelle $s_l$ :
-\[
-\bar{\mathbf{x}}_{l,i} = \frac{\mathbf{x}_{l,i}-\mathbf{o}_l}{s_l}.
-\]
-Le SDF du lien est approximé par une base tensorielle de Bernstein :
-\[
-d_{l,i}(\mathbf{q}) = s_l \sum_{a,b,c} w^{(l)}_{abc} B_a^n(u_x)B_b^n(u_y)B_c^n(u_z),
-\]
-avec :
-\[
-B_a^n(u)=\binom{n}{a}u^a(1-u)^{n-a},\qquad u=\frac{\bar{x}+1}{2}.
-\]
-Une correction par la distance au domaine borné est ajoutée pour les points situés hors du domaine d'approximation.
-
-3. Fonction barrière
-
-Pour chaque lien, le minimum sur les obstacles est approché par un soft-min :
-\[
-m_l(\mathbf{q})=\min_i d_{l,i}(\mathbf{q}),
-\]
-\[
-h_l(\mathbf{q}) = m_l -\alpha\log\left[ \sum_{i=1}^{N} \exp\left( -\frac{d_{l,i}-m_l}{\alpha} \right) \right] -d_{\mathrm{safe}}.
-\]
-La barrière globale correspond au lien le plus critique :
-\[
-h(\mathbf{q})=\min_l h_l(\mathbf{q}).
-\]
-L'ensemble sûr est alors :
-\[
-\mathcal{C}=\{\mathbf{q}\mid h(\mathbf{q})\geq 0\}.
-\]
-Pour l'interprétation des logs, une compensation approximative du biais soft-min est utilisée :
-\[
-h_{\mathrm{corr}} = h_{\mathrm{soft}}+\alpha\log N.
-\]
-Cette correction ne change pas le gradient, puisque $\alpha\log N$ ne dépend pas de $\mathbf{q}$.
-
-4. Gradient de la barrière
-
-Le gradient articulaire est :
-\[
-\nabla_{\mathbf{q}}h(\mathbf{q}) = \frac{\partial h}{\partial\mathbf{q}}.
-\]
-Pour le lien actif $l^\star$, il peut être interprété comme :
-\[
-\nabla_{\mathbf{q}}h = \sum_i \omega_i \mathbf{J}_{x_{l^\star,i}}(\mathbf{q})^\top \nabla_{\mathbf{x}}d_{l^\star,i},
-\]
-avec les poids soft-min :
-\[
-\omega_i = \frac{\exp(-d_{l^\star,i}/\alpha)}{\sum_j\exp(-d_{l^\star,j}/\alpha)}.
-\]
-Dans ton système, toute cette règle de chaîne est calculée par torch.autograd.
-
-5. Sélection des obstacles critiques
-
-La carte persistante est d'abord filtrée, puis les $K$ points de plus faible SDF sont conservés :
-\[
-\mathcal{P}_{\mathrm{CBF}} = \operatorname{TopK}_{\mathbf{p}_i} \left( \min_l d_l(\mathbf{q},\mathbf{p}_i) \right).
-\]
-Actuellement, $K=100$. Cette sélection est mise à jour moins rapidement que la commande CBF.
-
-6. Vitesse feedforward
-
-Après IK et retiming, l'exécuteur calcule :
-\[
-\dot{\mathbf{q}}_{\mathrm{ff}}(t) = \frac{\mathbf{q}_{i+1}-\mathbf{q}_i}{t_{i+1}-t_i}.
-\]
-Elle représente l'intention instantanée de la trajectoire Flow Matching.
-
-7. Correction de suivi nominale
-
-L'erreur de suivi est :
-\[
-\mathbf{e}_q = \mathbf{q}_{\mathrm{nom}}-\mathbf{q}_{\mathrm{cur}}.
-\]
-La correction proportionnelle saturée est :
-\[
-\dot{\mathbf{q}}_{\mathrm{fb}} = \operatorname{sat} \left( K_p\mathbf{e}_q, \dot{\mathbf{q}}_{\mathrm{fb,max}} \right).
-\]
-La vitesse nominale brute devient :
-\[
-\dot{\mathbf{q}}_{\mathrm{raw}} = k_{\mathrm{ff}}\dot{\mathbf{q}}_{\mathrm{ff}} + \dot{\mathbf{q}}_{\mathrm{fb}}.
-\]
-Un filtre passe-bas est ensuite appliqué :
-\[
-\gamma_{\mathrm{nom}} = \frac{\Delta t}{\Delta t+\tau_{\mathrm{nom}}},
-\]
-\[
-\dot{\mathbf{q}}_{\mathrm{base},k} = (1-\gamma_{\mathrm{nom}}) \dot{\mathbf{q}}_{\mathrm{base},k-1} + \gamma_{\mathrm{nom}} \dot{\mathbf{q}}_{\mathrm{raw},k}.
-\]
-
-8. Contrainte CBF
-
-Comme les obstacles sont supposés localement statiques :
-\[
-\dot{h}(\mathbf{q}) = \nabla_{\mathbf{q}}h(\mathbf{q})^\top\dot{\mathbf{q}}.
-\]
-La condition CBF est :
-\[
-\nabla_{\mathbf{q}}h(\mathbf{q})^\top\dot{\mathbf{q}} + \kappa h(\mathbf{q}) \geq m_{\mathrm{CBF}}
-\]
-où $m_{\mathrm{CBF}}$ est une marge numérique.
-
-Une valeur différente de $\kappa$ est utilisée en violation :
-\[
-\kappa_{\mathrm{eff}} = \begin{cases} \kappa_{\mathrm{safe}}, & h\geq0,\\ \kappa_{\mathrm{recovery}}, & h<0. \end{cases}
-\]
-
-9. Projection de la vitesse
-
-Le problème équivalent est :
-\[
-\min_{\dot{\mathbf{q}}} \frac{1}{2} \left| \dot{\mathbf{q}}-\dot{\mathbf{q}}_{\mathrm{des}} \right|^2
-\]
-sous :
-\[
-\nabla h^\top\dot{\mathbf{q}} + \kappa_{\mathrm{eff}}h \geq m_{\mathrm{CBF}}.
-\]
-Définissons :
-\[
-c = \nabla h^\top\dot{\mathbf{q}}_{\mathrm{des}} + \kappa_{\mathrm{eff}}h-m_{\mathrm{CBF}}.
-\]
-Si $c\geq0$ :
-\[
-\dot{\mathbf{q}}_{\mathrm{safe}} = \dot{\mathbf{q}}_{\mathrm{des}}.
-\]
-Sinon :
-\[
-\lambda = \frac{-c}{|\nabla h|^2+\varepsilon},
-\]
-\[
-\dot{\mathbf{q}}_{\mathrm{safe}} = \dot{\mathbf{q}}_{\mathrm{des}} + \lambda\nabla h.
-\]
-La correction CBF est donc :
-\[
-\Delta\dot{\mathbf{q}}_{\mathrm{CBF}} = \dot{\mathbf{q}}_{\mathrm{safe}} - \dot{\mathbf{q}}_{\mathrm{des}}.
-\]
-
-10. Vitesse d'échappement
-
-La normale articulaire est :
-\[
-\mathbf{n}_q = \frac{\nabla h}{|\nabla h|+\varepsilon}.
-\]
-La vitesse nominale est décomposée en :
-\[
-\dot{\mathbf{q}}_{\mathrm{normal}} = (\dot{\mathbf{q}}_{\mathrm{base}}^\top\mathbf{n}_q)\mathbf{n}_q,
-\]
-\[
-\dot{\mathbf{q}}_{\mathrm{tangent}} = \dot{\mathbf{q}}_{\mathrm{base}} - \dot{\mathbf{q}}_{\mathrm{normal}}.
-\]
-La vitesse d'échappement est :
-\[
-\dot{\mathbf{q}}_{\mathrm{esc}} = k_n\rho(h)\mathbf{n}_q,
-\]
-où :
-\[
-\rho(h) = \operatorname{clip} \left( \frac{h_{\mathrm{normal}}-h}{h_{\mathrm{trigger}}}, 0,\rho_{\max} \right).
-\]
-Elle est limitée par :
-\[
-|\dot{\mathbf{q}}_{\mathrm{esc}}| \leq v_{\mathrm{esc,max}}.
-\]
-La vitesse reprojetée par le CBF devient :
-\[
-\dot{\mathbf{q}}_{\mathrm{des}} = \operatorname{sat} \left( \dot{\mathbf{q}}_{\mathrm{base}} + \dot{\mathbf{q}}_{\mathrm{esc}} \right).
-\]
-Cette composante d'échappement est une extension heuristique au CBF principal.
-
-11. Lissage de la vitesse sécurisée
-
-Un filtre exponentiel local est d'abord employé près de la frontière :
-\[
-\dot{\mathbf{q}}_{\mathrm{EMA},k} = \beta\dot{\mathbf{q}}_{\mathrm{safe},k} + (1-\beta)\dot{\mathbf{q}}_{\mathrm{EMA},k-1}.
-\]
-Un second filtre passe-bas final est appliqué :
-\[
-\gamma_{\mathrm{safe}} = \frac{\Delta t}{\Delta t+\tau_{\mathrm{safe}}},
-\]
-\[
-\dot{\mathbf{q}}_{f,k} = (1-\gamma_{\mathrm{safe}}) \dot{\mathbf{q}}_{f,k-1} + \gamma_{\mathrm{safe}} \dot{\mathbf{q}}_{\mathrm{safe},k}.
-\]
-
-12. Réparation après filtrage
-
-Le filtrage peut réintroduire une composante dangereuse. La contrainte est donc réévaluée :
-\[
-c_f = \nabla h^\top\dot{\mathbf{q}}_f + \kappa_{\mathrm{eff}}h - m_{\mathrm{CBF}}.
-\]
-Si $c_f<0$ :
-\[
-\dot{\mathbf{q}}_{\mathrm{final}} = \operatorname{sat} \left( \dot{\mathbf{q}}_f + \lambda_f\nabla h \right).
-\]
-
-13. Commande envoyée au contrôleur
-
-Quand le CBF intervient :
-\[
-\mathbf{q}_{\mathrm{cmd}} = \mathbf{q}_{\mathrm{cur}} + \dot{\mathbf{q}}_{\mathrm{final}}\Delta t
-\]
-L'avance de commande est limitée composante par composante :
-\[
-|\mathbf{q}_{\mathrm{cmd}}-\mathbf{q}_{\mathrm{cur}}| \leq \Delta q_{\max}.
-\]
-Il faut finalement préciser dans le mémoire que l'invariance théorique suppose une dynamique continue, un SDF exact, des obstacles correctement observés et un suivi parfait de la commande. Ton implémentation discrète fournit donc un filtrage réactif de sécurité, mais la garantie pratique dépend également de la perception, de la fréquence de commande et du contrôleur bas niveau.
