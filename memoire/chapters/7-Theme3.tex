@@ -86,30 +86,30 @@ La figure~\ref{fig:erreur_grad_SDF}(a) présente l'erreur angulaire entre le gra
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fig1_distance_accuracy.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fig1_distance_accuracy.svg}
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:distance_SDF}
 \end{figure}
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fig2_gradient_accuracy.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fig2_gradient_accuracy.svg}
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:erreur_grad_SDF}
 \end{figure}
 
 Ces résultats justifient la marge de sécurité $d_{\mathrm{safe}} = 15$~mm retenue au chapitre précédent : l'erreur de distance au 99\textsuperscript{e} centile (6,8~mm) reste largement inférieure à la marge, de sorte qu'une sous-estimation de la distance par le modèle ne suffit pas à amener le robot au contact. De plus, à $d_{\mathrm{safe}}$, la direction du gradient (erreur médiane $\approx 6^\circ$) et sa norme ($\approx 1$) sont déjà bien conditionnées, ce qui assure que la contrainte \ac{CBF} pousse le robot dans la bonne direction au moment où le filtre s'active.
 
 \subsection{Temps d'évaluation du SDF et du gradient}
-La figure~\ref{fig:temps_SDF} compare le temps d'évaluation conjointe de la distance et du gradient entre le modèle de Bernstein (analytique, sur \ac{GPU}) et la vérité terrain par requête de proximité sur les maillages (\texttt{trimesh}, sur \ac{CPU}). Le temps du modèle forme un plateau d'environ 5~ms jusqu'à quelques milliers de points : à ces tailles, le coût est dominé par des frais fixes par appel (cinématique directe, $\approx 2{,}5$~ms, lancement des noyaux \ac{GPU}, rétropropagation du gradient et transferts mémoire), le coût par point étant négligeable tant que le \ac{GPU} n'est pas saturé. La croissance ne devient visible qu'au-delà d'environ 4096 points, soit bien après le point d'opération du filtre ($K = 100$ points critiques). Au point d'opération, l'évaluation reste donc largement en deçà du budget de 12,5~ms imposé par la boucle de commande à 80~Hz, tandis que la requête sur maillage croît linéairement avec le nombre de points et dépasse ce budget d'un à deux ordres de grandeur, ce qui exclut son utilisation en ligne.
+La figure~\ref{fig:temps_SDF} compare le temps d'évaluation conjointe de la distance et du gradient entre le modèle de Bernstein (analytique, sur \ac{GPU}) et la vérité terrain par requête de proximité sur les maillages (\texttt{trimesh}, sur \ac{CPU}). Le temps du modèle forme un plateau d'environ 5~ms jusqu'à quelques milliers de points : à ces tailles, le coût est dominé par des frais fixes par appel (cinématique directe, $\approx 2{,}5$~ms, lancement des noyaux \ac{GPU}, évaluation du gradient et transferts mémoire), le coût par point étant négligeable tant que le \ac{GPU} n'est pas saturé. La croissance ne devient visible qu'au-delà d'environ 4096 points, soit bien après le point d'opération du filtre ($K = 100$ points critiques). Au point d'opération, l'évaluation reste donc largement en deçà du budget de 13,3~ms imposé par la boucle de commande à 75~Hz, tandis que la requête sur maillage croît linéairement avec le nombre de points et dépasse ce budget d'un à deux ordres de grandeur, ce qui exclut son utilisation en ligne.
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=0.78\textwidth]{images/Results/fig3_speed.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fig3_speed.svg}
     \caption{Temps de calcul de la distance et du gradient : modèle de Bernstein (\ac{GPU}) contre vérité terrain sur maillages (\ac{CPU}), en fonction du nombre de points de requête.}\label{fig:temps_SDF}
 \end{figure}
 \subsection{Visualisation des points critiques sélectionnés}
 
 \begin{figure}[htpb]
     \centering
-    \includegraphics[width=\textwidth]{images/Results/Red_point_cloud.png}
+    \includegraphics[width=0.7\textwidth]{images/Results/Red_point_cloud.png}
     \caption{Sélection des points les plus proches pour contraindre le CBF}\label{fig:Red_point}
 \end{figure}
 Enveloppe de sécurité correspondant à l’isosurface ($d_{\mathrm{robot}}=1{,}5\ \mathrm{cm}$).
@@ -121,39 +121,39 @@ Enveloppe de sécurité correspondant à l’isosurface ($d_{\mathrm{robot}}=1{,
 \subsection{Trajectoire générée sans obstacle critique}
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_distribution_erreur.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fm_distribution_erreur.svg}
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:dist_err_FM}
 \end{figure}
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_erreur_horizon.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fm_erreur_horizon.svg}
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:err_horizon}
 \end{figure}
 \subsection{Cohérence de la trajectoire avec la cible}
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_trajectoire_multimodale.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fm_trajectoire_multimodale.svg}
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:erreur_grad_SDF}
 \end{figure}
 À compléter.
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_denoising_scene_25_25.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fm_denoising_scene_25_25.svg}
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_2525}
 \end{figure}
 À compléter.
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_denoising_scene_32_25.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fm_denoising_scene_32_25.svg}
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_3225}
 \end{figure}
 À compléter.
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_denoising_scene_60_25.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fm_denoising_scene_60_25.svg}
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_6025}
 \end{figure}
 À compléter.
@@ -167,7 +167,7 @@ La Figure~\ref{fig:h_ev} présente l'évolution de la barrière $h_{\mathrm{soft
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/h_evolution.svg}
+    \includesvg[inkscapelatex=false]{images/Results/h_evolution.svg}
     \caption{Évolution de la barrière $h_{\mathrm{soft}}$ et de sa valeur compensée $h_{\mathrm{corr}}$ pour une tâche en présence d'obstacles; les bandes vertes indiquent les cycles où la projection corrige la vitesse, les bandes jaunes ceux où seule la réparation intervient.}\label{fig:h_ev}
 \end{figure}
 
@@ -175,7 +175,7 @@ La Figure~\ref{fig:constraint_ev} compare la valeur de la contrainte de sécurit
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/constraint_residual.svg}
+    \includesvg[inkscapelatex=false]{images/Results/constraint_residual.svg}
     \caption{Contrainte de sécurité évaluée sur la vitesse nominale (avant projection) et sur la commande finale (après réparation). Les valeurs négatives de la courbe nominale correspondent aux violations qu'aurait commises la trajectoire générée sans filtre.}\label{fig:constraint_ev}
 \end{figure}
 
@@ -192,24 +192,24 @@ La Figure~\ref{fig:vel_decomp} déroule la chaîne complète des Sections~\ref{s
 
 Trois observations ressortent. Premièrement, $\|\dot{\mathbf{q}}_{\mathrm{ff}}\|$ est constante à $0{,}25$~rad/s sur toute la tâche : le retiming à vitesse articulaire constante (Section~\ref{subsec:dqff}) remplit son rôle et fournit au filtre une référence régulière. Deuxièmement, la correction de projection est strictement nulle hors des zones d'activation : le filtre est transparent dès que la contrainte est satisfaite, ce qui confirme le mécanisme de transmission directe. On remarque d'ailleurs des épisodes où $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ est active alors que $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ demeure nulle (vers 5~s et 22~s) : la barrière y effleure la frontière sans la presser — la projection juge la vitesse instantanée admissible, mais la commande filtrée, qui porte la mémoire des cycles précédents, échoue à la revérification et est corrigée par la réparation. Troisièmement, la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ présente un bruit important dont l'analyse spectrale situe la puissance dominante à $12$~Hz, soit exactement la fréquence de regénération du planificateur : chaque nouvelle trajectoire générée déplace légèrement la consigne, et le gain de suivi $K_p$ transforme ces sauts en impulsions de vitesse.
 
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/velocity_decomposition.svg}
-    \caption{Décomposition des vitesses articulaires. (a)~Construction de la vitesse nominale : feedforward retimé à norme constante $\dot{\mathbf{q}}_{\mathrm{ff}}$, correction de suivi $\dot{\mathbf{q}}_{\mathrm{fb}}$ et vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$. (b)~Action du filtre de sécurité : corrections de projection $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ et de réparation $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ (reconstituée par rejeu du filtre de sortie), et vitesse commandée $\dot{\mathbf{q}}_{\mathrm{final}}$. Courbes lissées sur $0{,}25$~s.}\label{fig:vel_decomp}
-\end{figure}
+% \begin{figure}[htpb]
+%     \centering
+%     \includesvg[inkscapelatex=false]{images/Results/velocity_decomposition.svg}
+%     \caption{Décomposition des vitesses articulaires. (a)~Construction de la vitesse nominale : feedforward retimé à norme constante $\dot{\mathbf{q}}_{\mathrm{ff}}$, correction de suivi $\dot{\mathbf{q}}_{\mathrm{fb}}$ et vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$. (b)~Action du filtre de sécurité : corrections de projection $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ et de réparation $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ (reconstituée par rejeu du filtre de sortie), et vitesse commandée $\dot{\mathbf{q}}_{\mathrm{final}}$. Courbes lissées sur $0{,}25$~s.}\label{fig:vel_decomp}
+% \end{figure}
 
 \subsection{Action du filtre de sécurité sur la vitesse commandée}\label{subsec:res_cbf_action}
 La Figure~\ref{fig:cbf_action} superpose la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ (ce que le robot ferait en l'absence d'obstacle) et la vitesse commandée $\dot{\mathbf{q}}_{\mathrm{final}}$. Sur les cycles où le filtre intervient effectivement (projection ou réparation), la surface entre les deux courbes est teintée selon le sens de l'intervention : freinage lorsque le filtre retire de la vitesse, poussée lorsqu'il en ajoute (récupération hors de la marge). L'écart entre les deux courbes se lit donc directement comme l'amplitude de la modification. Hors des zones d'activation, $\|\dot{\mathbf{q}}_{\mathrm{final}}\|$ demeure légèrement sous $\|\dot{\mathbf{q}}_{\mathrm{base}}\|$ ($\approx 5$~\% en moyenne) : ce n'est pas une intervention de sécurité mais l'effet du filtre passe-bas de sortie ($\tau_{\mathrm{safe}}=0{,}2$~s), qui, en moyennant des vecteurs dont la direction fluctue d'un cycle à l'autre, produit une norme inférieure à la moyenne des normes — le même mécanisme d'annulation vectorielle que celui décrit à la Section~\ref{subsec:res_replan}.
 
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/cbf_action.svg}
-    \caption{Action du filtre de sécurité : vitesse nominale et vitesse commandée superposées. Les surfaces teintées, restreintes aux cycles où le filtre intervient (projection ou réparation), distinguent le freinage de la poussée de récupération ; l'écart résiduel non teinté est l'effet du filtre passe-bas de sortie.}\label{fig:cbf_action}
-\end{figure}
+% \begin{figure}[htpb]
+%     \centering
+%     \includesvg[inkscapelatex=false]{images/Results/cbf_action.svg}
+%     \caption{Action du filtre de sécurité : vitesse nominale et vitesse commandée superposées. Les surfaces teintées, restreintes aux cycles où le filtre intervient (projection ou réparation), distinguent le freinage de la poussée de récupération ; l'écart résiduel non teinté est l'effet du filtre passe-bas de sortie.}\label{fig:cbf_action}
+% \end{figure}
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/per_joint_velocity.svg}
+    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/per_joint_velocity.svg}
     \caption{Action du filtre de sécurité : vitesse nominale et vitesse commandée superposées. Les surfaces teintées, restreintes aux cycles où le filtre intervient (projection ou réparation), distinguent le freinage de la poussée de récupération ; l'écart résiduel non teinté est l'effet du filtre passe-bas de sortie.}\label{fig:joint_vel}
 \end{figure}
 
@@ -221,7 +221,7 @@ La Figure~\ref{fig:filter_effect} compare la norme de la vitesse sécurisée ava
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/filter_effect.svg}
+    \includesvg[inkscapelatex=false]{images/Results/filter_effect.svg}
     \caption{Norme de la vitesse sécurisée avant et après le filtre passe-bas de sortie ($\tau_{\mathrm{safe}}=0{,}2$~s).}\label{fig:filter_effect}
 \end{figure}
 
@@ -250,11 +250,11 @@ fm\_generation                   & 263  & 62.07  & 6.40   & 61.62  & 73.89  & 83
 ik                               & 255  & 0.27   & 0.09   & 0.25   & 0.43   & 0.93   \\
 persistent\_evict                & 709  & 3.17   & 1.74   & 2.76   & 5.90   & 22.08  \\
 persistent\_integrate            & 1753 & 1.02   & 1.06   & 0.84   & 1.80   & 23.85  \\
-planner\_total                   & 263  & 64.22  & 7.07   & 63.64  & 78.04  & 94.15  \\
-projection                       & 313  & 22.86  & 7.00   & 20.95  & 40.22  & 50.77  \\
+% planner\_total                   & 263  & 64.22  & 7.07   & 63.64  & 78.04  & 94.15  \\
+% projection                       & 313  & 22.86  & 7.00   & 20.95  & 40.22  & 50.77  \\
 sam2\_track                      & 132  & 53.85  & 15.10  & 52.77  & 78.66  & 91.14  \\
 sam3\_detect                     & 2    & 182.45 & 152.72 & 182.45 & 319.89 & 335.16 \\
-trajectory\_build                & 254  & 25.05  & 3.90   & 24.31  & 31.54  & 44.99  \\
+% trajectory\_build                & 254  & 25.05  & 3.90   & 24.31  & 31.54  & 44.99  \\
 \bottomrule
 \end{tabular}
 \smallskip
