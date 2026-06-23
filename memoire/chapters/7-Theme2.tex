@@ -216,7 +216,7 @@ La vitesse nominale brute $\dot{\mathbf{q}}_{\mathrm{raw}} = \dot{\mathbf{q}}_{\
 \]
 puis saturée aux limites de vitesse articulaire et annulée sous un seuil de maintien (évitant toute dérive en station). Le résultat $\dot{\mathbf{q}}_{\mathrm{base}}$ est la \emph{vitesse nominale filtrée} : c'est l'entrée du filtre de sécurité, et la référence par rapport à laquelle toutes les interventions de celui-ci sont mesurées au Chapitre~\ref{sec:Theme3}.
 
-\subsection{De la vitesse nominale à la commande sécurisée}\label{subsec:projection}
+\subsection{De la vitesse nominale à la commande sécurisée v1}\label{subsec:projection}
 Tous les ingrédients de~\eqref{eq:cbf_qp} sont maintenant en place. Sa résolution s'opère en trois temps — projection, lissage, réparation — dont chacun produit une vitesse intermédiaire consommée par le suivant :
 \[
 \dot{\mathbf{q}}_{\mathrm{base}}
@@ -274,6 +274,253 @@ La consigne envoyée au contrôleur de position bas niveau intègre cette vitess
 \big|\mathbf{q}_{\mathrm{ref},k}-\mathbf{q}_{\mathrm{cur}}\big| \leq \Delta q_{\mathrm{lead}} \;\; \text{(composante par composante)},
 \]
 où $\Delta t$ est la période réelle de la boucle de commande. Deux propriétés de cette intégration sont essentielles. Premièrement, la référence s'accumule à partir de la consigne précédente et non de la position mesurée : ré-ancrer la consigne sur $\mathbf{q}_{\mathrm{cur}}$ à chaque cycle réduit la vitesse effectivement réalisée à une fraction de la vitesse certifiée, le contrôleur n'ayant jamais le temps de compléter chaque pas — les corrections de sécurité sont alors réabsorbées avant d'être exécutées. Deuxièmement, le pas d'intégration doit être la période réelle $\Delta t$ : tout facteur supplémentaire fait avancer la référence plus vite que la vitesse certifiée par la contrainte, ce qui invalide la garantie en temps discret. La borne $\Delta q_{\mathrm{lead}}$ limite la divergence entre référence et position mesurée. Lorsque le filtre est inactif et ne modifie pas la vitesse nominale, la consigne temporisée de l'exécuteur est transmise directement.
+
+\subsection{De la vitesse nominale à la commande sécurisée}\label{subsec:projection}
+
+  La commande sécurisée est construite à partir d'une vitesse nominale articulaire, puis modifiée uniquement lorsque la contrainte de sécurité
+  devient active. L'exécuteur de trajectoire fournit d'abord une vitesse feedforward retimée $\dot{\mathbf{q}}_{\mathrm{ff}}$, qui représente
+  l'intention instantanée de la trajectoire générée. À cette vitesse est ajoutée une correction de suivi proportionnelle bornée $\dot{\mathbf{q}}
+  _{\mathrm{fb}}$, calculée à partir de l'erreur entre la consigne nominale courante et la configuration mesurée. La vitesse nominale brute est
+  donc
+  \[
+  \dot{\mathbf{q}}_{\mathrm{raw}}
+  =
+  \dot{\mathbf{q}}_{\mathrm{ff}}
+  +
+  \dot{\mathbf{q}}_{\mathrm{fb}}.
+  \]
+
+  Afin d'éviter les discontinuités dues à l'interpolation temporelle des points de passage, cette vitesse est filtrée par un filtre passe-bas
+  exponentiel de constante de temps $\tau_{\mathrm{nom}}$ :
+  \[
+  \mathcal{F}_{\tau_{\mathrm{nom}}}
+  [
+  \dot{\mathbf{q}}_{\mathrm{raw}}
+  ]_k
+  =
+  (1-\gamma_{\mathrm{nom}})
+  \mathcal{F}_{\tau_{\mathrm{nom}}}
+  [
+  \dot{\mathbf{q}}_{\mathrm{raw}}
+  ]_{k-1}
+  +
+  \gamma_{\mathrm{nom}}
+  \dot{\mathbf{q}}_{\mathrm{raw},k},
+  \]
+  avec
+  \[
+  \gamma_{\mathrm{nom}}
+  =
+  \frac{\Delta t}{\Delta t+\tau_{\mathrm{nom}}}.
+  \]
+  La vitesse nominale transmise au filtre CBF est ensuite saturée aux limites articulaires :
+  \[
+  \dot{\mathbf{q}}_{\mathrm{base}}
+  =
+  \operatorname{sat}
+  \left(
+  \mathcal{F}_{\tau_{\mathrm{nom}}}
+  [
+  \dot{\mathbf{q}}_{\mathrm{raw}}
+  ]
+  \right).
+  \]
+
+  Lorsque le robot est très près de la frontière de sécurité, un terme d'échappement local peut être ajouté avant la projection CBF. Ce mécanisme
+  vise à favoriser un mouvement tangent à la surface de contrainte lorsque la correction CBF s'oppose déjà fortement à la vitesse nominale. Il est
+  activé seulement si le robot est proche de la frontière et si la correction CBF dépasse un seuil minimal. En pratique, dans les essais
+  rapportés, ce terme est généralement nul.
+
+  Soit
+  \[
+  \mathbf{n}
+  =
+  \frac{\nabla h}{\|\nabla h\|+\varepsilon}
+  \]
+  la direction normale à la frontière de sécurité dans l'espace articulaire. La composante tangentielle de la vitesse nominale est
+  \[
+  \dot{\mathbf{q}}_{\parallel}
+  =
+  \dot{\mathbf{q}}_{\mathrm{base}}
+  -
+  (\dot{\mathbf{q}}_{\mathrm{base}}^\top\mathbf{n})\mathbf{n}.
+  \]
+  Le terme d'échappement est défini par
+  \[
+  \dot{\mathbf{q}}_{\mathrm{esc}}
+  =
+  k_{\mathrm{tan}}
+  \dot{\mathbf{q}}_{\parallel}
+  +
+  k_{\mathrm{n}}s(h)\mathbf{n},
+  \]
+  où
+  \[
+  s(h)
+  =
+  \operatorname{clip}
+  \left(
+  \frac{h_{\mathrm{n,trig}}-h_{\mathrm{esc}}}{h_{\mathrm{trig}}},
+  0,
+  1.5
+  \right).
+  \]
+  La valeur $h_{\mathrm{esc}}$ est la barrière utilisée pour décider l'activation de l'échappement :
+  \[
+  h_{\mathrm{esc}}
+  =
+  \begin{cases}
+  h+\alpha\log N, & \text{si la compensation du biais soft-min est utilisée},\\
+  h, & \text{sinon}.
+  \end{cases}
+  \]
+  La norme de $\dot{\mathbf{q}}_{\mathrm{esc}}$ est bornée par une vitesse maximale $\dot q_{\mathrm{esc,max}}$. La vitesse soumise à la
+  projection CBF est alors
+  \[
+  \dot{\mathbf{q}}_{\mathrm{in}}
+  =
+  \dot{\mathbf{q}}_{\mathrm{base}}
+  +
+  \mathbb{I}_{\mathrm{esc}}
+  \dot{\mathbf{q}}_{\mathrm{esc}},
+  \]
+  où $\mathbb{I}_{\mathrm{esc}}\in\{0,1\}$ indique si l'échappement local est actif.
+
+  La projection CBF principale calcule ensuite la vitesse admissible la plus proche de $\dot{\mathbf{q}}_{\mathrm{in}}$ :
+  \[
+  \dot{\mathbf{q}}_{\mathrm{proj}}
+  =
+  \operatorname*{arg\,min}_{\dot{\mathbf{q}}}
+  \frac{1}{2}
+  \left\|
+  \dot{\mathbf{q}}
+  -
+  \dot{\mathbf{q}}_{\mathrm{in}}
+  \right\|^2
+  \quad
+  \text{s.c.}
+  \quad
+  \nabla h^\top\dot{\mathbf{q}}
+  \geq
+  b(h).
+  \]
+  Dans le cas à une contrainte active, cette projection s'écrit sous forme fermée :
+  \[
+  \Delta\dot{\mathbf{q}}_{\mathrm{CBF}}
+  =
+  \frac{
+  \max\!\left(0,\; b(h)-\nabla h^\top\dot{\mathbf{q}}_{\mathrm{in}}\right)
+  }{
+  \|\nabla h\|^2+\varepsilon
+  }
+  \nabla h,
+  \]
+  avec
+  \[
+  \dot{\mathbf{q}}_{\mathrm{proj}}
+  =
+  \dot{\mathbf{q}}_{\mathrm{in}}
+  +
+  \Delta\dot{\mathbf{q}}_{\mathrm{CBF}}.
+  \]
+  La correction $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ est bornée en norme afin de limiter l'agressivité de l'intervention.
+
+  La vitesse projetée est ensuite saturée aux limites articulaires :
+  \[
+  \dot{\mathbf{q}}_{\mathrm{proj,sat}}
+  =
+  \operatorname{sat}
+  (
+  \dot{\mathbf{q}}_{\mathrm{proj}}
+  ).
+  \]
+  Cette vitesse saturée est filtrée par un second filtre passe-bas exponentiel de constante de temps $\tau_{\mathrm{safe}}$ :
+  \[
+  \dot{\mathbf{q}}_{f,k}
+  =
+  (1-\gamma_{\mathrm{safe}})
+  \dot{\mathbf{q}}_{f,k-1}
+  +
+  \gamma_{\mathrm{safe}}
+  \dot{\mathbf{q}}_{\mathrm{proj,sat},k},
+  \]
+  avec
+  \[
+  \gamma_{\mathrm{safe}}
+  =
+  \frac{\Delta t}{\Delta t+\tau_{\mathrm{safe}}}.
+  \]
+  L'ordre saturation puis filtrage évite que le filtre mémorise une vitesse physiquement irréalisable.
+
+  La saturation et le filtrage peuvent toutefois réintroduire une légère violation de la contrainte CBF. La contrainte est donc réévaluée sur la
+  vitesse filtrée :
+  \[
+  c_f
+  =
+  \nabla h^\top
+  \dot{\mathbf{q}}_{f}
+  +
+  \kappa_{\mathrm{eff}}h
+  -
+  m_{\mathrm{CBF}},
+  \]
+  où
+  \[
+  \kappa_{\mathrm{eff}}
+  =
+  \begin{cases}
+  \kappa_{\mathrm{safe}}, & h\geq 0,\\
+  \kappa_{\mathrm{rec}}, & h<0.
+  \end{cases}
+  \]
+  Si $c_f<0$ dans la bande d'activation, une réparation finale est appliquée :
+  \[
+  \Delta\dot{\mathbf{q}}_{\mathrm{rep}}
+  =
+  \frac{
+  \max(0,-c_f)
+  }{
+  \|\nabla h\|^2+\varepsilon
+  }
+  \nabla h.
+  \]
+  Cette réparation est une projection corrective sur la même contrainte CBF linéarisée. Elle ne constitue pas une seconde évaluation complète du
+  CBF, car elle réutilise la même valeur de barrière $h$ et le même gradient $\nabla h$ que la projection principale.
+
+  La vitesse finale envoyée à la commande est donc
+  \[
+  \dot{\mathbf{q}}_{\mathrm{final}}
+  =
+  \operatorname{sat}
+  \left(
+  \dot{\mathbf{q}}_{f}
+  +
+  \Delta\dot{\mathbf{q}}_{\mathrm{rep}}
+  \right).
+  \]
+
+  Lorsque la contrainte est inactive et que la projection ne modifie pas la vitesse nominale, le filtre est transparent : la consigne de position
+  nominale temporisée est transmise directement au contrôleur. Dans le cas contraire, puisque le contrôleur bas niveau est un contrôleur de
+  position, la vitesse sécurisée est intégrée dans une référence articulaire persistante :
+  \[
+  \mathbf{q}_{\mathrm{ref},k}
+  =
+  \mathbf{q}_{\mathrm{ref},k-1}
+  +
+  \dot{\mathbf{q}}_{\mathrm{final},k}\Delta t,
+  \]
+  avec une borne composante par composante sur l'avance de la consigne :
+  \[
+  \left|
+  \mathbf{q}_{\mathrm{ref},k}
+  -
+  \mathbf{q}_{\mathrm{cur},k}
+  \right|
+  \leq
+  \Delta q_{\mathrm{lead}}.
+  \]
+  Cette intégration persistante évite de reconstruire la consigne à partir de la position mesurée à chaque cycle, ce qui absorberait une partie de
+  la vitesse certifiée avant qu'elle soit effectivement suivie par le contrôleur.
 
 \subsection{Extension multi-contraintes et portée des garanties}\label{subsec:multicbf}
 La projection sur un demi-espace unique traite un seul obstacle critique à la fois : deux obstacles menaçant simultanément des liens différents sont agrégés en une contrainte moyenne. La variante multi-contraintes attribue un demi-espace à chaque point actif. Les valeurs $h_i$ de l'ensemble des points sélectionnés sont d'abord évaluées sans gradient, puis l'ensemble actif $\mathcal{A}$ des $K_a$ points les plus critiques vérifiant $h_i \leq h_{\mathrm{act}}$ est retenu, et la matrice des gradients $\mathbf{G} = [\nabla h_1, \ldots, \nabla h_{K_a}]^\top$ est obtenue par un unique produit vecteur-jacobienne groupé. Le problème~\eqref{eq:cbf_qp}, étendu à un demi-espace par contrainte active,

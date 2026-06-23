@@ -78,11 +78,17 @@ La figure~\ref{fig:distance_SDF} compare la distance prédite à la distance exa
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fig1_distance_accuracy.svg}
-    \caption{Précision de la distance du \ac{SDF} de Bernstein. (a)~Profil de distance le long des normales à la surface du robot ; (b)~distribution de l'erreur signée par rapport à la distance exacte calculée sur les maillages.}\label{fig:distance_SDF}
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fig_sdf.svg}
+    \caption{Précision de la distance du \ac{SDF} de Bernstein. (a)~Profil de distance le long des normales à la surface du robot ; (b)~distribution de l'erreur signée par rapport à la distance exacte calculée sur les maillages.}\label{fig:SDF}
 \end{figure}
 
 La figure~\ref{fig:erreur_grad_SDF}(a) présente l'erreur angulaire entre le gradient du modèle et la direction exacte (vecteur vers le point de surface le plus proche). L'erreur médiane globale est de $5{,}4^\circ$, et reste sous $10^\circ$ pour la grande majorité des points dès 5~mm de la surface. La figure~\ref{fig:erreur_grad_SDF}(b) montre la norme du gradient : une \ac{SDF} exacte satisfait la propriété eikonale $\|\nabla h\| = 1$, et le modèle s'en approche au-delà de 10~mm, avec un affaissement vers $0{,}7$ tout près de la surface, où le polynôme lisse le passage par zéro.
+
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fig1_distance_accuracy.svg}
+    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:distance_SDF}
+\end{figure}
 
 \begin{figure}[htpb]
     \centering
@@ -113,7 +119,43 @@ Enveloppe de sécurité correspondant à l’isosurface ($d_{\mathrm{robot}}=1{,
 \section{Qualité de la génération nominale}
 % =================================================================
 \subsection{Trajectoire générée sans obstacle critique}
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_distribution_erreur.svg}
+    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:dist_err_FM}
+\end{figure}
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_erreur_horizon.svg}
+    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:err_horizon}
+\end{figure}
 \subsection{Cohérence de la trajectoire avec la cible}
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_trajectoire_multimodale.svg}
+    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:erreur_grad_SDF}
+\end{figure}
+À compléter.
+
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_denoising_scene_25_25.svg}
+    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_2525}
+\end{figure}
+À compléter.
+
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_denoising_scene_32_25.svg}
+    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_3225}
+\end{figure}
+À compléter.
+
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fm_denoising_scene_60_25.svg}
+    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_6025}
+\end{figure}
 À compléter.
 
 % =================================================================
@@ -165,6 +207,12 @@ La Figure~\ref{fig:cbf_action} superpose la vitesse nominale $\dot{\mathbf{q}}_{
     \caption{Action du filtre de sécurité : vitesse nominale et vitesse commandée superposées. Les surfaces teintées, restreintes aux cycles où le filtre intervient (projection ou réparation), distinguent le freinage de la poussée de récupération ; l'écart résiduel non teinté est l'effet du filtre passe-bas de sortie.}\label{fig:cbf_action}
 \end{figure}
 
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/per_joint_velocity.svg}
+    \caption{Action du filtre de sécurité : vitesse nominale et vitesse commandée superposées. Les surfaces teintées, restreintes aux cycles où le filtre intervient (projection ou réparation), distinguent le freinage de la poussée de récupération ; l'écart résiduel non teinté est l'effet du filtre passe-bas de sortie.}\label{fig:joint_vel}
+\end{figure}
+
 \subsection{Effet du rééchantillonnage du planificateur sur la vitesse exécutée}\label{subsec:res_replan}
 La décomposition révèle un effet systémique du fonctionnement en horizon glissant. Bien que $\|\dot{\mathbf{q}}_{\mathrm{ff}}\|=0{,}25$~rad/s et que la correction de suivi soit en moyenne alignée avec le feedforward (composante moyenne de $+0{,}03$~rad/s le long de $\dot{\mathbf{q}}_{\mathrm{ff}}$), la vitesse nominale filtrée ne moyenne que $\approx 0{,}15$~rad/s. La cause n'est pas un freinage mais un phénomène vectoriel : à chaque regénération, la \emph{direction} instantanée de $\dot{\mathbf{q}}_{\mathrm{ff}}$ saute (rotations atteignant $80^\circ$ entre cycles consécutifs au 95\textsuperscript{e} centile), et le filtre passe-bas, en moyennant des vecteurs dont la direction alterne à $12$~Hz, produit un vecteur de norme inférieure à la moyenne des normes. Près de 40~\% de la vitesse demandée est ainsi perdue par annulation vectorielle, indépendamment de tout obstacle. Ce constat motive l'agrégation temporelle des trajectoires générées (moyennage pondéré des dernières générations) comme amélioration future du planificateur.
 
@@ -184,10 +232,45 @@ L'instrumentation du rapport entre le taux de variation de la barrière command�
 % =================================================================
 \section{Performance et temps de calcul}
 % =================================================================
+
+\begin{table}[htbp]
+\centering
+\caption{Statistiques descriptives par étape (stage)}
+\label{tab:stage_stats}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Stage} & \textbf{n} & \textbf{Mean} & \textbf{std/min} & \textbf{Med} & \textbf{p95} & \textbf{Max} \\
+\midrule
+casf\_warp\footnotemark[1]       & 263  & 0.00   & 0.00   & 0.00   & 0.00   & 0.00   \\
+cbf\_command                     & 1660 & 1.88   & 2.12   & 1.38   & 4.98   & 31.10  \\
+cbf\_correction                  & 1660 & 7.58   & 5.41   & 6.50   & 17.65  & 41.44  \\
+cbf\_total                       & 1660 & 9.91   & 6.43   & 8.60   & 22.06  & 57.81  \\
+critical\_point\_selection       & 832  & 42.27  & 18.35  & 39.62  & 75.49  & 148.81 \\
+fm\_correction\footnotemark[1]   & 263  & 0.00   & 0.00   & 0.00   & 0.00   & 0.00   \\
+fm\_encode                       & 263  & 1.51   & 2.21   & 1.02   & 2.85   & 20.87  \\
+fm\_generation                   & 263  & 62.07  & 6.40   & 61.62  & 73.89  & 83.89  \\
+ik                               & 255  & 0.27   & 0.09   & 0.25   & 0.43   & 0.93   \\
+ik\_correction\footnotemark[1]   & 263  & 0.00   & 0.00   & 0.00   & 0.00   & 0.00   \\
+persistent\_evict                & 709  & 3.17   & 1.74   & 2.76   & 5.90   & 22.08  \\
+persistent\_integrate            & 1753 & 1.02   & 1.06   & 0.84   & 1.80   & 23.85  \\
+planner\_total                   & 263  & 64.22  & 7.07   & 63.64  & 78.04  & 94.15  \\
+projection                       & 313  & 22.86  & 7.00   & 20.95  & 40.22  & 50.77  \\
+sam2\_track                      & 132  & 53.85  & 15.10  & 52.77  & 78.66  & 91.14  \\
+sam3\_detect                     & 2    & 182.45 & 152.72 & 182.45 & 319.89 & 335.16 \\
+trajectory\_build                & 254  & 25.05  & 3.90   & 24.31  & 31.54  & 44.99  \\
+\bottomrule
+\end{tabular}
+\smallskip
+\begin{flushleft}
+\small \footnotemark[1] Inactive.
+\end{flushleft}
+\end{table}
+
 \subsection{Temps de génération de trajectoire}
 \subsection{Temps de sélection des points critiques}
 \subsection{Temps de correction SDF-CBF}
 \subsection{Délais jusqu'au contrôleur}
+
 À compléter.
 
 % =================================================================
