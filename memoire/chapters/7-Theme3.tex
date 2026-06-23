@@ -78,7 +78,7 @@ La figure~\ref{fig:distance_SDF} compare la distance prédite à la distance exa
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false,width=\textwidth]{images/Results/fig_sdf.svg}
+    \includesvg[inkscapelatex=false]{images/Results/fig_sdf.svg}
     \caption{Précision de la distance du \ac{SDF} de Bernstein. (a)~Profil de distance le long des normales à la surface du robot ; (b)~distribution de l'erreur signée par rapport à la distance exacte calculée sur les maillages.}\label{fig:SDF}
 \end{figure}
 
@@ -241,16 +241,13 @@ L'instrumentation du rapport entre le taux de variation de la barrière command�
 \toprule
 \textbf{Stage} & \textbf{n} & \textbf{Mean} & \textbf{std/min} & \textbf{Med} & \textbf{p95} & \textbf{Max} \\
 \midrule
-casf\_warp\footnotemark[1]       & 263  & 0.00   & 0.00   & 0.00   & 0.00   & 0.00   \\
 cbf\_command                     & 1660 & 1.88   & 2.12   & 1.38   & 4.98   & 31.10  \\
 cbf\_correction                  & 1660 & 7.58   & 5.41   & 6.50   & 17.65  & 41.44  \\
 cbf\_total                       & 1660 & 9.91   & 6.43   & 8.60   & 22.06  & 57.81  \\
 critical\_point\_selection       & 832  & 42.27  & 18.35  & 39.62  & 75.49  & 148.81 \\
-fm\_correction\footnotemark[1]   & 263  & 0.00   & 0.00   & 0.00   & 0.00   & 0.00   \\
 fm\_encode                       & 263  & 1.51   & 2.21   & 1.02   & 2.85   & 20.87  \\
 fm\_generation                   & 263  & 62.07  & 6.40   & 61.62  & 73.89  & 83.89  \\
 ik                               & 255  & 0.27   & 0.09   & 0.25   & 0.43   & 0.93   \\
-ik\_correction\footnotemark[1]   & 263  & 0.00   & 0.00   & 0.00   & 0.00   & 0.00   \\
 persistent\_evict                & 709  & 3.17   & 1.74   & 2.76   & 5.90   & 22.08  \\
 persistent\_integrate            & 1753 & 1.02   & 1.06   & 0.84   & 1.80   & 23.85  \\
 planner\_total                   & 263  & 64.22  & 7.07   & 63.64  & 78.04  & 94.15  \\
@@ -262,7 +259,6 @@ trajectory\_build                & 254  & 25.05  & 3.90   & 24.31  & 31.54  & 44
 \end{tabular}
 \smallskip
 \begin{flushleft}
-\small \footnotemark[1] Inactive.
 \end{flushleft}
 \end{table}
 
