@@ -15,7 +15,7 @@
 % =================================================================
 \subsection{Extraction Sémantique}
 Parler de l'utilisation de VLM et de SAM 3 qui prends en entrée prompt de VLM pour détecter le target. Tu vas avoir un output mask qui va permettre de voir ou se trouve le target au premier frame.
-\subsection{Suivi temporel de la cible avec SAM2 tiny}
+\subsection{Suivi temporel de la cible}
 \subsection{Projection RGB-D vers l'espace 3D}
 \subsection{Séparation cible, obstacles et outil visible}
 \subsection{Nettoyage spatial du nuage d'obstacles}
@@ -40,18 +40,128 @@ jusqu'à la limite $\max\_voxels$ (suppresion des points par vieillissement temp
 
 Suppresion des voxels supprimées si $z_{mesure} - z_{voxel} > seuil$ (car la caméra voit là où le voxel était supposé caché)
 
-\subsection{Ajout de la surface sous la cible pour éviter les vides sous la cible}
-Pour séparer cible de l'environnement, on utilise une sphère. Cette sphère créée un vide sous la cible. On ajoute donc une surface synthétique pour combler ce vide.
-
 % =================================================================
 \section{Acquisition des données et représentation des démonstrations}
 % =================================================================
-\subsection{Protocol de collecte des démonstrations}
-Avec des données réelles et avec Maniskill pour augmenter le Dataset et parce que le robot a brisé.
 
-Qu'est ce que je récupère? Sous quel format? Comment est-ce que je classe toutes mes données / les entrepose
+Cette sous-section a comme objectif de présenter le protocol utilisé afin de collecter les données nécessaires pour entraîner le modèle d'IA générative ainsi que l'étape de prétraitement de ces données.
+\subsection{Protocol de collecte des démonstrations} \label{subsec:Protocol}
+
+Les données d'entraînement utilisée pour entraîner le modèle de Flow Matching ont été acquises de deux manières. La première d'entre elle est sur le robot et les capteurs réels et la seconde est issue de simulation avec la librairie Maniskill 3. Cette librairie a été choisite pour sa facilité d'utilisation et son moteur de calcul à l'état de l'art basé sur XXX de Nvidia.
+Les deux méthodes utilisent des environnements quasi identiques afin de récolter les données de la même manière. 
+Pour récolter les données réelles, le protocol suivant à été utilisé :
+Ajouter : les 9 Positionnements de l'assitte et les 5 positions des cibles dans l'assiette pour avoir la meilleure représentation possible. Dire qu'on fait une phase de descente vers la cible et que l'on rotate l'outil pour qu'elles restent verticales et qu'elles s'alignent avec l'axe principale de la cible.
+\begin{enumerate}
+  \item Installation de la caméra sur le support officiel de Franka au niveau de l'effecteur. Le support est en annexe
+  \item Positionnement des joints du robot à $\mathbf{q}=[0,0,0,0,0,0,0]$
+  \item positionnement de la cible dans le champs de vision de la caméra sur une boîte de $\pm XXX$ m. 
+  \item Mettre le robot en mode Réflexe pour qu'il puisse être guider par un humain.
+  \item Réaliser la trajectoire robotique souhaitée pour aller chercher la cible et réaliser la trajectoire à apprendre par le modèle.
+  \item Enregistrer les données dans un fichier JSON.
+\end{enumerate}
+L'enregistrement des données se fait en utilisant 2 noeuds ROS distincts. Le premier noeud, écrit en C++ pour la rapidité d'exécution et de lecture, lis les données suivantes provenant du robot :
+\begin{enumerate}
+  \item Pose du TCP dans le repère monde [1,7]. Les trois premières dimensions sont reliées à la position cartésienne et les 4 dernières à l'orientation sous la forme d'un quaternion.
+  \item Vélocité du TCP dans le repère monde [1,6]. Les trois premières position sont les vélocités cartésiennes et les 3 suivantes les vélocités angulaires.
+\end{enumerate}
+L'ensemble de ces données sont publiées sout la forme de message ROS. Il sont par la suite suivies par un second noeud écrit en Python, qui suit aussi les données RGB-D de la caméra à l'effecteur. Ce noeud à la responsabilité d'enregistrer l'ensemble des données d'entraînement dans un fichier JSON. En plus des données du TCP, les données de la caméra ainsi que les données structurelles suivantes sont ajoutées afin d'organiser la base de données : 
+\begin{enumerate}
+  \item step\_number : le numéro du jeu de données pour la trajectoire
+  \item time\_step : le moment de la prise de données depuis le début de la trajectoire
+  \item rgb : le nom du fichier de la photo. Ce dernier est, par nomenclature, nommé \\ ee\_rgb\_step\_\{step\_number\}.png.
+  \item depth\_npy : le nom du fichier de la carte de profondeur. Ce dernier est, par nomenclature, nommé ee\_depth\_step\_\{step\_number\}.npy
+\end{enumerate}
+La figure \ref{fig:architecture_acquisition} représente l'architecture du système d'acquisition de données pour entraîner le modèle d'IA générative.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{images/Méthodologie/Système_acquisition.png}
+    \caption{Architecture du système d'acquisition de données}\label{fig:architecture_acquisition}
+\end{figure}
+
+Ces données sont ensuite enregistrées dans un dossier racine sous la forme d'un dossier nommé Trajectoire\_X où X représente le numéro de la trajectoire enregistrée. Dans ce dossier chacun de ces dossiers se trouve un fichier JSON avec l'ensemble des données numériques et les noms des ficheirs images ainsi qu'un dossier contenant l'ensemble des images et des fichiers de profondeurs. la représentation de l'architecture de l'enregistrement des fichiers est représentée sur la figure \ref{fig:dir_tree}:
+\begin{figure}[htbp!]
+\centering
+\begin{minipage}{0.8\textwidth} % Keeps the tree neatly aligned
+\dirtree{%
+.1 Trajectories\_record/.
+.2 Trajectory\_1/.
+.3 trajectory\_1.json.
+.3 images\_Trajectory\_1/.
+.4 ee\_rgb\_step\_0000.png.
+.4 ee\_rgb\_step\_0001.png.
+.4 ee\_depth\_step\_0000.npy.
+.4 ee\_depth\_step\_0001.npy.
+.4 ....
+.2 Trajectory\_2/.
+.3 trajectory\_2.json.
+.3 images\_Trajectory\_2/.
+.4 ee\_rgb\_step\_0000.png.
+.4 ee\_rgb\_step\_0001.png.
+.4 ee\_depth\_step\_0000.npy.
+.4 ee\_depth\_step\_0001.npy.
+.4 ....
+}
+\end{minipage}
+\caption{Directory structure of the PickPlace dataset execution tests.}
+\label{fig:dir_tree}
+\end{figure}
+
 \subsection{Prétraitement des données}
-Détection avec SAM3
+
+\begin{figure}[htbp!]
+\centering
+\begin{minipage}{0.8\textwidth}
+\dirtree{%
+.1 Trajectories\_preprocess/.
+.2 Trajectory\_1/.
+.3 trajectory\_1.json.
+.3 images\_Trajectory\_1/.
+.4 0001.jpg.
+.4 0002.jpg.
+.4 ....
+.3 Merged\_Fork\_Trajectory\_1/.
+.4 Merged\_Fork\_0001.npy.
+.4 Merged\_Fork\_0002.npy.
+.4 ....
+.2 Trajectory\_2/.
+.3 trajectory\_2.json.
+.3 images\_Trajectory\_2/.
+.4 0001.jpg.
+.4 0002.jpg.
+.4 ....
+.3 Merged\_Fork\_Trajectory\_2/.
+.4 Merged\_Fork\_0001.npy.
+.4 Merged\_Fork\_0002.npy.
+.4 ....
+}
+\end{minipage}
+\caption{Directory structure of the preprocessed trajectory dataset.}
+\label{fig:preprocess_dir_tree}
+\end{figure}
+
+À partir des données enregistré en \ref{subsec:Protocol}, plusieurs étapes de prétraitement sont réalisées hors ligne afin d'accélérer l'entraînement du modèle. Ces étapes sont listées et détaillées dans cette sous-section.
+
+\subsubsection{Détection avec un modèle de segmentation}
+La première étape consiste à détecter la cible dans la première image de chacune des trajectoires. Cette détection est réalisée avec le modèle à l'état de l'art Segment Anything 3 (SAM3) qui peut réaliser de la segmentation par prompt. Ainsi, une liste de cibles possibles est donnée en entrée au modèle et le masque de la cible dans l'image est obtenue en sortie. La liste en question est [\textit{Pink block}, \textit{Brocoli},\textit{Carot Slice}, \textit{Chicken breast}, \textit{Sushi}]Comme SAM3 prends que des images \texttt{.jpg} en entrée, il faut alors transformer la première image dans ce format. La raison de pourquoi on ne détecte pas la cible à chaque image est en raison de la limite physique du capteur de profondeur de la caméra utilisée qui est de 45 cm selon le détaillant. La figure \ref{fig:SAM3_ex} présente un exemple de détection d'un \textit{Pink Block}.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{images/Méthodologie/overlay_ee_rgb_step_0001.png}
+    \caption{Exemple de masque obtenu par le modèle de segmentation SAM3 pour le prompt \textit{Pink Block}}\label{fig:SAM3_ex}
+\end{figure}
+
+\subsubsection{Génération du nuage de point conditionnel}
+Considérant que le modèle de Flow Matching utilisé sera conditionné sur les nuages de points de l'outil et de la cible, il est impératif de généré les nuages de points de chacun des étapes hors ligne. Pour se faire, on utilise le masque généré à l'étape précédente, les cartes de profondeurs, les angles dans les joints et le modèle CAO de l'outil. 
+
+La première étape consiste à générer un nuage de points de la cible dans le repère de la caméra. Pour y parvenir, une superposition du masque de la cible et de la carte de profondeur intiale est réalisée afin de conserver seulement les points de la cible. Par la suite, on calcul la position cartésiennes de chacun des points présents dans le masque en utilisant les équations ci-dessous :   
+\begin{align}
+  X_c &= \frac{Z}{f_x}(u-c_x) \\
+  Y_c &= \frac{Z}{f_y}(v-c_y) \\
+  Z_c &= Z
+\end{align}
+
+où $f_x$ et $f_y$ sont les longueurs focales de la caméra et $c_x$ et $c_y$ sont les coordonnées du point principal de la caméra. Les paramètres intrisèques de la caméra D415 utilisée ont été obtenues au prêt du fabriquant.
+
+La seconde étape consiste à générer le nuage de points de l'outil. Considérant que le modèle CAD de l'outil est disponible, ils est possible d'obtenir son nuage de points en utilisant la librairie \texttt{trimesh} avec la fonction \texttt{trimesh.sample.sample\_surface}.
 
 Conservation du nuage de point initial dans le repère world
 
@@ -66,24 +176,27 @@ Construction du nuage de points final
 % =================================================================
 \section{Génération de trajectoire par Flow Matching}
 % =================================================================
+Cette section traite de l'ensemble de l'architecture et des hyperparamètres utilisés pour entraîner le modèle de Flow Matching conditionnel afin de généré les trajectoires robotiques.
 \subsection{Formulation mathématique du Flow Matching conditionnel}
 Présenter la provenance et les mathématiques
 \subsection{Architecture du modèle}
 Présenter les entrants, les extrants, l'architecture du modèle (EMA, normalisation, MLP pour encodeur, application du conditionnement des trajectoires), comment il résout l'ODE (avec approximation d'Euler) et comment j'obtiens les positions finales
 \subsection{Entraînement du modèle}
-Présentation des hyperparamètres choisis, Loss curve, résultats des temps d'inférence?
+Présentation des hyperparamètres choisis et de la Loss curve.
 
-Résultats de précisions?
-
-Exemple de graphique de trajectoires générées?
 
 % =================================================================
 \section{Conversion et exécution de la trajectoire nominale}
 % =================================================================
 \subsection{Conversion outil - TCP}
+Mettre une image des repères TCP - Outil et de la matrice de Transformation et comment on fait pour calculer la pose du TCP à contrôler en fonction de la pose de la fourchette (du Fork tip)
 \subsection{Cinématique inverse pour obtenir la trajectoire articulaire nominale}
+Comment est-ce qu'on fait la cinématique inverse d'un robot à 7 DOF ?
 \subsection{Retiming temporel de la trajectoire articulaire}
-\subsection{Calcul de la vitesse feedforward nominale \texorpdfstring{$\dot{\mathbf{q}}_{\mathrm{ff}}$}{dq_ff}}\label{subsec:dqff}
+Dire pourquoi on doti faire du retiming temporel : Parce que notre trajectoire n'a pas toujours la même dimension (distance entre les waypoints est différentes de chunk de trajectoires en chunk de trajectoires), ce qui fait en sorte qu'on ne peut pas simplement dire de passer 10 points par seconde. Donc on doit calculer la vitesse pour avoir une vitesse constante de chunk en chunk.
+Spécifié que pour obtenir une vitesse constante, on calcul la vitesse en faisant la différentiation numérique de la position du système (mettre équation de la différentiation numérique pour obtenir la vitesse en position et en angle), puis on calcul la vitesse des joints avec la cinématique inverse. 
+
+En fait ce qui est fait, ce qu'on a la position des joints en faisant la cinématique inverse, puis on calcul la vitesse de chaque joint par cinématique inverse avec dérivation de degré 1.
 Après la cinématique inverse et le retiming, l'exécuteur de trajectoire interpole la trajectoire articulaire à la fréquence de commande et publie la vitesse feedforward associée :
 \[
 \dot{\mathbf{q}}_{\mathrm{ff}}(t) = \frac{\mathbf{q}_{i+1}-\mathbf{q}_i}{t_{i+1}-t_i},
@@ -114,22 +227,23 @@ Le filtre doit connaître, en quelques millisecondes et pour des milliers de poi
 s_l = \max_{\mathbf{v}\in\mathcal{V}_l}\|\mathbf{v}-\mathbf{o}_l\|,
 \]
 où $\mathcal{V}_l$ est l'ensemble des sommets du maillage : le lien est ainsi contenu dans le cube unitaire $[-1,1]^3$. Sur ce domaine, le SDF normalisé est une combinaison linéaire de $n^3$ fonctions de base :
-\[
-\bar{d}_l(\bar{\mathbf{x}}) = \sum_{a,b,c=0}^{n-1} w^{(l)}_{abc}\, B_a(u_x)\,B_b(u_y)\,B_c(u_z) = \boldsymbol{\Phi}(\bar{\mathbf{x}})\,\mathbf{w}_l,
+\begin{align}
+\bar{d}_l(\bar{\mathbf{x}}) &= \sum_{a,b,c=0}^{n-1} w^{(l)}_{abc}\, B_a(u_x)\,B_b(u_y)\,B_c(u_z) = \boldsymbol{\Phi}(\bar{\mathbf{x}})\,\mathbf{w}_l \\
 \qquad
-B_a(u)=\binom{n-1}{a}u^a(1-u)^{n-1-a},
-\quad \mathbf{u}=\frac{\bar{\mathbf{x}}+1}{2},
-\]
+B_a(u)&=\binom{n-1}{a}u^a(1-u)^{n-1-a} \\
+\quad \mathbf{u}&=\frac{\bar{\mathbf{x}}+1}{2}
+\end{align}
 et la distance métrique s'en déduit par $d_l = s_l\,\bar{d}_l$. Les liens protégés (liens 4 à 7, main et fourchette) utilisent $n=12$ fonctions par axe, soit $1728$ coefficients par lien ; les liens proximaux, jamais menacés dans les scénarios considérés, restent à $n=8$. Trois propriétés motivent ce choix de représentation : le modèle est polynomial, donc $\mathcal{C}^\infty$ et de gradient analytique exact ; il est linéaire en ses paramètres $\mathbf{w}_l$, ce qui rend l'ajustement convexe ; et son évaluation se réduit à des produits tensoriels, massivement parallélisables sur GPU.
 
 L'apprentissage des poids procède en deux étapes par lien. Un jeu d'étiquettes est d'abord généré sur le maillage, suivant le protocole d'échantillonnage de~\cite{Li2024rdf} : environ $8\times10^{5}$ points concentrés près de la surface (balayages virtuels, signe déterminé par les normales) et autant de points uniformes dans le cube, chacun étiqueté de sa distance signée exacte ; les étiquettes négatives situées hors de la boîte englobante du lien, artefacts du calcul de signe, sont écartées. La linéarité du modèle permet alors un ajustement par \emph{moindres carrés récursifs} : à chaque itération, un lot de points $\boldsymbol{\Phi}_k$ d'étiquettes $\mathbf{d}_k$ met à jour les poids en forme close,
-\[
-\mathbf{K}_k = \mathbf{B}_{k-1}\boldsymbol{\Phi}_k^{\top}\big(\mathbf{I}+\boldsymbol{\Phi}_k\mathbf{B}_{k-1}\boldsymbol{\Phi}_k^{\top}\big)^{-1},
-\qquad
-\mathbf{B}_k = \mathbf{B}_{k-1}-\mathbf{K}_k\boldsymbol{\Phi}_k\mathbf{B}_{k-1},
-\qquad
-\mathbf{w}_k = \mathbf{w}_{k-1}+\mathbf{K}_k\big(\mathbf{d}_k-\boldsymbol{\Phi}_k\mathbf{w}_{k-1}\big),
-\]
+\begin{align}
+  \mathbf{K}_k &= \mathbf{B}_{k-1}\boldsymbol{\Phi}_k^{\top}\big(\mathbf{I}+\boldsymbol{\Phi}_k\mathbf{B}_{k-1}\boldsymbol{\Phi}_k^{\top}\big)^{-1} \\
+  \qquad
+  \mathbf{B}_k &= \mathbf{B}_{k-1}-\mathbf{K}_k\boldsymbol{\Phi}_k\mathbf{B}_{k-1} \\
+  \qquad
+  \mathbf{w}_k &= \mathbf{w}_{k-1}+\mathbf{K}_k\big(\mathbf{d}_k-\boldsymbol{\Phi}_k\mathbf{w}_{k-1}\big)
+\end{align}
+
 avec $\mathbf{B}_0 = 10^{2}\,\mathbf{I}$ (régularisation de type \emph{ridge}). Cette régression de valeur, qui correspond à l'apprentissage original de~\cite{Li2024rdf}, fournit une distance précise mais ne contraint pas le gradient : près de la surface, sa direction reste bruitée et sa norme s'écarte de l'unité.
 
 Or le filtre de sécurité consomme précisément ce gradient : $\nabla h$ fixe la \emph{direction} de la correction de la projection~\eqref{eq:cbf_qp} et sa \emph{norme} en fixe l'amplitude. Une seconde étape de raffinement géométrique est donc appliquée. Un jeu de supervision dédié de $20\,000$ \emph{rayons normaux vérifiés} est construit : des points de surface sont déplacés le long de la normale de leur facette d'un décalage $\delta$ tiré aléatoirement, concentré à 75~\% dans la coquille critique $[1,10]$~mm (cohérente avec $d_{\mathrm{safe}}=15$~mm) et étendu jusqu'à $50$~mm. Chaque candidat n'est retenu que s'il est vérifié contre le maillage exact : le point doit être extérieur, sa distance exacte recalculée doit coïncider avec le décalage à $0{,}25$~mm près, et la direction exacte du gradient ne doit pas s'écarter de plus de $5^{\circ}$ de la normale de départ — ce qui élimine les rayons corrompus par l'axe médian ou la courbure. Chaque rayon fournit ainsi un triplet exact (point, distance, direction sortante $\hat{\mathbf{n}}$). Les poids sont alors affinés par descente de gradient (Adam, recuit en cosinus) sur la fonction de coût
@@ -258,6 +372,26 @@ et le gradient de la barrière du lien actif $l^\star$ est la combinaison convex
 \]
 Chaque facteur étant la dérivée exacte d'un polynôme ou d'une transformation rigide, ce gradient est obtenu en forme close, sans aucune approximation numérique. Le soft-min sur les points lisse la direction du gradient en pondérant les points les plus proches, au prix du biais déjà mentionné ; le minimum strict sur les liens la dirige en revanche vers le lien réellement le plus menacé.
 
+\begin{table}[htbp]
+\centering
+\caption{Comparaison des performances et des erreurs de gradient.}
+\label{tab:gradient_comparison}
+\begin{tabular}{cccc}
+\toprule
+\textbf{Links} & \textbf{Analytique} & \textbf{différentiation numérique} & \textbf{Grad max error} \\
+\midrule
+1 & $5.596 \pm 0.413$ & $7.180 \pm 0.113$ & $5.960 \times 10^{-8}$ \\
+2 & $5.549 \pm 0.345$ & $8.010 \pm 0.389$ & $2.235 \times 10^{-7}$ \\
+3 & $5.432 \pm 0.149$ & $8.836 \pm 0.457$ & $2.373 \times 10^{-7}$ \\
+4 & $5.444 \pm 0.106$ & $9.789 \pm 0.127$ & $2.373 \times 10^{-7}$ \\
+5 & $5.538 \pm 0.398$ & $10.349 \pm 0.321$ & $2.980 \times 10^{-7}$ \\
+6 & $7.644 \pm 0.156$ & $12.257 \pm 0.517$ & $2.980 \times 10^{-7}$ \\
+7 & $7.792 \pm 0.315$ & $12.899 \pm 0.288$ & $2.980 \times 10^{-7}$ \\
+8 & $7.698 \pm 0.172$ & $13.479 \pm 0.233$ & $2.980 \times 10^{-7}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Contrainte de sécurité et vitesse nominale}\label{subsec:contrainte}
 Le problème~\eqref{eq:cbf_qp} requiert encore ses deux entrées : le second membre $b(h)$, qui délimite les vitesses admissibles, puis la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$, centre de l'objectif. Pour la première, la condition CBF classique impose $\nabla h^\top\dot{\mathbf{q}} \geq -\kappa h$. Avec une barrière issue de la perception, le terme linéaire $\kappa h$ présente deux inconvénients pratiques : loin de l'obstacle il autorise des vitesses d'approche arbitrairement grandes, et en violation il exige des vitesses de récupération proportionnelles à la pénétration, amplifiant le bruit de $h$. La contrainte implémentée sature ces deux régimes :
 \[
@@ -342,67 +476,67 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   \right).
   \]
 
-  Lorsque le robot est très près de la frontière de sécurité, un terme d'échappement local peut être ajouté avant la projection CBF. Ce mécanisme
-  vise à favoriser un mouvement tangent à la surface de contrainte lorsque la correction CBF s'oppose déjà fortement à la vitesse nominale. Il est
-  activé seulement si le robot est proche de la frontière et si la correction CBF dépasse un seuil minimal. En pratique, dans les essais
-  rapportés, ce terme est généralement nul.
+  % Lorsque le robot est très près de la frontière de sécurité, un terme d'échappement local peut être ajouté avant la projection CBF. Ce mécanisme
+  % vise à favoriser un mouvement tangent à la surface de contrainte lorsque la correction CBF s'oppose déjà fortement à la vitesse nominale. Il est
+  % activé seulement si le robot est proche de la frontière et si la correction CBF dépasse un seuil minimal. En pratique, dans les essais
+  % rapportés, ce terme est généralement nul.
 
-  Soit
-  \[
-  \mathbf{n}
-  =
-  \frac{\nabla h}{\|\nabla h\|+\varepsilon}
-  \]
-  la direction normale à la frontière de sécurité dans l'espace articulaire. La composante tangentielle de la vitesse nominale est
-  \[
-  \dot{\mathbf{q}}_{\parallel}
-  =
-  \dot{\mathbf{q}}_{\mathrm{base}}
-  -
-  (\dot{\mathbf{q}}_{\mathrm{base}}^\top\mathbf{n})\mathbf{n}.
-  \]
-  Le terme d'échappement est défini par
-  \[
-  \dot{\mathbf{q}}_{\mathrm{esc}}
-  =
-  k_{\mathrm{tan}}
-  \dot{\mathbf{q}}_{\parallel}
-  +
-  k_{\mathrm{n}}s(h)\mathbf{n},
-  \]
-  où
-  \[
-  s(h)
-  =
-  \operatorname{clip}
-  \left(
-  \frac{h_{\mathrm{n,trig}}-h_{\mathrm{esc}}}{h_{\mathrm{trig}}},
-  0,
-  1.5
-  \right).
-  \]
-  La valeur $h_{\mathrm{esc}}$ est la barrière utilisée pour décider l'activation de l'échappement :
-  \[
-  h_{\mathrm{esc}}
-  =
-  \begin{cases}
-  h+\alpha\log N, & \text{si la compensation du biais soft-min est utilisée},\\
-  h, & \text{sinon}.
-  \end{cases}
-  \]
-  La norme de $\dot{\mathbf{q}}_{\mathrm{esc}}$ est bornée par une vitesse maximale $\dot q_{\mathrm{esc,max}}$. La vitesse soumise à la
-  projection CBF est alors
-  \[
-  \dot{\mathbf{q}}_{\mathrm{in}}
-  =
-  \dot{\mathbf{q}}_{\mathrm{base}}
-  +
-  \mathbb{I}_{\mathrm{esc}}
-  \dot{\mathbf{q}}_{\mathrm{esc}},
-  \]
-  où $\mathbb{I}_{\mathrm{esc}}\in\{0,1\}$ indique si l'échappement local est actif.
+  % Soit
+  % \[
+  % \mathbf{n}
+  % =
+  % \frac{\nabla h}{\|\nabla h\|+\varepsilon}
+  % \]
+  % la direction normale à la frontière de sécurité dans l'espace articulaire. La composante tangentielle de la vitesse nominale est
+  % \[
+  % \dot{\mathbf{q}}_{\parallel}
+  % =
+  % \dot{\mathbf{q}}_{\mathrm{base}}
+  % -
+  % (\dot{\mathbf{q}}_{\mathrm{base}}^\top\mathbf{n})\mathbf{n}.
+  % \]
+  % Le terme d'échappement est défini par
+  % \[
+  % \dot{\mathbf{q}}_{\mathrm{esc}}
+  % =
+  % k_{\mathrm{tan}}
+  % \dot{\mathbf{q}}_{\parallel}
+  % +
+  % k_{\mathrm{n}}s(h)\mathbf{n},
+  % \]
+  % où
+  % \[
+  % s(h)
+  % =
+  % \operatorname{clip}
+  % \left(
+  % \frac{h_{\mathrm{n,trig}}-h_{\mathrm{esc}}}{h_{\mathrm{trig}}},
+  % 0,
+  % 1.5
+  % \right).
+  % \]
+  % La valeur $h_{\mathrm{esc}}$ est la barrière utilisée pour décider l'activation de l'échappement :
+  % \[
+  % h_{\mathrm{esc}}
+  % =
+  % \begin{cases}
+  % h+\alpha\log N, & \text{si la compensation du biais soft-min est utilisée},\\
+  % h, & \text{sinon}.
+  % \end{cases}
+  % \]
+  % La norme de $\dot{\mathbf{q}}_{\mathrm{esc}}$ est bornée par une vitesse maximale $\dot q_{\mathrm{esc,max}}$. La vitesse soumise à la
+  % projection CBF est alors
+  % \[
+  % \dot{\mathbf{q}}_{\mathrm{in}}
+  % =
+  % \dot{\mathbf{q}}_{\mathrm{base}}
+  % +
+  % \mathbb{I}_{\mathrm{esc}}
+  % \dot{\mathbf{q}}_{\mathrm{esc}},
+  % \]
+  % où $\mathbb{I}_{\mathrm{esc}}\in\{0,1\}$ indique si l'échappement local est actif.
 
-  La projection CBF principale calcule ensuite la vitesse admissible la plus proche de $\dot{\mathbf{q}}_{\mathrm{in}}$ :
+  La projection CBF principale calcule ensuite la vitesse admissible la plus proche de $\dot{\mathbf{q}}_{\mathrm{base}}$ :
   \[
   \dot{\mathbf{q}}_{\mathrm{proj}}
   =
@@ -411,7 +545,7 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   \left\|
   \dot{\mathbf{q}}
   -
-  \dot{\mathbf{q}}_{\mathrm{in}}
+  \dot{\mathbf{q}}_{\mathrm{base}}
   \right\|^2
   \quad
   \text{s.c.}
@@ -428,7 +562,7 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   \;\equiv\;
   \dot{\mathbf{q}}_{\mathrm{proj}}
   -
-  \dot{\mathbf{q}}_{\mathrm{in}}.
+  \dot{\mathbf{q}}_{\mathrm{base}}.
   \]
   C'est cette quantité, nulle dès que la contrainte est satisfaite (le filtre est alors transparent) et de norme égale à l'intensité de la
   correction, qui est tracée dans la décomposition des vitesses du Chapitre~\ref{sec:Theme3}. Dans le cas d'une \emph{unique} contrainte active,
