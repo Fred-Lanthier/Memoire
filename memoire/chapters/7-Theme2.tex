@@ -47,14 +47,21 @@ Suppresion des voxels supprimées si $z_{mesure} - z_{voxel} > seuil$ (car la ca
 Cette sous-section a comme objectif de présenter le protocol utilisé afin de collecter les données nécessaires pour entraîner le modèle d'IA générative ainsi que l'étape de prétraitement de ces données.
 \subsection{Protocol de collecte des démonstrations} \label{subsec:Protocol}
 
-Les données d'entraînement utilisée pour entraîner le modèle de Flow Matching ont été acquises de deux manières. La première d'entre elle est sur le robot et les capteurs réels et la seconde est issue de simulation avec la librairie Maniskill 3. Cette librairie a été choisite pour sa facilité d'utilisation et son moteur de calcul à l'état de l'art basé sur XXX de Nvidia.
+Les données d'entraînement utilisée pour entraîner le modèle de Flow Matching ont été acquises de deux manières. La première d'entre elle est sur le robot et les capteurs réels et la seconde est issue de simulation avec la librairie Maniskill 3. Cette librairie a été choisite pour sa facilité d'utilisation et son moteur de calcul à l'état de l'art basé sur SAPIEN 3 \cite{Xiang_2020_SAPIEN}.
 Les deux méthodes utilisent des environnements quasi identiques afin de récolter les données de la même manière. 
-Pour récolter les données réelles, le protocol suivant à été utilisé :
-Ajouter : les 9 Positionnements de l'assitte et les 5 positions des cibles dans l'assiette pour avoir la meilleure représentation possible. Dire qu'on fait une phase de descente vers la cible et que l'on rotate l'outil pour qu'elles restent verticales et qu'elles s'alignent avec l'axe principale de la cible.
+Pour garantir un protocole reproductible, l'échantillonnage des configurations est défini dans deux repères imbriqués plutôt que de façon qualitative : le repère robot $\mathcal{F}_b$ (base du manipulateur, fixe) et un repère assiette $\mathcal{F}_p$ centré sur l'assiette. L'assiette est placée successivement aux $9$ positions d'une grille $3\times3$ exprimées directement dans $\mathcal{F}_b$ (pas de $XXX$~m). Pour chacune, la cible occupe $5$ positions disposées en quinconce dans $\mathcal{F}_p$, chacune assortie d'une orientation aléatoire. Cette grille produit $9\times5=45$ configurations, chacune réalisée une fois. La Figure~\ref{fig:protocole_echantillonnage} illustre cet échantillonnage. À chaque configuration, l'outil descend verticalement vers la cible (axe $-z$ de $\mathcal{F}_b$) en maintenant les dents verticales et alignées sur l'axe principal de la cible. La simulation (\textit{ManiSkill 3}) réutilise ce même schéma mais l'élargit par une randomisation de hauteur couvrant un surensemble continu des configurations réelles.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/Méthodologie/protocole_echantillonnage.pdf}
+    \caption{Protocole d'échantillonnage des cibles, vu de dessus dans le repère de base du robot $\mathcal{F}_b$. Les assiettes ($26$~cm de diamètre) se chevauchant, seules trois des neuf positions de la grille $3\times3$ sont illustrées (supérieur droit, centre, inférieur gauche), le centre de chacune étant marqué par une croix noire. Autour de chaque centre, les $5$ points indiquent les positions de cible en quinconce.}
+    \label{fig:protocole_echantillonnage}
+\end{figure}
+
+Pour récolter les données réelles, le protocol détaillé suivant a été utilisé :
 \begin{enumerate}
   \item Installation de la caméra sur le support officiel de Franka au niveau de l'effecteur. Le support est en annexe
-  \item Positionnement des joints du robot à $\mathbf{q}=[0,0,0,0,0,0,0]$
-  \item positionnement de la cible dans le champs de vision de la caméra sur une boîte de $\pm XXX$ m. 
+  \item Positionnement des joints du robot à $\mathbf{q}=[0,-0.1259,0,-2.1933,0,2.0648,0.7855]$
   \item Mettre le robot en mode Réflexe pour qu'il puisse être guider par un humain.
   \item Réaliser la trajectoire robotique souhaitée pour aller chercher la cible et réaliser la trajectoire à apprendre par le modèle.
   \item Enregistrer les données dans un fichier JSON.
@@ -79,7 +86,7 @@ La figure \ref{fig:architecture_acquisition} représente l'architecture du syst�
 \end{figure}
 
 Ces données sont ensuite enregistrées dans un dossier racine sous la forme d'un dossier nommé Trajectoire\_X où X représente le numéro de la trajectoire enregistrée. Dans ce dossier chacun de ces dossiers se trouve un fichier JSON avec l'ensemble des données numériques et les noms des ficheirs images ainsi qu'un dossier contenant l'ensemble des images et des fichiers de profondeurs. la représentation de l'architecture de l'enregistrement des fichiers est représentée sur la figure \ref{fig:dir_tree}:
-\begin{figure}[htbp!]
+\begin{figure}[H]
 \centering
 \begin{minipage}{0.8\textwidth} % Keeps the tree neatly aligned
 \dirtree{%
@@ -108,27 +115,60 @@ Ces données sont ensuite enregistrées dans un dossier racine sous la forme d'u
 
 \subsection{Prétraitement des données}
 
-\begin{figure}[htbp!]
+À partir des données enregistré en \ref{subsec:Protocol}, plusieurs étapes de prétraitement sont réalisées hors ligne afin d'accélérer l'entraînement du modèle. Ces étapes sont listées et détaillées dans cette sous-section.
+
+\subsubsection{Détection avec un modèle de segmentation}
+La première étape consiste à détecter la cible dans la première image de chacune des trajectoires. Cette détection est réalisée avec le modèle à l'état de l'art Segment Anything 3 (SAM3) qui peut réaliser de la segmentation par prompt. Ainsi, une liste de cibles possibles est donnée en entrée au modèle et le masque de la cible dans l'image est obtenue en sortie. La liste en question est [\textit{Pink block}, \textit{Brocoli},\textit{Carot Slice}, \textit{Chicken breast}, \textit{Sushi}]Comme SAM3 prends que des images \texttt{.jpg} en entrée, il faut alors transformer la première image dans ce format. La raison de pourquoi on ne détecte pas la cible à chaque image est en raison de la limite physique du capteur de profondeur de la caméra utilisée qui est de 45 cm selon le détaillant. La figure \ref{fig:SAM3_ex} présente un exemple de détection d'un \textit{Pink Block}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{images/Méthodologie/overlay_ee_rgb_step_0001.png}
+    \caption{Exemple de masque obtenu par le modèle de segmentation SAM3 pour le prompt \textit{Pink Block}}\label{fig:SAM3_ex}
+\end{figure}
+
+\subsubsection{Génération du nuage de point conditionnel}
+Considérant que le modèle de Flow Matching décrit dans la section \ref{sec:CFM} est conditionné sur les nuages de points de l'outil et de la cible, il est impératif de généré les nuages de points de chacun des étapes hors ligne afin d'accélérer le temps d'entraînement et de valider les données utilisées. Pour se faire, on utilise le masque généré à l'étape précédente, la carte de profondeur initiale, les angles dans les joints à chaque étape et le modèle CAO de l'outil. 
+
+La première étape consiste à générer un nuage de points de la cible dans le repère de la caméra. Pour y parvenir, une superposition du masque de la cible et de la carte de profondeur intiale est réalisée afin de conserver seulement les points de la cible. Par la suite, on calcul la position cartésiennes de chacun des points présents dans le masque en utilisant les équations ci-dessous :   
+\begin{align}
+  X_c &= \frac{Z}{f_x}(u-c_x) \\
+  Y_c &= \frac{Z}{f_y}(v-c_y) \\
+  Z_c &= Z
+\end{align}
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{images/Méthodologie/repere_frames.pdf}
+    \caption{Représentation schématique des frames des différents repères utilisés}\label{fig:rep}
+\end{figure}
+
+où $f_x$ et $f_y$ sont les longueurs focales de la caméra et $c_x$ et $c_y$ sont les coordonnées du point principal de la caméra. Les paramètres intrisèques de la caméra D415 utilisée ont été obtenues au prêt du fabriquant. Le nuage de points résultant est ensuite positionné dans le repère de la base du robot en utilisant la relation \eqref{eq:pose_cam} où $\mathbf{T}_{cible}^b$ est la matrice de transformation entre la cible et la . Cette relation est déduite de  Ce dernier est finalement sous-échantillonner à 512 points en utilisant la stratégie d'échantillonnage par le point le plus éloigné.
+
+\begin{equation}\label{eq:pose_cam}
+  \mathbf{T}_{cible}^{b} = \mathbf{T}_{e}^b \mathbf{T}_{c}^{e} \mathbf{T}_{cible}^{c}  
+\end{equation}
+
+La seconde étape consiste à générer le nuage de points de l'outil. Considérant que le modèle CAD de l'outil est disponible, ils est possible d'obtenir son nuage de points en utilisant la librairie \texttt{trimesh} avec la fonction \texttt{trimesh.sample.sample\_surface}. Pour positionner ce nuage de points, et connaissant la pose du repère de la fourchette dans le repère du TCP du robot, l'équation \eqref{eq:pose_fork} est utilisée.
+\begin{equation}\label{eq:pose_fork}
+  \mathbf{T}_{f}^{b} = \mathbf{T}_{e}^b \mathbf{T}_{f}^{e}
+\end{equation} 
+
+Comme pour la cible, le nuage de point ainsi positionné est par la suite sous-échantionnager à 512 points en utilisant la même stratégie. Les deux nuages de points résultants sont finalement fusionné ensemble et translater au niveau du repère de la fourchette. Ce nuage de points final est ensuite enregistré sous le nom de \texttt{Merged\_Fork\_\{step\_number\}} dans le dossier \texttt{Merged\_Fork\_Trajectory\_X}. Finalement, le fichier JSON provenant de l'étape précédente est copié 
+
+\begin{figure}[H]
 \centering
 \begin{minipage}{0.8\textwidth}
 \dirtree{%
 .1 Trajectories\_preprocess/.
 .2 Trajectory\_1/.
 .3 trajectory\_1.json.
-.3 images\_Trajectory\_1/.
-.4 0001.jpg.
-.4 0002.jpg.
-.4 ....
 .3 Merged\_Fork\_Trajectory\_1/.
 .4 Merged\_Fork\_0001.npy.
 .4 Merged\_Fork\_0002.npy.
 .4 ....
 .2 Trajectory\_2/.
 .3 trajectory\_2.json.
-.3 images\_Trajectory\_2/.
-.4 0001.jpg.
-.4 0002.jpg.
-.4 ....
 .3 Merged\_Fork\_Trajectory\_2/.
 .4 Merged\_Fork\_0001.npy.
 .4 Merged\_Fork\_0002.npy.
@@ -139,48 +179,251 @@ Ces données sont ensuite enregistrées dans un dossier racine sous la forme d'u
 \label{fig:preprocess_dir_tree}
 \end{figure}
 
-À partir des données enregistré en \ref{subsec:Protocol}, plusieurs étapes de prétraitement sont réalisées hors ligne afin d'accélérer l'entraînement du modèle. Ces étapes sont listées et détaillées dans cette sous-section.
-
-\subsubsection{Détection avec un modèle de segmentation}
-La première étape consiste à détecter la cible dans la première image de chacune des trajectoires. Cette détection est réalisée avec le modèle à l'état de l'art Segment Anything 3 (SAM3) qui peut réaliser de la segmentation par prompt. Ainsi, une liste de cibles possibles est donnée en entrée au modèle et le masque de la cible dans l'image est obtenue en sortie. La liste en question est [\textit{Pink block}, \textit{Brocoli},\textit{Carot Slice}, \textit{Chicken breast}, \textit{Sushi}]Comme SAM3 prends que des images \texttt{.jpg} en entrée, il faut alors transformer la première image dans ce format. La raison de pourquoi on ne détecte pas la cible à chaque image est en raison de la limite physique du capteur de profondeur de la caméra utilisée qui est de 45 cm selon le détaillant. La figure \ref{fig:SAM3_ex} présente un exemple de détection d'un \textit{Pink Block}.
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.7\textwidth]{images/Méthodologie/overlay_ee_rgb_step_0001.png}
-    \caption{Exemple de masque obtenu par le modèle de segmentation SAM3 pour le prompt \textit{Pink Block}}\label{fig:SAM3_ex}
-\end{figure}
-
-\subsubsection{Génération du nuage de point conditionnel}
-Considérant que le modèle de Flow Matching utilisé sera conditionné sur les nuages de points de l'outil et de la cible, il est impératif de généré les nuages de points de chacun des étapes hors ligne. Pour se faire, on utilise le masque généré à l'étape précédente, les cartes de profondeurs, les angles dans les joints et le modèle CAO de l'outil. 
-
-La première étape consiste à générer un nuage de points de la cible dans le repère de la caméra. Pour y parvenir, une superposition du masque de la cible et de la carte de profondeur intiale est réalisée afin de conserver seulement les points de la cible. Par la suite, on calcul la position cartésiennes de chacun des points présents dans le masque en utilisant les équations ci-dessous :   
-\begin{align}
-  X_c &= \frac{Z}{f_x}(u-c_x) \\
-  Y_c &= \frac{Z}{f_y}(v-c_y) \\
-  Z_c &= Z
-\end{align}
-
-où $f_x$ et $f_y$ sont les longueurs focales de la caméra et $c_x$ et $c_y$ sont les coordonnées du point principal de la caméra. Les paramètres intrisèques de la caméra D415 utilisée ont été obtenues au prêt du fabriquant.
-
-La seconde étape consiste à générer le nuage de points de l'outil. Considérant que le modèle CAD de l'outil est disponible, ils est possible d'obtenir son nuage de points en utilisant la librairie \texttt{trimesh} avec la fonction \texttt{trimesh.sample.sample\_surface}.
-
-Conservation du nuage de point initial dans le repère world
-
-Positionnement du nuage de points de la fourchette par cinématique directe dans le repère world
-
-Centrage des données dans le repère de la fourchette en translation seulement (et justification)
-
-Construction du nuage de points final
-
-Échantillonnage stable des points
-
 % =================================================================
-\section{Génération de trajectoire par Flow Matching}
+\section{Génération de trajectoire par Flow Matching} \label{sec:CFM}
 % =================================================================
 Cette section traite de l'ensemble de l'architecture et des hyperparamètres utilisés pour entraîner le modèle de Flow Matching conditionnel afin de généré les trajectoires robotiques.
 \subsection{Formulation mathématique du Flow Matching conditionnel}
 Présenter la provenance et les mathématiques
+
+\begin{equation}
+  \label{eq:psi}
+  \frac{\mathrm{d}}{\mathrm{d} t}\psi_t(x) = u_t(\psi_t(x))
+\end{equation}
+\begin{equation}
+  \label{eq:fm_gt}
+  X_t = (1-t)X_0 + tX_t
+\end{equation}
+
+\begin{equation}
+  \label{eq:Loss}
+  \mathcal{L(\theta)} = \mathbb{E}_{t,X_0,X_1}\lVert u_t^{\theta}(X_t)-(X_1-X_0)\rVert^2 \text{, où } t\sim U[0,1],\text{ } X_0\sim\mathcal{N}(0,1), \text{ } X_1\sim q
+\end{equation}
 \subsection{Architecture du modèle}
 Présenter les entrants, les extrants, l'architecture du modèle (EMA, normalisation, MLP pour encodeur, application du conditionnement des trajectoires), comment il résout l'ODE (avec approximation d'Euler) et comment j'obtiens les positions finales
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    % Style inspiré de "Attention Is All You Need"
+    layer_core/.style={draw, fill=gray!6, draw=black!80, minimum width=3.4cm, minimum height=0.6cm, align=center, thick},
+    layer_activation/.style={draw, fill=yellow!15, draw=black!80, minimum width=3.4cm, minimum height=0.5cm, align=center, thick},
+    layer_norm/.style={draw, fill=blue!10, draw=black!80, minimum width=3.4cm, minimum height=0.5cm, align=center, thick},
+    layer_cond/.style={draw, fill=green!12, draw=green!60!black, minimum width=3.0cm, minimum height=0.55cm, align=center, thick},
+    block_math/.style={draw, circle, fill=white, draw=black, minimum size=0.5cm, inner sep=0pt, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=black!80},
+    cond_arrow/.style={-{Stealth[scale=0.9]}, thick, draw=green!60!black, dashed}
+]
+
+    % ================= BRANCHE GAUCHE : FLUX PRINCIPAL (X) =================
+    \node (in_x) at (0, 11.2) {\textbf{Entrée} $x$ {\footnotesize $(B, C_{\text{in}}, L)$}};
+
+    % --- PREMIER BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
+    \node[layer_core] (conv1) at (0, 9.9) {Conv1D {\footnotesize ($3\times3$ ou $5\times5$)}};
+    \node[layer_norm] (gn1) at (0, 8.9) {GroupNorm};
+    \node[layer_activation] (mish1) at (0, 7.9) {Mish};
+    
+    % --- POINT DE MODULATION FILMAFFINE ---
+    \node[block_math] (mult) at (0, 6.0) {$\times$};
+    \node[block_math] (add) at (0, 4.5) {$+$};
+    
+    % --- SECOND BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
+    \node[layer_core] (conv2) at (0, 2.6) {Conv1D {\footnotesize ($3\times3$)}};
+    \node[layer_norm] (gn2) at (0, 1.6) {GroupNorm};
+    \node[layer_activation] (mish2) at (0, 0.6) {Mish};
+
+    % --- SOMME RÉSIDUELLE FINALE ---
+    \node[block_math] (res_sum) at (0, -0.9) {$+$};
+    \node (out) at (0, -2.0) {\textbf{Sortie} $\text{out}$ {\footnotesize $(B, C_{\text{out}}, L)$}};
+
+
+    % ================= BRANCHE DROITE : CONDITIONNEMENT (C) =================
+    \node (in_c) at (6.0, 11.2) {\textbf{Condition} $c$ {\footnotesize $(B, D_{\text{cond}})$}};
+    
+    % Stack de l'encodeur aligné verticalement
+    \node[layer_activation] (c_mish) at (6.0, 9.9) {Mish};
+    \node[layer_core] (c_linear) at (6.0, 8.9) {Linear};
+    \node[layer_core] (c_unflat) at (6.0, 7.9) {Unflatten};
+    
+    % Modulations affines (Scale et Bias)
+    \node[layer_cond] (scale) at (4.0, 6.0) {\textbf{Scale} $\gamma$\\{\footnotesize $(B, C_{\text{out}}, 1)$}};
+    \node[layer_cond] (bias) at (4.0, 4.5) {\textbf{Bias} $\beta$\\{\footnotesize $(B, C_{\text{out}}, 1)$}};
+
+
+    % ================= BRANCHE GAUCHE : CONNEXION RÉSIDUELLE =================
+    \node[layer_core] (res_conv) at (-3.6, 5.25) {\textbf{residual\_conv}\\{\footnotesize Conv1D $1\times1$}\\{\footnotesize \textit{(si $C_{\text{in}} \neq C_{\text{out}}$)}}};
+
+
+    % ================= CONNEXIONS ET FLÈCHES =================
+    % Connexions Flux Principal X
+    \draw[arrow] (in_x) -- (conv1);
+    \draw[arrow] (conv1) -- (gn1);
+    \draw[arrow] (gn1) -- (mish1);
+    \draw[arrow] (mish1) -- (mult);
+    \draw[arrow] (mult) -- (add);
+    \draw[arrow] (add) -- (conv2);
+    \draw[arrow] (conv2) -- (gn2);
+    \draw[arrow] (gn2) -- (mish2);
+    \draw[arrow] (mish2) -- (res_sum);
+    \draw[arrow] (res_sum) -- (out);
+
+    % Connexions internes de l'encodeur C
+    \draw[arrow] (in_c) -- (c_mish);
+    \draw[arrow] (c_mish) -- (c_linear);
+    \draw[arrow] (c_linear) -- (c_unflat);
+    
+    % --- ROUTAGE DE CONDITIONNEMENT AVEC UN SEUL ANGLE DROIT STRICT (90°) ---
+    % On descend verticalement depuis le bas de Unflatten, puis on tourne à 90° à l'horizontale (|- )
+    \draw[cond_arrow] (c_unflat.south) |- (scale.east);
+    \draw[cond_arrow] (c_unflat.south) |- (bias.east);
+    
+    % Guidage de Scale et Bias vers les opérations de multiplication et d'addition
+    \draw[cond_arrow] (scale.west) -- (mult.east);
+    \draw[cond_arrow] (bias.west) -- (add.east);
+
+    % Liaison Résiduelle Externe
+    \draw[arrow] (in_x.south) ++(0,-0.1) -- ++(0,-0.3) -| (res_conv.north);
+    \draw[arrow] (res_conv.south) |- (res_sum.west);
+
+\end{tikzpicture}
+\caption{Architecture du module \texttt{ConditionalResidualBlock1D} avec un tracé orthogonal à angle droit unique vers les entrées latérales.}
+\label{fig:attention_style_residual_block_clean_90}
+\end{figure}
+
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    % Style épuré "Attention Is All You Need"
+    block_in/.style={draw, fill=gray!6, draw=black!80, minimum width=2.4cm, minimum height=0.7cm, align=center, thick},
+    block_enc/.style={draw, fill=blue!8, draw=black!80, minimum width=2.8cm, minimum height=0.7cm, align=center, thick},
+    block_dec/.style={draw, fill=orange!8, draw=black!80, minimum width=2.6cm, minimum height=0.7cm, align=center, thick},
+    block_bot/.style={draw, fill=purple!8, draw=black!80, minimum width=2.8cm, minimum height=0.7cm, align=center, thick},
+    block_cond/.style={draw, fill=green!10, draw=green!60!black, minimum width=4.5cm, minimum height=0.7cm, align=center, thick},
+    block_math/.style={draw, circle, fill=white, draw=black, minimum size=0.5cm, inner sep=0pt, font=\bfseries\footnotesize},
+    % Styles de flèches
+    arrow/.style={-{Stealth[scale=0.9]}, thick, draw=black!80},
+    skip_arrow/.style={-{Stealth[scale=0.9]}, dashed, thick, draw=black!50},
+    cond_arrow/.style={-{Stealth[scale=0.8]}, thick, draw=green!60!black, dashed}
+]
+
+    % ================= CENTRE : CONDITIONNEMENT ET AXE CENTRAL =================
+    \node[block_cond] (cond) at (6.0, 4.5) {\textbf{Conditioning Embedding}\\{\footnotesize \texttt{global\_feature}}};
+    
+    % Ligne de bus verticale centrale descendante ajustée au millimètre près (Y = -6.3)
+    \coordinate (bus4) at (6.0, -6.3);
+    \draw[draw=green!60!black, thick, dashed] (cond.south) -- (bus4);
+
+    % ================= NIVEAU 1 (Y = 2.0, Dimension temporelle = H) =================
+    \node[block_in] (in) at (-2.5, 2.0) {\textbf{Entrée} $x_t$\\{\footnotesize $(B, 9, H)$}};
+    \node[block_enc] (e1_1) at (0.6, 2.0) {ResBlock 1 \\ {\footnotesize $(B, 256, H)$}};
+    \node[block_enc] (e1_2) at (3.8, 2.0) {ResBlock 2 \\ {\footnotesize $(B, 256, H)$}};
+    
+    \node[block_math] (cat1) at (8.0, 2.0) {\textbf{C}};
+    \node[block_dec] (d1_1) at (10.4, 2.0) {Conv1DBlock \\ {\footnotesize $(B, 256, H)$}};
+    \node[block_dec] (d1_2) at (13.6, 2.0) {Conv1D Final \\ {\footnotesize Out: $(B, 9, H)$}};
+    \node[block_in] (out) at (16.8, 2.0) {\textbf{Sortie} $\mathbf{v}_t$\\{\footnotesize $(B, 9, H)$}};
+
+    % ================= NIVEAU 2 (Y = -1.2, Dimension temporelle = H/2) =================
+    \node[block_enc] (e2_1) at (0.6, -1.2) {ResBlock 1 \\ {\footnotesize $(B, 512, H/2)$}};
+    \node[block_enc] (e2_2) at (3.8, -1.2) {ResBlock 2 \\ {\footnotesize $(B, 512, H/2)$}};
+    
+    \node[block_math] (cat2) at (8.0, -1.2) {\textbf{C}};
+    \node[block_dec] (d2_1) at (10.4, -1.2) {ResBlock 1 \\ {\footnotesize $(B, 256, H/2)$}};
+    \node[block_dec] (d2_2) at (13.6, -1.2) {ResBlock 2 \\ {\footnotesize $(B, 256, H/2)$}};
+
+    % ================= NIVEAU 3 (Y = -4.4, Dimension temporelle = H/4) =================
+    \node[block_enc] (e3_1) at (0.6, -4.4) {ResBlock 1 \\ {\footnotesize $(B, 1024, H/4)$}};
+    \node[block_enc] (e3_2) at (3.8, -4.4) {ResBlock 2 \\ {\footnotesize $(B, 1024, H/4)$}};
+    
+    \node[block_math] (cat3) at (8.0, -4.4) {\textbf{C}};
+    \node[block_dec] (d3_1) at (10.4, -4.4) {ResBlock 1 \\ {\footnotesize $(B, 512, H/4)$}};
+    \node[block_dec] (d3_2) at (13.6, -4.4) {ResBlock 2 \\ {\footnotesize $(B, 512, H/4)$}};
+
+    % ================= NIVEAU 4: GOULOT (Y = -7.2, Dimension temporelle = H/4) =================
+    \node[block_bot] (b1) at (3.8, -7.2) {MidBlock 1 \\ {\footnotesize $(B, 1024, H/4)$}};
+    \node[block_bot] (b2) at (8.0, -7.2) {MidBlock 2 \\ {\footnotesize $(B, 1024, H/4)$}};
+
+
+    % ================= FLÈCHES DU FLUX PRINCIPAL X =================
+    % Niveau 1
+    \draw[arrow] (in) -- (e1_1);
+    \draw[arrow] (e1_1) -- (e1_2);
+    \draw[arrow] (cat1) -- (d1_1);
+    \draw[arrow] (d1_1) -- (d1_2);
+    \draw[arrow] (d1_2) -- (out);
+    
+    % Descente N1 -> N2
+    \draw[arrow] (e1_2.south) -- ++(0,-0.3) -| (e2_1.north);
+    
+    % Niveau 2
+    \draw[arrow] (e2_1) -- (e2_2);
+    \draw[arrow] (cat2) -- (d2_1);
+    \draw[arrow] (d2_1) -- (d2_2);
+    
+    % Descente N2 -> N3
+    \draw[arrow] (e2_2.south) -- ++(0,-0.3) -| (e3_1.north);
+    
+    % Niveau 3
+    \draw[arrow] (e3_1) -- (e3_2);
+    \draw[arrow] (cat3) -- (d3_1);
+    \draw[arrow] (d3_1) -- (d3_2);
+    
+    % Descente N3 -> Goulot
+    \draw[arrow] (e3_2.south) -- ++(0,-0.3) -| (b1.north);
+    
+    % Goulot
+    \draw[arrow] (b1) -- (b2);
+    
+    % Remontées par le haut (Contournement surélevé à +1.4cm de l'axe horizontal)
+    \draw[arrow] (b2.north) -- ++(0,1.4) -| (cat3.south);
+    \draw[arrow] (d3_2.north) -- ++(0,1.4) -| (cat2.south);
+    \draw[arrow] (d2_2.north) -- ++(0,1.4) -| (cat1.south);
+
+
+    % ================= SKIP CONNECTIONS HORIZONTALES NETTES =================
+    \draw[skip_arrow] (e1_2.east) -- node[above, text=black!60] {\footnotesize \textit{cat}} (cat1.west);
+    \draw[skip_arrow] (e2_2.east) -- node[above, text=black!60] {\footnotesize \textit{cat}} (cat2.west);
+    \draw[skip_arrow] (e3_2.east) -- node[above, text=black!60] {\footnotesize \textit{cat}} (cat3.west);
+
+
+    % ================= FLÈCHES DE CONDITIONNEMENT EN PARFAITE SYMÉTRIE =================
+    % --- Niveau 1 (Coudes horizontaux alignés à Y = 3.0) ---
+    \draw[cond_arrow] (6.0, 3.0) -| ([xshift=-0.7cm]e1_1.north east);
+    \draw[cond_arrow] (6.0, 3.0) -| ([xshift=-0.7cm]e1_2.north east);
+    \draw[cond_arrow] (6.0, 3.0) -| ([xshift=0.7cm]d1_1.north west);
+    \draw[cond_arrow] (6.0, 3.0) -| ([xshift=0.7cm]d1_2.north west);
+
+    % --- Niveau 2 (Coudes horizontaux alignés à Y = -0.2) ---
+    \draw[cond_arrow] (6.0, -0.2) -| ([xshift=-0.7cm]e2_1.north east);
+    \draw[cond_arrow] (6.0, -0.2) -| ([xshift=-0.7cm]e2_2.north east);
+    \draw[cond_arrow] (6.0, -0.2) -| ([xshift=0.7cm]d2_1.north west);
+    \draw[cond_arrow] (6.0, -0.2) -| ([xshift=0.7cm]d2_2.north west);
+
+    % --- Niveau 3 (Coudes horizontaux alignés à Y = -3.4) ---
+    \draw[cond_arrow] (6.0, -3.4) -| ([xshift=-0.7cm]e3_1.north east);
+    \draw[cond_arrow] (6.0, -3.4) -| ([xshift=-0.7cm]e3_2.north east);
+    \draw[cond_arrow] (6.0, -3.4) -| ([xshift=0.7cm]d3_1.north west);
+    \draw[cond_arrow] (6.0, -3.4) -| ([xshift=0.7cm]d3_2.north west);
+
+    % --- Niveau 4: Goulot (Alignés parfaitement sur l'extrémité basse à Y = -6.3) ---
+    \draw[cond_arrow] (bus4) -| ([xshift=-0.7cm]b1.north east);
+    \draw[cond_arrow] (bus4) -| ([xshift=0.7cm]b2.north west);
+
+\end{tikzpicture}%
+}
+\caption{Architecture globale finale du \texttt{ConditionalUnet1D} au style épuré, corrigée de tout dépassement de tracé.}
+\label{fig:attention_style_unet_perfect_final}
+\end{figure}
+
+\begin{equation}
+\text{Mish}(x) = x \cdot \tanh\left(\ln\left(1 + e^x\right)\right)
+\label{eq:mish_activation}
+\end{equation}
+
 \subsection{Entraînement du modèle}
 Présentation des hyperparamètres choisis et de la Loss curve.
 
