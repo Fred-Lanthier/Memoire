@@ -60,7 +60,7 @@ T_cam = (T_TCP @ rpy_xyz((0, -np.pi/2, 0), (-0.052, 0.035, -0.045))
                 @ rpy_xyz((-np.pi/2, 0, -np.pi/2)))                     # {c}
 T_fork = T_TCP @ rpy_xyz((0, -3.6215581978882336, 0), (-0.0055, 0, 0.1296))  # {f}
 
-frames = {"b": np.eye(4), "e": T_TCP, "c": T_cam, "f": T_fork}
+frames = {"b": np.eye(4), "e": T_TCP, "c": T_cam, "o": T_fork}
 print("TCP position:", np.round(T_TCP[:3, 3], 3),
       "| fork tip:", np.round(T_fork[:3, 3], 3),
       "| cam:", np.round(T_cam[:3, 3], 3))

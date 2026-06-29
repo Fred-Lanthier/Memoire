@@ -1,0 +1,119 @@
+\babel@toc {french}{}
+\contentsline {compteur}{DÉDICACE}{iv}{chapter*.1}%
+\contentsline {compteur}{REMERCIEMENTS}{v}{chapter*.2}%
+\contentsline {compteur}{RÉSUMÉ}{vi}{chapter*.3}%
+\contentsline {compteur}{ABSTRACT}{vii}{chapter*.4}%
+\babel@toc {english}{}
+\babel@toc {french}{}
+\babel@toc {english}{}
+\babel@toc {french}{}
+{\pdfbookmark [0]{TABLE DES MATIÈRES}{toc}}
+\contentsline {compteur}{LISTE DES TABLEAUX}{xii}{chapter*.5}%
+\contentsline {compteur}{LISTE DES FIGURES}{xiii}{chapter*.6}%
+\contentsline {compteur}{LISTE DES SIGLES ET ABRÉVIATIONS}{xv}{chapter*.7}%
+\contentsline {compteur}{LISTE DES ANNEXES}{xvi}{chapter*.8}%
+\contentsline {chapter}{\numberline {1}INTRODUCTION}{1}{chapter.1}%
+\contentsline {chapter}{\numberline {2}REVUE DE LITTÉRATURE}{3}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Génération de trajectoires robotisées}{3}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Planification classique par échantillonnage et optimisation}{3}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Apprentissage par démonstration, Behavior Cloning et RL}{3}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Modèles génératifs, politiques de diffusion et Flow Matching}{4}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}Perception visuelle et mémoire spatiale}{4}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Vision-langage, segmentation zéro-shot et suivi visuel}{4}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Reconstruction RGB-D et représentation par nuages de points}{5}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Cartes persistantes face aux occlusions et pertes de détection}{5}{subsection.2.2.3}%
+\contentsline {section}{\numberline {2.3}Représentations géométriques pour la collision}{6}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}ESDF de l'environnement et limites computationnelles}{6}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Primitives conservatives et modèles géométriques simplifiés}{6}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}SDF du robot, RDF et approximation par polynômes de Bernstein}{6}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Sécurité réactive et Control Barrier Functions}{7}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Champs de potentiel et méthodes réactives classiques}{7}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}CBF, invariance avant et projection de commande}{7}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}Limites des CBF sous perception bruitée et contrôle discret}{7}{subsection.2.4.3}%
+\contentsline {section}{\numberline {2.5}Couplage entre modèles génératifs et filtres de sécurité}{8}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Contraintes intégrées dans la génération}{8}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Filtres de sécurité appliqués à l'exécution}{8}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Découplage entre intention nominale et sécurité réactive}{8}{subsection.2.5.3}%
+\contentsline {section}{\numberline {2.6}Synthèse critique et positionnement}{9}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Lacunes identifiées dans la littérature}{9}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Positionnement de l'architecture proposée}{9}{subsection.2.6.2}%
+\contentsline {subsection}{\numberline {2.6.3}Hypothèse de recherche}{9}{subsection.2.6.3}%
+\contentsline {chapter}{\numberline {3}MOTIVATION DE RECHERCHE ET OBJECTIFS}{12}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Contexte et problématique}{12}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Objectifs de recherche}{12}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Contexte et problématique}{12}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Portée et exclusions de la recherche}{12}{section.3.4}%
+\contentsline {chapter}{\numberline {4}DESIGN DU SYSTÈME}{13}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Plateforme Expérimentale Et Architecture Globale}{13}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Scène robotique, capteur RGB-D, robot manipulateur}{13}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Architecture modulaire du système}{13}{subsection.4.1.2}%
+\contentsline {section}{\numberline {4.2}Perception Sémantique et Reconstruction 3D}{14}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Extraction Sémantique}{14}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Suivi temporel de la cible}{14}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Projection RGB-D vers l'espace 3D}{14}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}Séparation cible, obstacles et outil visible}{14}{subsection.4.2.4}%
+\contentsline {subsection}{\numberline {4.2.5}Nettoyage spatial du nuage d'obstacles}{14}{subsection.4.2.5}%
+\contentsline {section}{\numberline {4.3}Cartes Persistantes de la scène}{14}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Motivation: robustesse aux pertes de détection et occlusion}{14}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Génération des cartes persistantes}{14}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Mise à jour des cartes persistantes}{14}{subsection.4.3.3}%
+\contentsline {section}{\numberline {4.4}Acquisition des données et représentation des démonstrations}{15}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Protocol de collecte des démonstrations}{15}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Prétraitement des données}{18}{subsection.4.4.2}%
+\contentsline {subsubsection}{Détection avec un modèle de segmentation}{18}{section*.14}%
+\contentsline {subsubsection}{Génération du nuage de point conditionnel}{19}{section*.16}%
+\contentsline {section}{\numberline {4.5}Génération de trajectoire par Flow Matching}{21}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}Formulation mathématique du Flow Matching conditionnel}{22}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Architecture du modèle}{22}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}Entraînement du modèle}{22}{subsection.4.5.3}%
+\contentsline {section}{\numberline {4.6}Conversion et exécution de la trajectoire nominale}{22}{section.4.6}%
+\contentsline {subsection}{\numberline {4.6.1}Conversion outil - TCP}{22}{subsection.4.6.1}%
+\contentsline {subsection}{\numberline {4.6.2}Cinématique inverse pour obtenir la trajectoire articulaire nominale}{22}{subsection.4.6.2}%
+\contentsline {subsection}{\numberline {4.6.3}Retiming temporel de la trajectoire articulaire}{22}{subsection.4.6.3}%
+\contentsline {subsection}{\numberline {4.6.4}Interpolation temporelle et exécution nominale}{25}{subsection.4.6.4}%
+\contentsline {section}{\numberline {4.7}Filtre de sécurité réactif SDF-CBF}{25}{section.4.7}%
+\contentsline {subsection}{\numberline {4.7.1}Modèle de distance du robot appris hors ligne}{26}{subsection.4.7.1}%
+\contentsline {subsection}{\numberline {4.7.2}Fonction barrière}{28}{subsection.4.7.2}%
+\contentsline {subsection}{\numberline {4.7.3}Gradient analytique de la contrainte}{29}{subsection.4.7.3}%
+\contentsline {subsection}{\numberline {4.7.4}Contrainte de sécurité et vitesse nominale}{32}{subsection.4.7.4}%
+\contentsline {subsection}{\numberline {4.7.5}De la vitesse nominale à la commande sécurisée}{33}{subsection.4.7.5}%
+\contentsline {subsection}{\numberline {4.7.6}Extension multi-contraintes et portée des garanties}{35}{subsection.4.7.6}%
+\contentsline {section}{\numberline {4.8}Intégration temps réel}{36}{section.4.8}%
+\contentsline {subsection}{\numberline {4.8.1}Ordonnancement des modules}{36}{subsection.4.8.1}%
+\contentsline {subsection}{\numberline {4.8.2}Justification des fréquences de contrôle}{37}{subsection.4.8.2}%
+\contentsline {chapter}{\numberline {5}RÉSULTATS ET DISCUSSION}{38}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Protocol expérimental}{39}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Description des scénarios testés}{39}{subsection.5.1.1}%
+\contentsline {subsubsection}{Pick and place}{39}{section*.23}%
+\contentsline {subsubsection}{Robot assisted feeding}{39}{section*.24}%
+\contentsline {subsection}{\numberline {5.1.2}Métriques utilisées}{39}{subsection.5.1.2}%
+\contentsline {section}{\numberline {5.2}validation du modèle géométrique de sécurité}{39}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Précision du SDF du robot}{40}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Temps d'évaluation du SDF et du gradient}{42}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Visualisation des points critiques sélectionnés}{42}{subsection.5.2.3}%
+\contentsline {section}{\numberline {5.3}Qualité de la génération nominale}{44}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Trajectoire générée sans obstacle critique}{44}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Cohérence de la trajectoire avec la cible}{44}{subsection.5.3.2}%
+\contentsline {section}{\numberline {5.4}Sécurité et évitement d'obstacle}{44}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Comparaison des trajectoires avec et sans SDF-CBF}{44}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}Évolution de $h(q)$ et de la contrainte de sécurité}{44}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}Déviation entre trajectoire nominale et trajectoire sécurisée}{49}{subsection.5.4.3}%
+\contentsline {section}{\numberline {5.5}Analyse des vitesses et de la fluidité}{49}{section.5.5}%
+\contentsline {subsection}{\numberline {5.5.1}Décomposition des vitesses articulaires}{49}{subsection.5.5.1}%
+\contentsline {subsection}{\numberline {5.5.2}Action du filtre de sécurité sur la vitesse commandée}{49}{subsection.5.5.2}%
+\contentsline {subsection}{\numberline {5.5.3}Effet du rééchantillonnage du planificateur sur la vitesse exécutée}{50}{subsection.5.5.3}%
+\contentsline {subsection}{\numberline {5.5.4}Effet du filtrage sur la commande sécurisée}{51}{subsection.5.5.4}%
+\contentsline {subsection}{\numberline {5.5.5}Analyse de l'interface de commande}{51}{subsection.5.5.5}%
+\contentsline {section}{\numberline {5.6}Performance et temps de calcul}{52}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Performances globales et limites}{52}{section.5.7}%
+\contentsline {subsection}{\numberline {5.7.1}Taux de succès des scénarios}{52}{subsection.5.7.1}%
+\contentsline {subsubsection}{Pick and place}{52}{section*.41}%
+\contentsline {subsubsection}{Robot assisted feeding}{52}{section*.42}%
+\contentsline {subsection}{\numberline {5.7.2}Cas d'échec}{52}{subsection.5.7.2}%
+\contentsline {section}{\numberline {5.8}Discussion}{52}{section.5.8}%
+\contentsline {chapter}{\numberline {6}CONCLUSION}{53}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Synthèse des travaux / Summary of Works}{53}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Limitations de la solution proposée / Limitations}{53}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Améliorations futures / Future Research}{53}{section.6.3}%
+\contentsline {compteur}{RÉFÉRENCES}{54}{chapter*.43}%
+\contentsline {compteur}{ANNEXES}{60}{chapter*.43}%

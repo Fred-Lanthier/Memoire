@@ -4,10 +4,135 @@
 % =================================================================
 \subsection{Scène robotique, capteur RGB-D, robot manipulateur}
 \subsection{Architecture modulaire du système}
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\textwidth]{pdf/Drawing.pdf}
-    \caption{Architecture globale du système}\label{fig:architecture}
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    proc/.style={draw, rounded corners=2pt, thick, align=center,
+                 minimum height=1.1cm, minimum width=3.5cm, inner sep=4pt},
+    sim/.style   ={proc, fill=gray!10,    draw=black!70},
+    vis/.style   ={proc, fill=green!8,    draw=green!60!black},
+    map/.style   ={proc, fill=cyan!10,    draw=cyan!60!black},
+    cond/.style ={proc, fill=yellow!20,  draw=yellow!60!black},
+    plan/.style ={proc, fill=orange!15,  draw=orange!70!black},
+    safe/.style ={proc, fill=red!10,     draw=red!70!black},
+    grasp/.style={proc, fill=teal!15,    draw=teal!65!black},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=black!80},
+    fb/.style   ={-{Stealth[scale=1.0]}, thick, draw=black!50, dashed},
+    svc/.style  ={{Stealth[scale=0.9]}-{Stealth[scale=0.9]}, thick, draw=green!60!black, dashed},
+    phys/.style ={-{Stealth[scale=1.0]}, semithick, draw=gray!90},
+    tlab/.style ={font=\sffamily\scriptsize, inner sep=2pt, align=center},
+    grp/.style  ={rounded corners=4pt, inner sep=0.5cm},
+    grplab/.style={font=\sffamily\small\bfseries}
+]
+
+% ===================== NOEUDS ========================================
+\node[sim]  (cam)     at (0, 14.8) {Simulation Gazebo\\{\footnotesize $\sim$30~Hz}};
+
+% Axe Central Haut (X = 0)
+\node[vis]  (sam)     at (0, 11.5) {SAM3\,+\,SAM2\\détection \& suivi};
+\node[vis]  (sam3srv) at (-8.2, 11.5) {Serveur SAM3\\segmentation zéro-coup\\{\footnotesize (service)}};
+\node[vis]  (proj)    at (0, 8.8)  {Projecteur 3D\\masque + profondeur\\$\rightarrow$ nuages de points};
+
+% Axe Gauche Élargi (X = -8.2)
+\node[map]  (perc)    at (-8.2, 5.8) {Filtrage perception\\CropBox + ROR\\auto-filtre robot (SDF)};
+\node[map]  (pers)    at (-8.2, 2.6) {Carte d'obstacles\\persistante : voxels\\+ éviction d'espace libre};
+
+% Axe Droit Élargi (X = +8.2)
+\node[cond] (cond)    at (8.2, 8.8)  {Fusion de conditionnement\\cible + maillage outil\\{\footnotesize 256 points}};
+\node[grasp](grasp)   at (8.2, -0.2) {Saisie outil\\soudure Gazebo};
+
+% Axe Central Bas (X = 0)
+\node[plan] (plan)    at (0, 2.6)  {Planificateur Flow Matching\\U-Net 1D $\rightarrow$ trajectoire\\{\footnotesize 10~Hz}};
+\node[plan] (exe)     at (0, -0.2)  {Exécuteur de trajectoire\\interpolation\\{\footnotesize 100~Hz}};
+\node[safe] (cbf)     at (0, -3.8)  {Bouclier CBF multi-contraintes\\{\footnotesize 100~Hz}};
+\node[sim]  (ctrl)    at (0, -6.4) {Contrôleur de vitesse\\Panda / Gazebo};
+
+
+% ===================== GROUPES ASYNCHRONES ====================
+\begin{scope}[on background layer]
+  \node[grp, fill=green!3,  draw=green!50!black, dashed, fit=(sam3srv)(sam)(proj)] (gvis) {};
+  \node[grp, fill=cyan!4,   draw=cyan!50!black, dashed, fit=(perc)(pers)] (gmap) {};
+  \node[grp, fill=orange!3, draw=orange!60!black, dashed, fit=(plan)(exe)] (gplan) {};
+\end{scope}
+
+\node[grplab, green!45!black, anchor=south west] at (gvis.north west) {Perception \& suivi — asynchrone $\sim$15~Hz};
+\node[grplab, cyan!40!black, rotate=90, anchor=south] at ($(gmap.west)$) [xshift=-0.15cm] {Cartographie d'obstacles — 30~Hz};
+\node[grplab, orange!75!black, anchor=south] at ($(gplan.north)$) [yshift=0.15cm] {Planification générative};
+
+
+% ===================== LIAISONS ========================
+\draw[arrow] (cam) -- (sam);
+\node[tlab, right] at ($(cam.south)!0.5!(sam.north)$) {\texttt{/camera/\dots/image\_raw}};
+
+\draw[svc]  (sam3srv) -- (sam);
+\node[tlab, above] at ($(sam3srv.east)!0.5!(sam.west)$) {\texttt{/sam3/segment}};
+
+\draw[arrow] (sam) -- (proj);
+\node[tlab, right] at ($(sam.south)!0.5!(proj.north)$) {\texttt{/vision/sam2\_tracked\_mask}};
+
+\draw[arrow] (proj.west) -- (-8.2, 8.8) -- (perc.north);
+\node[tlab, above] at (-4.1, 8.8) {\texttt{/perception/obstacles}};
+
+\draw[arrow] (proj.east) -- (cond.west);
+\node[tlab, above] at ($(proj.east)!0.5!(cond.west)$) {\texttt{/perception/target}};
+
+\draw[arrow] (perc) -- (pers);
+\node[tlab, right] at ($(perc.south)!0.5!(pers.north)$) {\texttt{/perception/cleaned\_obstacles}};
+
+\draw[arrow] (pers.east) -- (plan.west);
+\node[tlab, above, yshift=0.1cm, align=center] at ($(pers.east)!0.5!(plan.west)$) {\texttt{/perception/}\\\texttt{persistent\_obstacles}};
+
+% ---> CORRECTIONS VISUELLES MAJEURES DES DEUX MESSAGES VERTICAUX À GAUCHE <---
+\draw[arrow] (pers.south) |- (cbf.west);
+\node[tlab, rotate=90, anchor=north] at (-8.05, -0.6) {\texttt{persistent\_obstacles}};
+
+\draw[fb] ([yshift=0.275cm]cbf.west) -- (-5.0, -3.525) |- ([yshift=-0.275cm]plan.west);
+\node[tlab, rotate=90, anchor=south] at (-5.15, -1.0) {\texttt{/cbf\_safety/ready}};
+
+
+\draw[arrow] ($(cond.south west)!0.33!(cond.south)$) |- (4.2, 4.8) |- ([yshift=0.25cm]plan.east);
+\node[tlab, above, yshift=0.05cm] at (5.0, 4.8) {\texttt{/vision/merged\_cloud}};
+
+\draw[arrow] (plan) -- (exe);
+\node[tlab, right] at ($(plan.south)!0.5!(exe.north)$) {\texttt{/planner/nominal\_trajectory}};
+
+\draw[arrow] (exe) -- (cbf);
+\node[tlab, right] at ($(exe.south)!0.5!(cbf.north)$) {\texttt{nominal\_joint\_command}\\\texttt{+ velocity}};
+
+\draw[arrow] (cbf) -- (ctrl);
+\node[tlab, right] at ($(cbf.south)!0.5!(ctrl.north)$) {commande de vitesse sûre};
+
+\draw[arrow] (cond.south) -- (grasp.north);
+\node[tlab, rotate=-90, above] at (8.2, 4.3) {\texttt{/vision/fork\_cloud}};
+
+\draw[arrow] (grasp.west) |- (4.2, -0.2) |- ([yshift=0.275cm]cbf.east);
+\node[tlab, above] at ($(grasp.west)+(-2.0, 0.05)$) {\texttt{grasped\_cloud}};
+
+\draw[arrow] ($(pers.south west)!0.5!(pers.south)$) |- (8.2, -7.4) -- (grasp.south);
+\node[tlab, above, yshift=0.05cm] at (0, -7.4) {\texttt{/perception/persistent\_target}};
+
+
+% --- BUS DE RETOUR /joint_states ---
+\coordinate (busbot) at (11.2, -6.4);
+\coordinate (bustop) at (11.2, 8.8);
+\draw[fb] (ctrl.east) -- (busbot) -- (bustop);
+\node[tlab, rotate=90, above] at (11.2, 4.5) {\texttt{/joint\_states}};
+
+\draw[fb] (11.2, 8.8) -- (cond.east);
+\draw[fb] (11.2, 2.6) -- (plan.east);
+\draw[fb] (11.2, -0.2) -- (grasp.east);
+\draw[fb] (11.2, -3.8) -- (cbf.east);
+
+
+% --- COUPLAGE PHYSIQUE ---
+\draw[phys] (ctrl.west) -- (-12.0, -6.4) -- (-12.0, 14.8) -- (cam.west);
+
+\end{tikzpicture}%
+}
+\caption{Architecture globale du système asynchrone.}
+\label{fig:architecture_systeme_final_v12}
 \end{figure}
 
 % =================================================================
@@ -81,7 +206,28 @@ L'ensemble de ces données sont publiées sout la forme de message ROS. Il sont 
 La figure \ref{fig:architecture_acquisition} représente l'architecture du système d'acquisition de données pour entraîner le modèle d'IA générative.
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.7\textwidth]{images/Méthodologie/Système_acquisition.png}
+    % Boîte 3D : #1=x (coin inf. gauche), #2=y, #3=largeur, #4=hauteur, #5=texte
+    \newcommand{\cube}[5]{%
+        \begin{scope}[shift={(#1,#2)}]
+            \def\dx{0.28}\def\dy{0.28}%
+            \filldraw[fill=white] (0,#4) -- (\dx,#4+\dy) -- (#3+\dx,#4+\dy) -- (#3,#4) -- cycle;
+            \filldraw[fill=white] (#3,#4) -- (#3+\dx,#4+\dy) -- (#3+\dx,\dy) -- (#3,0) -- cycle;
+            \filldraw[fill=white] (0,0) rectangle (#3,#4);
+            \node[align=center] at (#3/2,#4/2) {#5};
+        \end{scope}%
+    }
+    \begin{tikzpicture}[>={Stealth[length=3mm]}, line width=0.6pt, font=\small]
+        \cube{0}{3.4}{4.2}{1.5}{Robot Franka Emika\\ Panda}
+        \cube{8}{3.4}{4.4}{1.5}{Node 1 : Lecture des\\ données du robot}
+        \cube{0}{0}{4.2}{1.5}{Caméras}
+        \cube{8}{0}{4.4}{1.5}{Node 2 : Enregistrement\\ des données\\ d'entraînement}
+        % Robot -> Node 1
+        \draw[->] (4.2,4.15) -- node[above,align=center]{Données du\\ robot} (8,4.15);
+        % Caméras -> Node 2
+        \draw[->] (4.2,0.75) -- node[above,align=center]{Données RGB-D} (8,0.75);
+        % Node 1 -> Node 2
+        \draw[->] (10.2,3.4) -- (10.2,1.5);
+    \end{tikzpicture}
     \caption{Architecture du système d'acquisition de données}\label{fig:architecture_acquisition}
 \end{figure}
 
@@ -143,18 +289,18 @@ La première étape consiste à générer un nuage de points de la cible dans le
     \caption{Représentation schématique des frames des différents repères utilisés}\label{fig:rep}
 \end{figure}
 
-où $f_x$ et $f_y$ sont les longueurs focales de la caméra et $c_x$ et $c_y$ sont les coordonnées du point principal de la caméra. Les paramètres intrisèques de la caméra D415 utilisée ont été obtenues au prêt du fabriquant. Le nuage de points résultant est ensuite positionné dans le repère de la base du robot en utilisant la relation \eqref{eq:pose_cam} où $\mathbf{T}_{cible}^b$ est la matrice de transformation entre la cible et la . Cette relation est déduite de  Ce dernier est finalement sous-échantillonner à 512 points en utilisant la stratégie d'échantillonnage par le point le plus éloigné.
+où $f_x$ et $f_y$ sont les longueurs focales de la caméra et $c_x$ et $c_y$ sont les coordonnées du point principal de la caméra. Les paramètres intrisèques de la caméra D415 utilisée ont été obtenues au prêt du fabriquant. Le nuage de points résultant est ensuite positionné dans le repère de la base du robot en utilisant la relation \eqref{eq:pose_cam} où $\mathbf{T}_{cible}^b$ est la matrice de transformation entre la cible et la base du robot. Cette relation peut être déduite de la figure \ref{fig:rep} où est représentée l'ensemble des repères nécessaires au système : \{b\} le repère de la base du robot, \{c\} pour le repère de la caméra au niveau de l'effecteur, \{e\} pour le repère du TCP et \{o\} pour le repère de l'outil utilisé. Ce dernier est finalement sous-échantillonner à 512 points en utilisant la stratégie d'échantillonnage par le point le plus éloigné.
 
 \begin{equation}\label{eq:pose_cam}
   \mathbf{T}_{cible}^{b} = \mathbf{T}_{e}^b \mathbf{T}_{c}^{e} \mathbf{T}_{cible}^{c}  
 \end{equation}
 
-La seconde étape consiste à générer le nuage de points de l'outil. Considérant que le modèle CAD de l'outil est disponible, ils est possible d'obtenir son nuage de points en utilisant la librairie \texttt{trimesh} avec la fonction \texttt{trimesh.sample.sample\_surface}. Pour positionner ce nuage de points, et connaissant la pose du repère de la fourchette dans le repère du TCP du robot, l'équation \eqref{eq:pose_fork} est utilisée.
+La seconde étape consiste à générer le nuage de points de l'outil. En supposant que le modèle CAD de l'outil est disponible, il est possible d'obtenir son nuage de points en utilisant la librairie \texttt{trimesh} avec la fonction \texttt{trimesh.sample.sample\_surface}. Pour positionner ce nuage de points, et connaissant la pose du repère de de l'outil dans le repère du TCP du robot, l'équation \eqref{eq:pose_fork} est utilisée.
 \begin{equation}\label{eq:pose_fork}
   \mathbf{T}_{f}^{b} = \mathbf{T}_{e}^b \mathbf{T}_{f}^{e}
 \end{equation} 
 
-Comme pour la cible, le nuage de point ainsi positionné est par la suite sous-échantionnager à 512 points en utilisant la même stratégie. Les deux nuages de points résultants sont finalement fusionné ensemble et translater au niveau du repère de la fourchette. Ce nuage de points final est ensuite enregistré sous le nom de \texttt{Merged\_Fork\_\{step\_number\}} dans le dossier \texttt{Merged\_Fork\_Trajectory\_X}. Finalement, le fichier JSON provenant de l'étape précédente est copié 
+à noté que la transformation $\mathbf{T}_f^e=\mathbf{I}$ dans le cas où l'outil est le TCP. Comme pour la cible, le nuage de point ainsi positionné est par la suite sous-échantionnager à 512 points en utilisant la même stratégie. Les deux nuages de points résultants sont finalement fusionné ensemble et translater au niveau du repère de la l'outil. Ce nuage de points final est ensuite enregistré sous le nom de \texttt{Merged\_\{step\_number\}} dans le dossier \texttt{Merged\_Trajectory\_X}. Finalement, les fichiers JSON provenant de l'étape précédente sont copiés dans leur dossier du jeu de données prétraités respectif et la pose de l'outil dans le repère monde \{b\} y est ajoutée. L'architecture depuis le dossier racine du jeu de données ainsi créée est représentée à la figure \ref{fig:preprocess_dir_tree}.
 
 \begin{figure}[H]
 \centering
@@ -163,19 +309,19 @@ Comme pour la cible, le nuage de point ainsi positionné est par la suite sous-�
 .1 Trajectories\_preprocess/.
 .2 Trajectory\_1/.
 .3 trajectory\_1.json.
-.3 Merged\_Fork\_Trajectory\_1/.
-.4 Merged\_Fork\_0001.npy.
-.4 Merged\_Fork\_0002.npy.
+.3 Merged\_Trajectory\_1/.
+.4 Merged\_0001.npy.
+.4 Merged\_0002.npy.
 .4 ....
 .2 Trajectory\_2/.
 .3 trajectory\_2.json.
-.3 Merged\_Fork\_Trajectory\_2/.
-.4 Merged\_Fork\_0001.npy.
-.4 Merged\_Fork\_0002.npy.
+.3 Merged\_Trajectory\_2/.
+.4 Merged\_0001.npy.
+.4 Merged\_0002.npy.
 .4 ....
 }
 \end{minipage}
-\caption{Directory structure of the preprocessed trajectory dataset.}
+\caption{Structure du dossier du jeu de données des trajectoires prétraités}
 \label{fig:preprocess_dir_tree}
 \end{figure}
 
@@ -220,7 +366,7 @@ Présenter les entrants, les extrants, l'architecture du modèle (EMA, normalisa
     \node (in_x) at (0, 11.2) {\textbf{Entrée} $x$ {\footnotesize $(B, C_{\text{in}}, L)$}};
 
     % --- PREMIER BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
-    \node[layer_core] (conv1) at (0, 9.9) {Conv1D {\footnotesize ($3\times3$ ou $5\times5$)}};
+    \node[layer_core] (conv1) at (0, 9.9) {Conv1D {\footnotesize ($3\times3$)}};
     \node[layer_norm] (gn1) at (0, 8.9) {GroupNorm};
     \node[layer_activation] (mish1) at (0, 7.9) {Mish};
     
@@ -425,14 +571,14 @@ Présenter les entrants, les extrants, l'architecture du modèle (EMA, normalisa
 \end{equation}
 
 \subsection{Entraînement du modèle}
-Présentation des hyperparamètres choisis et de la Loss curve.
+Présentation des hyperparamètres choisis et de la Loss curve (finalement loss curve pas si importante comme on présente une méthodologie).
 
 
 % =================================================================
 \section{Conversion et exécution de la trajectoire nominale}
 % =================================================================
 \subsection{Conversion outil - TCP}
-Mettre une image des repères TCP - Outil et de la matrice de Transformation et comment on fait pour calculer la pose du TCP à contrôler en fonction de la pose de la fourchette (du Fork tip)
+Mettre une image des repères TCP - Outil et de la matrice de Transformation et comment on fait pour calculer la pose du TCP à contrôler en fonction de la pose de l'outil
 \subsection{Cinématique inverse pour obtenir la trajectoire articulaire nominale}
 Comment est-ce qu'on fait la cinématique inverse d'un robot à 7 DOF ?
 \subsection{Retiming temporel de la trajectoire articulaire}
@@ -441,10 +587,11 @@ Spécifié que pour obtenir une vitesse constante, on calcul la vitesse en faisa
 
 En fait ce qui est fait, ce qu'on a la position des joints en faisant la cinématique inverse, puis on calcul la vitesse de chaque joint par cinématique inverse avec dérivation de degré 1.
 Après la cinématique inverse et le retiming, l'exécuteur de trajectoire interpole la trajectoire articulaire à la fréquence de commande et publie la vitesse feedforward associée :
-\[
+\begin{equation}\label{eq:diff_num}
 \dot{\mathbf{q}}_{\mathrm{ff}}(t) = \frac{\mathbf{q}_{i+1}-\mathbf{q}_i}{t_{i+1}-t_i},
 \qquad t \in [t_i, t_{i+1}].
-\]
+\end{equation}
+
 Cette vitesse représente l'intention instantanée de la trajectoire générée par \textit{Flow Matching}. Grâce au retiming, sa norme est approximativement constante malgré des points de passage non équidistants, ce qui fournit au filtre de sécurité une référence régulière plutôt qu'une différentiation numérique bruitée de la consigne de position.
 \subsection{Interpolation temporelle et exécution nominale}
 Calcul de cinématique inverse pour obtenir \texorpdfstring{$\mathbf{q}$}{q}
@@ -458,17 +605,17 @@ Le modèle génératif est entraîné sur des démonstrations sans obstacle et e
 \quad \text{s.c.} \quad
 \nabla h(\mathbf{q})^{\top}\dot{\mathbf{q}} \;\geq\; b\big(h(\mathbf{q})\big),
 \end{equation}
-où $\mathbf{q}\in\mathbb{R}^7$ est la configuration articulaire mesurée : la commande retenue est la vitesse la plus proche de la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ — l'intention du modèle génératif — parmi celles que la condition de sécurité autorise. Ce problème comporte trois ingrédients, qui structurent la section. La fonction barrière $h(\mathbf{q})$, qui mesure la distance signée entre le robot et les points obstacles $\mathbf{p}_i\in\mathbb{R}^3$ de la carte persistante, repose sur un modèle de distance du robot appris hors ligne (Section~\ref{subsec:sdf_robot}), à partir duquel elle est assemblée en ligne (Section~\ref{subsec:barriere}). Le second membre $b(h)$ et la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ — la contrainte et l'objectif — sont définis à la Section~\ref{subsec:contrainte}. La Section~\ref{subsec:projection} résout alors le problème en forme analytique et décrit le post-traitement qui transforme cette solution en commande exécutable $\dot{\mathbf{q}}_{\mathrm{final}}$. Enfin, la Section~\ref{subsec:multicbf} généralise \eqref{eq:cbf_qp} à plusieurs contraintes simultanées et délimite la portée des garanties obtenues.
+où $\mathbf{q}\in\mathbb{R}^7$ est la configuration articulaire mesurée : la commande retenue est la vitesse la plus proche de la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$, l'intention du modèle génératif, parmi celles que la condition de sécurité autorise. Ce problème comporte trois ingrédients, qui structurent la section. La fonction barrière $h(\mathbf{q})$, qui mesure la distance signée entre le robot et les points obstacles $\mathbf{p}_i\in\mathbb{R}^3$ de la carte persistante, repose sur un modèle de distance du robot appris hors ligne (Section~\ref{subsec:sdf_robot}), à partir duquel elle est assemblée en ligne (Section~\ref{subsec:barriere}). Le second membre $b(h)$ et la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$, sont définis à la Section~\ref{subsec:contrainte}. La Section~\ref{subsec:projection} résout le problème en forme analytique et décrit le post-traitement qui transforme cette solution en commande exécutable $\dot{\mathbf{q}}_{\mathrm{final}}$. Enfin, la Section~\ref{subsec:multicbf} généralise \eqref{eq:cbf_qp} à plusieurs contraintes simultanées et délimite la portée des garanties obtenues.
 
 \subsection{Modèle de distance du robot appris hors ligne}\label{subsec:sdf_robot}
 Le filtre doit connaître, en quelques millisecondes et pour des milliers de points simultanément, la distance signée entre tout point de l'espace et la surface du robot — ainsi que son gradient. Suivant l'approche \emph{Robot Distance Fields}~\cite{Li2024rdf}, également exploitée pour l'évitement réactif de collisions dans un cadre de commande à priorité de tâches~\cite{Govoni2026rdf}, le SDF de chaque lien $l$ est approximé par une base tensorielle de polynômes de Bernstein dans un repère normalisé propre au lien. La géométrie maillée du lien est d'abord centrée et mise à l'échelle :
-\[
-\bar{\mathbf{x}} = \frac{\mathbf{x}-\mathbf{o}_l}{s_l},
+\begin{equation}\label{eq:norm_dataset_SDF}
+  \bar{\mathbf{x}} = \frac{\mathbf{x}-\mathbf{o}_l}{s_l},
 \qquad
 \mathbf{o}_l = \text{centre de la boîte englobante},
 \qquad
 s_l = \max_{\mathbf{v}\in\mathcal{V}_l}\|\mathbf{v}-\mathbf{o}_l\|,
-\]
+\end{equation}
 où $\mathcal{V}_l$ est l'ensemble des sommets du maillage : le lien est ainsi contenu dans le cube unitaire $[-1,1]^3$. Sur ce domaine, le SDF normalisé est une combinaison linéaire de $n^3$ fonctions de base :
 \begin{align}
 \bar{d}_l(\bar{\mathbf{x}}) &= \sum_{a,b,c=0}^{n-1} w^{(l)}_{abc}\, B_a(u_x)\,B_b(u_y)\,B_c(u_z) = \boldsymbol{\Phi}(\bar{\mathbf{x}})\,\mathbf{w}_l \\
@@ -476,9 +623,9 @@ où $\mathcal{V}_l$ est l'ensemble des sommets du maillage : le lien est ainsi c
 B_a(u)&=\binom{n-1}{a}u^a(1-u)^{n-1-a} \\
 \quad \mathbf{u}&=\frac{\bar{\mathbf{x}}+1}{2}
 \end{align}
-et la distance métrique s'en déduit par $d_l = s_l\,\bar{d}_l$. Les liens protégés (liens 4 à 7, main et fourchette) utilisent $n=12$ fonctions par axe, soit $1728$ coefficients par lien ; les liens proximaux, jamais menacés dans les scénarios considérés, restent à $n=8$. Trois propriétés motivent ce choix de représentation : le modèle est polynomial, donc $\mathcal{C}^\infty$ et de gradient analytique exact ; il est linéaire en ses paramètres $\mathbf{w}_l$, ce qui rend l'ajustement convexe ; et son évaluation se réduit à des produits tensoriels, massivement parallélisables sur GPU.
+et la distance métrique s'en déduit par $d_l = s_l\,\bar{d}_l$. Les liens protégés (liens 4 à 7, main et ouil) utilisent $n=12$ fonctions par axe, soit $1728$ coefficients par lien ; les liens proximaux, jamais menacés dans les scénarios considérés, restent à $n=8$. Trois propriétés motivent ce choix de représentation : le modèle est polynomial, donc $\mathcal{C}^\infty$ et de gradient analytique exact ; il est linéaire en ses paramètres $\mathbf{w}_l$, ce qui rend l'ajustement convexe ; et son évaluation se réduit à des produits tensoriels, massivement parallélisables sur GPU.
 
-L'apprentissage des poids procède en deux étapes par lien. Un jeu d'étiquettes est d'abord généré sur le maillage, suivant le protocole d'échantillonnage de~\cite{Li2024rdf} : environ $8\times10^{5}$ points concentrés près de la surface (balayages virtuels, signe déterminé par les normales) et autant de points uniformes dans le cube, chacun étiqueté de sa distance signée exacte ; les étiquettes négatives situées hors de la boîte englobante du lien, artefacts du calcul de signe, sont écartées. La linéarité du modèle permet alors un ajustement par \emph{moindres carrés récursifs} : à chaque itération, un lot de points $\boldsymbol{\Phi}_k$ d'étiquettes $\mathbf{d}_k$ met à jour les poids en forme close,
+L'apprentissage des poids procède en deux étapes par lien. Un jeu d'étiquettes est d'abord généré sur le maillage, suivant le protocole d'échantillonnage de~\cite{Li2024rdf} : $8\times10^{5}$ points concentrés près de la surface (balayages virtuels, signe déterminé par les normales) et autant de points uniformes dans le cube, chacun étiqueté de sa distance signée exacte ; les étiquettes négatives situées hors de la boîte englobante du lien, artefacts du calcul de signe, sont écartées. La linéarité du modèle permet alors un ajustement par \emph{moindres carrés récursifs} : à chaque itération, un lot de points $\boldsymbol{\Phi}_k$ d'étiquettes $\mathbf{d}_k$ met à jour les poids en forme close,
 \begin{align}
   \mathbf{K}_k &= \mathbf{B}_{k-1}\boldsymbol{\Phi}_k^{\top}\big(\mathbf{I}+\boldsymbol{\Phi}_k\mathbf{B}_{k-1}\boldsymbol{\Phi}_k^{\top}\big)^{-1} \\
   \qquad
@@ -490,12 +637,15 @@ L'apprentissage des poids procède en deux étapes par lien. Un jeu d'étiquette
 avec $\mathbf{B}_0 = 10^{2}\,\mathbf{I}$ (régularisation de type \emph{ridge}). Cette régression de valeur, qui correspond à l'apprentissage original de~\cite{Li2024rdf}, fournit une distance précise mais ne contraint pas le gradient : près de la surface, sa direction reste bruitée et sa norme s'écarte de l'unité.
 
 Or le filtre de sécurité consomme précisément ce gradient : $\nabla h$ fixe la \emph{direction} de la correction de la projection~\eqref{eq:cbf_qp} et sa \emph{norme} en fixe l'amplitude. Une seconde étape de raffinement géométrique est donc appliquée. Un jeu de supervision dédié de $20\,000$ \emph{rayons normaux vérifiés} est construit : des points de surface sont déplacés le long de la normale de leur facette d'un décalage $\delta$ tiré aléatoirement, concentré à 75~\% dans la coquille critique $[1,10]$~mm (cohérente avec $d_{\mathrm{safe}}=15$~mm) et étendu jusqu'à $50$~mm. Chaque candidat n'est retenu que s'il est vérifié contre le maillage exact : le point doit être extérieur, sa distance exacte recalculée doit coïncider avec le décalage à $0{,}25$~mm près, et la direction exacte du gradient ne doit pas s'écarter de plus de $5^{\circ}$ de la normale de départ — ce qui élimine les rayons corrompus par l'axe médian ou la courbure. Chaque rayon fournit ainsi un triplet exact (point, distance, direction sortante $\hat{\mathbf{n}}$). Les poids sont alors affinés par descente de gradient (Adam, recuit en cosinus) sur la fonction de coût
-\[
-\mathcal{L} = \mathcal{L}_{\mathrm{près}} + \mathcal{L}_{\mathrm{unif}} + \lambda_{\mathrm{ray}}\,\mathcal{L}_{\mathrm{ray}}
-+ \lambda_{\mathrm{eik}}\,\mathbb{E}\big[(\|\nabla\bar{d}\|-1)^2\big]
-+ \mathbb{E}\Big[\omega\big(\lambda_{\mathrm{dir}}\,(1-\widehat{\nabla d}\cdot\hat{\mathbf{n}})
-+ \lambda_{\mathrm{vec}}\,\|\nabla\bar{d}-\hat{\mathbf{n}}\|^2\big)\Big],
-\]
+\begin{equation}
+  \begin{split}
+    \mathcal{L} &= \mathcal{L}_{\mathrm{près}} + \mathcal{L}_{\mathrm{unif}} + \lambda_{\mathrm{ray}}\,\mathcal{L}_{\mathrm{ray}}
+    + \lambda_{\mathrm{eik}}\,\mathbb{E}\big[(\|\nabla\bar{d}\|-1)^2\big]
+    &+ \mathbb{E}\Big[\omega\big(\lambda_{\mathrm{dir}}\,(1-\widehat{\nabla d}\cdot\hat{\mathbf{n}})
+    + \lambda_{\mathrm{vec}}\,\|\nabla\bar{d}-\hat{\mathbf{n}}\|^2\big)\Big]
+  \end{split}
+\end{equation}
+
 où les trois premiers termes sont les erreurs quadratiques de valeur (points près de la surface, uniformes et rayons, $\lambda_{\mathrm{ray}}=2$), le terme eikonal ($\lambda_{\mathrm{eik}}=0{,}05$) impose $\|\nabla\bar{d}\|=1$ partout, et les deux derniers alignent la direction du gradient sur la direction exacte des rayons ($\lambda_{\mathrm{dir}}=0{,}2$, $\lambda_{\mathrm{vec}}=0{,}25$), avec une pondération $\omega = 1+4\,e^{-\bar{d}/\bar{\delta}}$ qui concentre l'effort près de la surface. Le gradient $\nabla\bar{d}$ étant la dérivée analytique d'un polynôme, aucune approximation numérique n'intervient.
 
 Enfin, le passage des modèles validés d'ordre $n=8$ à l'ordre $n=12$ s'effectue par \emph{élévation de degré} exacte de Bernstein, appliquée séparément sur chaque axe du produit tensoriel :
@@ -520,7 +670,7 @@ Pour les points situés hors du domaine d'approximation $[-1,1]^3$, la coordonn�
 \mathcal{P}_{\mathrm{CBF}} = \operatorname{TopK}_{K}\Big( \min_l d_{l}(\mathbf{q},\mathbf{p}_i) \Big),
 \qquad K = 100.
 \]
-Cette sélection est mise à jour à une fréquence inférieure à celle de la boucle de commande (30~Hz contre 75~Hz). L'obsolescence maximale de l'ensemble actif qui en résulte ($\approx 33$~ms) est prise en compte dans le budget de la marge de sécurité $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}).
+Cette sélection est mise à jour à une fréquence inférieure à celle de la boucle de commande (30~Hz contre 100~Hz). L'obsolescence maximale de l'ensemble actif qui en résulte ($\approx 33$~ms) est prise en compte dans le budget de la marge de sécurité $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}).
 
 Les distances $d_{l,i}$ des points retenus sont alors agrégées en une fonction barrière scalaire. Pour chaque lien, le minimum sur les points obstacles est approché par un soft-min de température $\alpha$, formulé de manière numériquement stable autour de $m_l=\min_i d_{l,i}$ :
 \[
@@ -543,7 +693,7 @@ La projection~\eqref{eq:cbf_qp} repose entièrement sur le gradient $\nabla_{\ma
 \]
 toutes trois dérivables analytiquement. Les différentielles correspondantes sont établies successivement, puis recombinées par la règle de chaîne et agrégées à travers le soft-min.
 
-La différentielle cinématique est la plus délicate : l'obstacle est fixe dans le repère de base $\mathcal{F}_b$ ($\dot{\mathbf{p}}_i=\mathbf{0}$), mais paraît mobile dans le repère $\mathcal{F}_l$ que les articulations déplacent. Sa position locale $\mathbf{x}_{l,i}={}^{b}\mathbf{R}_l^{\top}(\mathbf{p}_i-{}^{b}\mathbf{d}_l)$ vérifie la relation de fermeture $\mathbf{p}_i = {}^{b}\mathbf{d}_l + {}^{b}\mathbf{R}_l\,\mathbf{x}_{l,i}$, où ${}^{b}\mathbf{R}_l(\mathbf{q})$ et ${}^{b}\mathbf{d}_l(\mathbf{q})$ sont la rotation et la translation de $\mathbf{T}_l(\mathbf{q})$. En dérivant cette relation par rapport au temps et en annulant $\dot{\mathbf{p}}_i$ :
+Tout d'abord, en ce qui concerne la différentielle cinématique, l'obstacle est fixe dans le repère de base $\mathcal{F}_b$ ($\dot{\mathbf{p}}_i=\mathbf{0}$), mais paraît mobile dans le repère $\mathcal{F}_l$ que les articulations déplacent. Sa position locale $\mathbf{x}_{l,i}={}^{b}\mathbf{R}_l^{\top}(\mathbf{p}_i-{}^{b}\mathbf{d}_l)$ vérifie la relation de fermeture $\mathbf{p}_i = {}^{b}\mathbf{d}_l + {}^{b}\mathbf{R}_l\,\mathbf{x}_{l,i}$, où ${}^{b}\mathbf{R}_l(\mathbf{q})$ et ${}^{b}\mathbf{d}_l(\mathbf{q})$ sont la rotation et la translation de $\mathbf{T}_l(\mathbf{q})$. En dérivant cette relation par rapport au temps et en annulant $\dot{\mathbf{p}}_i$ :
 \[
 \mathbf{0} = {}^{b}\dot{\mathbf{d}}_l + {}^{b}\dot{\mathbf{R}}_l\,\mathbf{x}_{l,i} + {}^{b}\mathbf{R}_l\,\dot{\mathbf{x}}_{l,i}.
 \]

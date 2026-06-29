@@ -30,8 +30,8 @@ def project(P, eye, center, up, vfov_deg, W, H):
 
 
 labels = {"b": r"$\{b\}$ base", "e": r"$\{e\}$ TCP",
-          "c": r"$\{c\}$ caméra", "f": r"$\{f\}$ fourchette"}
-off = {"b": (-140, 30), "e": (200, -50), "c": (-170, -90), "f": (120, 120)}
+          "c": r"$\{c\}$ caméra", "o": r"$\{o\}$ outil"}
+off = {"b": (-140, 30), "e": (200, -50), "c": (-170, -90), "o": (120, 120)}
 
 for name, P in zip(names, origins):
     px, py = project(P, EYE, CENTER, UP, VFOV, W, H)
