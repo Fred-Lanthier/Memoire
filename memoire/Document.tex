@@ -76,6 +76,9 @@
 %% Module qui permet la création des bookmarks dans un fichier PDF. / Package that allows the creation of bookmarks in a PDF file.
 %\usepackage[dvipdfm]{hyperref}
 \usepackage{hyperref}
+\ifdefined\pdfsuppresswarningpagegroup
+  \pdfsuppresswarningpagegroup=1
+\fi
 \usepackage{caption}  % Hyperlien vers la figure plutôt que son titre. / Hyperlink to the figure rather than its title.
 \makeatletter
 \providecommand*{\toclevel@compteur}{0}
