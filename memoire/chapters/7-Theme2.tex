@@ -17,7 +17,7 @@
     cond/.style ={proc, fill=yellow!20,  draw=yellow!60!black},
     plan/.style ={proc, fill=orange!15,  draw=orange!70!black},
     safe/.style ={proc, fill=red!10,     draw=red!70!black},
-    grasp/.style={proc, fill=teal!15,    draw=teal!65!black},
+    grasp/.style={proc, fill=pink!15,    draw=pink!65!black},
     arrow/.style={-{Stealth[scale=1.1]}, thick, draw=black!80},
     fb/.style   ={-{Stealth[scale=1.0]}, thick, draw=black!50, dashed},
     svc/.style  ={{Stealth[scale=0.9]}-{Stealth[scale=0.9]}, thick, draw=green!60!black, dashed},
@@ -40,7 +40,7 @@
 \node[map]  (pers)    at (-8.2, 2.6) {Carte d'obstacles\\persistante : voxels\\+ éviction d'espace libre};
 
 % Axe Droit Élargi (X = +8.2)
-\node[cond] (cond)    at (8.2, 8.8)  {Fusion de conditionnement\\cible + maillage outil\\{\footnotesize 256 points}};
+\node[cond] (cond)    at (8.2, 8.8)  {Fusion de conditionnement\\cible + maillage outil\\{\footnotesize 256 / 1024 points selon la tâche}};
 \node[grasp](grasp)   at (8.2, -0.2) {Saisie outil\\soudure Gazebo};
 
 % Axe Central Bas (X = 0)
@@ -135,6 +135,20 @@
 \label{fig:architecture_systeme_final_v12}
 \end{figure}
 
+% TODO (contenu récupéré de l'ancienne section « Intégration temps réel ») :
+% Ajouter ici, immédiatement après la figure, un paragraphe d'ordonnancement qui :
+%   1. justifie le découplage asynchrone visible sur la figure : perception et
+%      planification sont découplées de la boucle de commande, le bouclier CBF ne
+%      bloque jamais sur le planificateur, et un nuage de conditionnement périmé
+%      dégrade la trajectoire nominale sans jamais suspendre la commande à 100 Hz ;
+%   2. énonce la hiérarchie des fréquences comme un choix de conception :
+%      replanification à 3 Hz, points de passage à 10 Hz, perception et sélection
+%      des points critiques à 30 Hz, filtre de sécurité et commande à 100 Hz ;
+%      renvoyer au Chapitre 5 (section « Performance et temps de calcul ») pour la
+%      vérification expérimentale de ce budget temporel.
+% Ne pas énumérer les messages ROS en prose : les topics figurent déjà sur les
+% flèches de la figure.
+
 % =================================================================
 \section{Perception Sémantique et Reconstruction 3D}
 % =================================================================
@@ -158,6 +172,12 @@ Afin de détecter les objets à détecter pour contraindre le modèle de génér
 % =================================================================
 \subsection{Motivation: robustesse aux pertes de détection et occlusion}
 On veut pouvoir éviter les occlusions et les pertes de détection de SAM 3, en gardant en mémoire les surfaces des objets
+% TODO (gestion des pertes de la cible, contenu récupéré de l'ancienne section
+% « Intégration temps réel ») : décrire ici le comportement du système lors d'une
+% perte de suivi SAM2 : la carte persistante conserve le dernier nuage valide de la
+% cible, la politique de temporisation (timeout) avant invalidation, et l'effet sur
+% le planificateur (conditionnement gelé plutôt qu'absent, donc trajectoire nominale
+% inchangée pendant l'occlusion au lieu d'un arrêt du système).
 \subsection{Génération des cartes persistantes}
 
 \subsection{Mise à jour des cartes persistantes}
@@ -302,7 +322,7 @@ La seconde étape consiste à générer le nuage de points de l'outil. En suppos
   \mathbf{T}_{f}^{b} = \mathbf{T}_{e}^b \mathbf{T}_{o}^{e}
 \end{equation} 
 
-à noté que la transformation $\mathbf{T}_o^e=\mathbf{I}$ dans le cas où l'outil est le TCP. Comme pour la cible, le nuage de point ainsi positionné est par la suite sous-échantionnager à 512 points en utilisant la même stratégie. Les deux nuages de points résultants sont finalement fusionné ensemble et translater au niveau du repère de la l'outil \{o\}. Ce nuage de points final est ensuite enregistré sous le nom de \texttt{Merged\_\{step\_number\}} dans le dossier \texttt{Merged\_Trajectory\_X}. Finalement, les fichiers JSON provenant de l'étape précédente sont copiés dans leur dossier du jeu de données prétraités respectif et la pose de l'outil dans le repère monde \{b\} y est ajoutée. L'architecture depuis le dossier racine du jeu de données ainsi créée est représentée à la figure \ref{fig:preprocess_dir_tree}.
+à noté que la transformation $\mathbf{T}_o^e=\mathbf{I}$ dans le cas où l'outil est le TCP. Comme pour la cible, le nuage de point ainsi positionné est par la suite sous-échantionnager à 512 points en utilisant la même stratégie. Les deux nuages de points résultants sont finalement fusionné ensemble et translater au niveau du repère de la l'outil \{o\}. Le nuage conditionnel compte ainsi $1024$ points pour la tâche d'alimentation ($512$ points pour la cible et $512$ pour l'outil). Pour la tâche de saisie et dépôt (\textit{pick-and-place}), le nuage fusionné compte également $1024$ points, répartis entre la pince ($40\,\%$), le cube à saisir ($20\,\%$) et la boîte de dépôt ($40\,\%$), le sous-échantillonnage final utilisant la même stratégie du point le plus éloigné. Ce nuage de points final est ensuite enregistré sous le nom de \texttt{Merged\_\{step\_number\}} dans le dossier \texttt{Merged\_Trajectory\_X}. Finalement, les fichiers JSON provenant de l'étape précédente sont copiés dans leur dossier du jeu de données prétraités respectif et la pose de l'outil dans le repère monde \{b\} y est ajoutée. L'architecture depuis le dossier racine du jeu de données ainsi créée est représentée à la figure \ref{fig:preprocess_dir_tree}.
 
 \begin{figure}[H]
 \centering
@@ -340,7 +360,7 @@ Présenter la provenance et les mathématiques
 \end{equation}
 \begin{equation}
   \label{eq:fm_gt}
-  X_t = (1-t)X_0 + tX_t
+  X_t = (1-t)X_0 + tX_1
 \end{equation}
 
 \begin{equation}
@@ -652,7 +672,7 @@ où $\mathcal{V}_l$ est l'ensemble des sommets du maillage : le lien est ainsi c
 B_a(u)&=\binom{n-1}{a}u^a(1-u)^{n-1-a} \\
 \quad \mathbf{u}&=\frac{\bar{\mathbf{x}}+1}{2}
 \end{align}
-et la distance métrique s'en déduit par $d_l = s_l\,\bar{d}_l$. Les liens protégés (liens 4 à 7, main et ouil) utilisent $n=12$ fonctions par axe, soit $1728$ coefficients par lien ; les liens proximaux, jamais menacés dans les scénarios considérés, restent à $n=8$. Trois propriétés motivent ce choix de représentation : le modèle est polynomial, donc $\mathcal{C}^\infty$ et de gradient analytique exact ; il est linéaire en ses paramètres $\mathbf{w}_l$, ce qui rend l'ajustement convexe ; et son évaluation se réduit à des produits tensoriels, massivement parallélisables sur GPU.
+et la distance métrique s'en déduit par $d_l = s_l\,\bar{d}_l$. Chacun des neuf liens protégés (liens 2 à 7, la main et les deux doigts de la pince) utilise $n=12$ fonctions par axe, soit $1728$ coefficients par lien. Trois propriétés motivent ce choix de représentation : le modèle est polynomial, donc $\mathcal{C}^\infty$ et de gradient analytique exact ; il est linéaire en ses paramètres $\mathbf{w}_l$, ce qui rend l'ajustement convexe ; et son évaluation se réduit à des produits tensoriels, massivement parallélisables sur GPU.
 
 L'apprentissage des poids procède en deux étapes par lien. Un jeu d'étiquettes est d'abord généré sur le maillage, suivant le protocole d'échantillonnage de~\cite{Li2024rdf} : $8\times10^{5}$ points concentrés près de la surface (balayages virtuels, signe déterminé par les normales) et autant de points uniformes dans le cube, chacun étiqueté de sa distance signée exacte ; les étiquettes négatives situées hors de la boîte englobante du lien, artefacts du calcul de signe, sont écartées. La linéarité du modèle permet alors un ajustement par \emph{moindres carrés récursifs} : à chaque itération, un lot de points $\boldsymbol{\Phi}_k$ d'étiquettes $\mathbf{d}_k$ met à jour les poids en forme close,
 \begin{align}
@@ -677,13 +697,7 @@ Or le filtre de sécurité consomme précisément ce gradient : $\nabla h$ fixe 
 
 où les trois premiers termes sont les erreurs quadratiques de valeur (points près de la surface, uniformes et rayons, $\lambda_{\mathrm{ray}}=2$), le terme eikonal ($\lambda_{\mathrm{eik}}=0{,}05$) impose $\|\nabla\bar{d}\|=1$ partout, et les deux derniers alignent la direction du gradient sur la direction exacte des rayons ($\lambda_{\mathrm{dir}}=0{,}2$, $\lambda_{\mathrm{vec}}=0{,}25$), avec une pondération $\omega = 1+4\,e^{-\bar{d}/\bar{\delta}}$ qui concentre l'effort près de la surface. Le gradient $\nabla\bar{d}$ étant la dérivée analytique d'un polynôme, aucune approximation numérique n'intervient.
 
-Enfin, le passage des modèles validés d'ordre $n=8$ à l'ordre $n=12$ s'effectue par \emph{élévation de degré} exacte de Bernstein, appliquée séparément sur chaque axe du produit tensoriel :
-\[
-\mathbf{w}' = (\mathbf{E}\otimes\mathbf{E}\otimes\mathbf{E})\,\mathbf{w},
-\qquad
-E_{ij} = \frac{\binom{m}{j}\binom{m'-m}{i-j}}{\binom{m'}{i}},
-\]
-où $m$ et $m'$ sont les degrés initial et final : la fonction représentée est rigoureusement inchangée, ce qui fournit au raffinement une initialisation qui préserve le modèle déjà validé. Les modèles finaux résultent de $80$ itérations de moindres carrés récursifs suivies de $1500$ époques de raffinement géométrique. La précision de distance, la direction du gradient et la propriété eikonale qui en résultent sont caractérisées expérimentalement au Chapitre~\ref{sec:Theme3}.
+Les modèles finaux de chaque lien résultent ainsi de $80$ itérations de moindres carrés récursifs, dont le résultat sert d'initialisation au raffinement géométrique de $1500$ époques. La précision de distance, la direction du gradient et la propriété eikonale qui en résultent sont caractérisées expérimentalement au Chapitre~\ref{sec:Theme3}.
 
 \subsection{Fonction barrière}\label{subsec:barriere}
 À l'exécution, chaque point obstacle $\mathbf{p}_i$ est ramené dans le repère normalisé de chaque lien protégé via la cinématique directe, puis évalué par le modèle appris :
@@ -794,11 +808,11 @@ Chaque facteur étant la dérivée exacte d'un polynôme ou d'une transformation
 
 \begin{table}[htbp]
 \centering
-\caption{Comparaison des performances et des erreurs de gradient.}
+\caption{Temps d'évaluation conjointe des barrières $h_l$ et de la Jacobienne de contrainte complète ($L\times 7$) pour $100$ points obstacles, en fonction du nombre $L$ de liens protégés inclus : gradient analytique en forme close contre différentiation automatique (moyenne $\pm$ écart-type en ms, $100$ répétitions), avec l'erreur absolue maximale entre les deux Jacobiennes.}
 \label{tab:gradient_comparison}
 \begin{tabular}{cccc}
 \toprule
-\textbf{Links} & \textbf{Analytique} & \textbf{différentiation numérique} & \textbf{Grad max error} \\
+\textbf{Liens $L$} & \textbf{Analytique [ms]} & \textbf{Diff. automatique [ms]} & \textbf{Erreur max. gradient} \\
 \midrule
 1 & $5.596 \pm 0.413$ & $7.180 \pm 0.113$ & $5.960 \times 10^{-8}$ \\
 2 & $5.549 \pm 0.345$ & $8.010 \pm 0.389$ & $2.235 \times 10^{-7}$ \\
@@ -823,7 +837,7 @@ b(h) = m_{\mathrm{CBF}} +
 \;\;\,v_{\mathrm{rec}}\,\min\!\big(-h/d_{\mathrm{rec}},\,1\big), & h \leq 0,
 \end{cases}
 \]
-la contrainte n'étant évaluée que dans la bande d'activation $h \leq h_{\mathrm{act}}$. Loin de la frontière, la vitesse d'approche normale est ainsi bornée par $v_{\mathrm{in}}$ ; à la frontière ($h=0$), toute vitesse normale entrante est interdite ; en violation, une vitesse de sortie proactive, croissant avec la pénétration jusqu'à $v_{\mathrm{rec}}$ à la profondeur de saturation $d_{\mathrm{rec}}$, est exigée. Cette récupération proactive est complétée par l'étape de réparation décrite à la Section~\ref{subsec:projection}, dont le gain $\kappa_{\mathrm{rec}}$ corrige la violation résiduelle que la saturation et le filtrage réintroduisent. Cette formulation appartient à la famille $\nabla h^\top\dot{\mathbf{q}} \geq -\gamma(h)$ avec $\gamma$ une fonction de classe $\mathcal{K}$ saturée.
+la contrainte n'étant évaluée que dans la bande d'activation $h \leq h_{\mathrm{act}}$. Loin de la frontière, la vitesse d'approche normale est ainsi bornée par $v_{\mathrm{in}}$ ; à la frontière ($h=0$), toute vitesse normale entrante est interdite ; en violation, une vitesse de sortie proactive, croissant avec la pénétration jusqu'à $v_{\mathrm{rec}}$ à la profondeur de saturation $d_{\mathrm{rec}}$, est exigée. Cette récupération proactive est complétée par l'étape de réparation décrite à la Section~\ref{subsec:projection}, qui réévalue cette même contrainte saturée sur la commande filtrée et corrige la violation résiduelle que la saturation et le filtrage réintroduisent. Cette formulation appartient à la famille $\nabla h^\top\dot{\mathbf{q}} \geq -\gamma(h)$ avec $\gamma$ une fonction de classe $\mathcal{K}$ saturée.
 
 La seconde entrée du problème~\eqref{eq:cbf_qp} est la vitesse que le système \emph{souhaite} exécuter.\label{subsec:vitesse_nominale} Celle-ci combine le feedforward retimé $\dot{\mathbf{q}}_{\mathrm{ff}}$ (Section~\ref{subsec:dqff}) et une correction de suivi proportionnelle saturée :
 \[
@@ -1038,25 +1052,14 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   L'ordre saturation puis filtrage évite que le filtre mémorise une vitesse physiquement irréalisable.
 
   La saturation et le filtrage peuvent toutefois réintroduire une légère violation de la contrainte CBF. La contrainte est donc réévaluée sur la
-  vitesse filtrée :
+  vitesse filtrée, avec le même second membre saturé $b(h)$ que la projection principale (Section~\ref{subsec:contrainte}) :
   \[
   c_f
   =
   \nabla h^\top
   \dot{\mathbf{q}}_{f}
-  +
-  \kappa_{\mathrm{eff}}h
   -
-  m_{\mathrm{CBF}},
-  \]
-  où
-  \[
-  \kappa_{\mathrm{eff}}
-  =
-  \begin{cases}
-  \kappa_{\mathrm{safe}}, & h\geq 0,\\
-  \kappa_{\mathrm{rec}}, & h<0.
-  \end{cases}
+  b(h).
   \]
   Si $c_f<0$ dans la bande d'activation, une réparation finale est appliquée :
   \[
@@ -1069,8 +1072,23 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   }
   \nabla h.
   \]
-  Cette réparation est une projection corrective sur la même contrainte CBF linéarisée. Elle ne constitue pas une seconde évaluation complète du
-  CBF, car elle réutilise la même valeur de barrière $h$ et le même gradient $\nabla h$ que la projection principale.
+  Cette réparation est une projection corrective sur la même contrainte CBF linéarisée : elle réutilise la valeur de barrière $h$, le gradient
+  $\nabla h$ et la borne $b(h)$ de la projection principale. La commande finale est ainsi certifiée contre exactement la même condition de
+  sécurité que la solution du solveur, et non contre une seconde condition distincte.
+
+  Deux garde-fous bornent cette réparation. D'une part, sa norme est plafonnée : à $\Delta v_{\max}$ tant que la barrière est positive, et à un
+  plafond distinct $\Delta v_{\max}^{\mathrm{rec}}$, plus permissif, lorsque $h<0$ et qu'une sortie rapide de la zone de violation devient
+  prioritaire. Ce plafond couvre notamment le scénario où la carte persistante fait apparaître de nouveaux points obstacles déjà très proches du
+  robot, voire déjà dans la zone de violation : la violation instantanée $-c_f$ peut alors être grande, et une réparation non bornée se
+  traduirait par une commande de vitesse violente en un seul cycle. D'autre part, la réparation est modulée par un seuil de fiabilité du
+  gradient : son amplitude croît linéairement de zéro, lorsque $\|\nabla h\| = g_{\min}$, jusqu'à sa pleine valeur à $3\,g_{\min}$. La direction
+  $\nabla h/\|\nabla h\|$ n'est en effet fiable que si la norme du gradient est significative : face à un obstacle mince, les gradients des
+  points situés de part et d'autre du lien se compensent dans l'agrégation soft-min et $\|\nabla h\|$ s'effondre ; une réparation de pleine
+  amplitude pousserait alors le bras dans une direction dépourvue de sens géométrique. Le filtre s'en remet dans ce cas à la vitesse issue de la
+  projection pour le cycle courant, la violation résiduelle étant résorbée aux cycles suivants, dès que la géométrie redevient non dégénérée. La
+  même limite $\Delta v_{\max}$ s'applique enfin à chaque pas de projection de la boucle de balayage elle-même : lorsque cette borne est
+  atteinte, la solution retournée n'est plus la projection exacte de~\eqref{eq:cbf_qp}, mais une solution dont la correction par cycle est
+  bornée, le résidu étant repris par la réévaluation finale ci-dessus puis par les cycles suivants.
 
   La vitesse finale envoyée à la commande est donc
   \[
@@ -1097,7 +1115,7 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   contrainte est inactive et que la projection ne modifie pas la vitesse nominale, $\dot{\mathbf{q}}_{\mathrm{final}}$ se réduit à la vitesse
   nominale lissée, transmise telle quelle.
 
-  Au-delà du solveur lui-même, il reste à délimiter ce que le filtre garantit réellement.\label{subsec:garanties} L'invariance avant théorique de l'ensemble $\mathcal{C}$ suppose une dynamique en temps continu, un SDF exact, des obstacles correctement observés et immobiles, et un suivi parfait de la commande par le contrôleur bas niveau. L'implémentation s'écarte de ces hypothèses sur quatre points quantifiables : la discrétisation de la commande (100~Hz), l'obsolescence de l'ensemble des points critiques (mise à jour à 30~Hz), l'erreur d'approximation du SDF de Bernstein (caractérisée au Chapitre~\ref{sec:Theme3}) et le biais conservateur du soft-min ($\alpha\log N$). Le système constitue donc un filtrage réactif de sécurité dont la garantie pratique repose sur le dimensionnement de la marge $d_{\mathrm{safe}}$ pour absorber la somme de ces termes, validé expérimentalement au Chapitre~\ref{sec:Theme3}.
+  Au-delà du solveur lui-même, il reste à délimiter ce que le filtre garantit réellement.\label{subsec:garanties} L'invariance avant théorique de l'ensemble $\mathcal{C}$ suppose une dynamique en temps continu, un SDF exact, des obstacles correctement observés et immobiles, et un suivi parfait de la commande par le contrôleur bas niveau. L'implémentation s'écarte de ces hypothèses sur quatre points quantifiables : la discrétisation de la commande (100~Hz), l'obsolescence de l'ensemble des points critiques (mise à jour à 30~Hz), l'erreur d'approximation du SDF de Bernstein (caractérisée au Chapitre~\ref{sec:Theme3}) et le biais conservateur du soft-min ($\alpha\log N$). S'y ajoute le cas dégénéré du gradient effondré face aux obstacles minces, où la réparation finale est volontairement atténuée (seuil $g_{\min}$, Section~\ref{subsec:projection}) et la résorption de la violation reportée aux cycles suivants. Le système constitue donc un filtrage réactif de sécurité dont la garantie pratique repose sur le dimensionnement de la marge $d_{\mathrm{safe}}$ pour absorber la somme de ces termes, validé expérimentalement au Chapitre~\ref{sec:Theme3}.
 
 \begin{table}[htpb]
 \centering
@@ -1110,12 +1128,13 @@ $d_{\mathrm{safe}}$ & marge de sécurité du SDF & $15$~mm \\
 $\alpha$ & température du soft-min & $0{,}002$ \\
 $K$ & points critiques sélectionnés & $100$ \\
 $h_{\mathrm{act}}$ & bande d'activation de la contrainte & $40$~mm \\
-$v_{\mathrm{in}}$ & vitesse d'approche normale maximale & $0{,}30$~rad/s \\
-$v_{\mathrm{rec}}$ & vitesse de sortie exigée en violation & $0{,}30$~rad/s \\
+$v_{\mathrm{in}}$ & vitesse d'approche normale maximale ($\dot h$) & $0{,}30$~m/s \\
+$v_{\mathrm{rec}}$ & vitesse de sortie exigée en violation ($\dot h$) & $0{,}30$~m/s \\
 $d_{\mathrm{rec}}$ & profondeur de saturation en récupération & $15$~mm \\
-$\Delta v_{\max}$ & correction de projection maximale & $0{,}30$~rad/s \\
-$m_{\mathrm{CBF}}$ & marge numérique de la contrainte & $0{,}001$ \\
-$\kappa_{\mathrm{safe}}$, $\kappa_{\mathrm{rec}}$ & gains de la réparation finale & $3$, $5$ \\
+$\Delta v_{\max}$ & correction de projection et de réparation maximale & $0{,}30$~rad/s \\
+$\Delta v_{\max}^{\mathrm{rec}}$ & réparation maximale en violation ($h<0$) & $0{,}85$~rad/s \\
+$g_{\min}$ & seuil de fiabilité du gradient de réparation & $0{,}03$ \\
+$m_{\mathrm{CBF}}$ & marge numérique de la contrainte & $0{,}001$~m/s \\
 $K_p$, $\dot{q}_{\mathrm{fb,max}}$ & suivi proportionnel et saturation & $5$, $0{,}5$~rad/s \\
 $\tau_{\mathrm{nom}}$, $\tau_{\mathrm{safe}}$ & constantes des filtres passe-bas & $0{,}08$~s, $0{,}08$~s \\
 $\Delta q_{\mathrm{lead}}$ & avance maximale de la référence & $0{,}05$~rad \\
@@ -1123,16 +1142,3 @@ $K_a$, $N_{\mathrm{it}}$, $\omega$ & liens contraints, passes POCS, relaxation &
 \hline
 \end{tabular}
 \end{table}
-% =================================================================
-\section{Intégration temps réel}
-% =================================================================
-
-\subsection{Ordonnancement des modules}
-Explication pourquoi l'architecture ROS a cette allure.
-
-Présentation des messages ROS (Publishers/Subscribers) pour générer des trajectoires robotiques et les exécuter en les contraignement avec le CBF
-
-\subsection{Justification des fréquences de contrôle}
-Inférence modèle Flow Matching / Temps de calcul de contrainte, de SAM2, etc.
-
-Gestion des pertes de la cibles
