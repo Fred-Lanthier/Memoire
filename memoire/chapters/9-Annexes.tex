@@ -11,18 +11,159 @@
 %%  Toutes les annexes doivent être inclues dans ce document
 %%  les unes à la suite des autres.
 %%  All annexes must be included in this document one after the other.
-\Annexe{Démo}
-Texte de l'annexe A\@. Remarquez que la phrase précédente se termine
-par une lettre majuscule suivie d'un point. On indique explicitement
-cette situation à \LaTeX{} afin que ce dernier ajuste correctement
-l'espacement entre le point final de la phrase et le début de la
-phrase suivante.
+\Annexe{Protocole détaillé d'acquisition des démonstrations}\label{annexe:data_protocol}
 
+Cette annexe détaille la mise en œuvre du protocole de collecte de la Section~\ref{subsec:Protocol} : la procédure opératoire, l'architecture logicielle d'acquisition et le format de stockage des enregistrements. Ce format, défini en début de projet, est autoporteur : les données sont lisibles sans dépendance à ROS (JSON, PNG, NumPy), ce qui permet au pipeline d'entraînement de les consommer directement, là où un conteneur standard de type \texttt{rosbag} aurait exigé une étape d'extraction préalable.
 
-\begin{landscape}
-\Annexe{Encore une annexe / Another Appendix}
-Texte de l'annexe B\@ en mode «landscape».
-\end{landscape}
+\section*{Procédure opératoire}
+Chaque démonstration réelle suit la séquence suivante :
+\begin{enumerate}
+  \item montage de la caméra RGB-D sur le support officiel Franka à l'effecteur ;
+  \item positionnement du robot dans la configuration articulaire initiale $\mathbf{q}_0$ donnée à la Section~\ref{subsec:Protocol} ;
+  \item passage du robot en mode de guidage manuel, permettant à l'opérateur de le déplacer librement ;
+  \item exécution par guidage kinesthésique de la trajectoire à apprendre, depuis la posture initiale jusqu'à la cible, selon le schéma d'approche de la Section~\ref{subsec:Protocol} ;
+  \item arrêt de l'enregistrement et écriture des données de la trajectoire dans un fichier JSON.
+\end{enumerate}
 
-\Annexe{Une dernière annexe / The Last Appendix}
-Texte de l'annexe C\@.
+\section*{Architecture d'acquisition}
+L'enregistrement repose sur deux nœuds ROS distincts. Le premier, écrit en C++ pour minimiser la latence de lecture, lit l'état du robot et publie :
+\begin{itemize}
+  \item la pose du TCP dans le repère de base ($1\times7$) : position cartésienne (trois premières composantes) et orientation en quaternion (quatre dernières) ;
+  \item la vitesse du TCP dans le repère de base ($1\times6$) : vitesses linéaires (trois premières composantes) puis angulaires (trois dernières).
+\end{itemize}
+Le second nœud, écrit en Python, s'abonne à ces messages ainsi qu'au flux RGB-D de la caméra à l'effecteur, et écrit l'ensemble sur disque à la cadence de $10$~Hz. La Figure~\ref{fig:architecture_acquisition} illustre cette architecture.
+
+\begin{figure}[H]
+    \centering
+    % Boîte 3D : #1=x (coin inf. gauche), #2=y, #3=largeur, #4=hauteur, #5=texte
+    \newcommand{\cube}[5]{%
+        \begin{scope}[shift={(#1,#2)}]
+            \def\dx{0.28}\def\dy{0.28}%
+            \filldraw[fill=white] (0,#4) -- (\dx,#4+\dy) -- (#3+\dx,#4+\dy) -- (#3,#4) -- cycle;
+            \filldraw[fill=white] (#3,#4) -- (#3+\dx,#4+\dy) -- (#3+\dx,\dy) -- (#3,0) -- cycle;
+            \filldraw[fill=white] (0,0) rectangle (#3,#4);
+            \node[align=center] at (#3/2,#4/2) {#5};
+        \end{scope}%
+    }
+    \begin{tikzpicture}[>={Stealth[length=3mm]}, line width=0.6pt, font=\small]
+        \cube{0}{3.4}{4.2}{1.5}{Robot Franka Emika\\ Panda}
+        \cube{8}{3.4}{4.4}{1.5}{N\oe ud 1 : lecture des\\ données du robot}
+        \cube{0}{0}{4.2}{1.5}{Caméras}
+        \cube{8}{0}{4.4}{1.5}{N\oe ud 2 : enregistrement\\ des données\\ d'entraînement}
+        % Robot -> Noeud 1
+        \draw[->] (4.2,4.15) -- node[above,align=center]{Données du\\ robot} (8,4.15);
+        % Caméras -> Noeud 2
+        \draw[->] (4.2,0.75) -- node[above,align=center]{Données RGB-D} (8,0.75);
+        % Noeud 1 -> Noeud 2
+        \draw[->] (10.2,3.4) -- (10.2,1.5);
+    \end{tikzpicture}
+    \caption{Architecture du système d'acquisition des données d'entraînement.}\label{fig:architecture_acquisition}
+\end{figure}
+
+\section*{Format d'enregistrement}
+À chaque pas d'échantillonnage, le second nœud consigne dans le fichier JSON, en plus de la pose et de la vitesse du TCP, les champs structurels suivants :
+\begin{itemize}
+  \item \texttt{step\_number} : l'indice de l'échantillon dans la trajectoire ;
+  \item \texttt{time\_step} : l'instant de la prise de données depuis le début de la trajectoire ;
+  \item \texttt{rgb} : le nom du fichier de l'image couleur, nommé par convention \\ \texttt{ee\_rgb\_step\_\{step\_number\}.png} ;
+  \item \texttt{depth\_npy} : le nom du fichier de la carte de profondeur, nommé par convention \texttt{ee\_depth\_step\_\{step\_number\}.npy}.
+\end{itemize}
+Les images et cartes de profondeur sont écrites dans un sous-dossier dédié ; le fichier JSON n'en contient que les noms.
+
+\section*{Organisation des fichiers}
+Chaque trajectoire enregistrée occupe un dossier \texttt{Trajectory\_X}, où \texttt{X} est le numéro de la trajectoire, regroupant le fichier JSON des données numériques et le sous-dossier des images et cartes de profondeur (Figure~\ref{fig:dir_tree}).
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.8\textwidth} % Keeps the tree neatly aligned
+\dirtree{%
+.1 Trajectories\_record/.
+.2 Trajectory\_1/.
+.3 trajectory\_1.json.
+.3 images\_Trajectory\_1/.
+.4 ee\_rgb\_step\_0000.png.
+.4 ee\_rgb\_step\_0001.png.
+.4 ee\_depth\_step\_0000.npy.
+.4 ee\_depth\_step\_0001.npy.
+.4 ....
+.2 Trajectory\_2/.
+.3 trajectory\_2.json.
+.3 images\_Trajectory\_2/.
+.4 ee\_rgb\_step\_0000.png.
+.4 ee\_rgb\_step\_0001.png.
+.4 ee\_depth\_step\_0000.npy.
+.4 ee\_depth\_step\_0001.npy.
+.4 ....
+}
+\end{minipage}
+\caption{Structure des dossiers du jeu de données brut.}
+\label{fig:dir_tree}
+\end{figure}
+
+Le prétraitement décrit à la Section~\ref{subsec:pretraitement} produit un second dossier racine, miroir du premier : les nuages de points conditionnels fusionnés y sont enregistrés sous le nom \texttt{Merged\_\{step\_number\}.npy} dans un sous-dossier \texttt{Merged\_Trajectory\_X}, et le fichier JSON de la trajectoire y est copié, augmenté de la pose de l'outil dans le repère de base (Figure~\ref{fig:preprocess_dir_tree}).
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.8\textwidth}
+\dirtree{%
+.1 Trajectories\_preprocess/.
+.2 Trajectory\_1/.
+.3 trajectory\_1.json.
+.3 Merged\_Trajectory\_1/.
+.4 Merged\_0001.npy.
+.4 Merged\_0002.npy.
+.4 ....
+.2 Trajectory\_2/.
+.3 trajectory\_2.json.
+.3 Merged\_Trajectory\_2/.
+.4 Merged\_0001.npy.
+.4 Merged\_0002.npy.
+.4 ....
+}
+\end{minipage}
+\caption{Structure des dossiers du jeu de données prétraité.}
+\label{fig:preprocess_dir_tree}
+\end{figure}
+
+\Annexe{Entraînement du champ de distance signée du robot}\label{annexe:sdf_training}
+
+Cette annexe rassemble le détail de l'apprentissage du modèle de distance de la Section~\ref{subsec:sdf_robot}. La génération des étiquettes et la régression récursive reproduisent le protocole \emph{Robot Distance Fields} de Li et al.~\cite{Li2024rdf} et son implémentation publique ; elles ne constituent pas une contribution de ce mémoire et sont reproduites ici pour rendre le document autonome. Seuls les hyperparamètres du raffinement géométrique, introduit à la Section~\ref{subsec:sdf_robot}, sont propres à ce travail.
+
+\section*{Génération des étiquettes de distance}
+Pour chaque lien protégé, le maillage est d'abord normalisé selon l'équation~\eqref{eq:norm_dataset_SDF}, puis un jeu d'étiquettes de distance signée exacte est construit suivant le protocole de~\cite{Li2024rdf}, lui-même hérité de DeepSDF : $8\times10^{5}$ points concentrés près de la surface, obtenus par balayages virtuels du maillage, le signe étant déterminé par les normales, et autant de points tirés uniformément dans le cube $[-1,1]^3$, chacun étiqueté de sa distance signée exacte au maillage. Les étiquettes négatives situées hors de la boîte englobante du lien, artefacts du calcul de signe par normales, sont écartées.
+
+\section*{Régression récursive des poids}
+La sortie du modèle étant linéaire en ses paramètres $\mathbf{w}_l$, l'ajustement est un problème de moindres carrés, résolu de manière récursive pour éviter l'inversion d'une matrice de $n^3$ lignes assemblée sur l'ensemble du jeu de données. À chaque itération, un lot de points encodés $\boldsymbol{\Phi}_k$, d'étiquettes $\mathbf{d}_k$, met à jour les poids en forme close :
+\begin{align}
+  \mathbf{K}_k &= \mathbf{B}_{k-1}\boldsymbol{\Phi}_k^{\top}\big(\mathbf{I}+\boldsymbol{\Phi}_k\mathbf{B}_{k-1}\boldsymbol{\Phi}_k^{\top}\big)^{-1} \\
+  \mathbf{B}_k &= \mathbf{B}_{k-1}-\mathbf{K}_k\boldsymbol{\Phi}_k\mathbf{B}_{k-1} \\
+  \mathbf{w}_k &= \mathbf{w}_{k-1}+\mathbf{K}_k\big(\mathbf{d}_k-\boldsymbol{\Phi}_k\mathbf{w}_{k-1}\big)
+\end{align}
+avec l'initialisation $\mathbf{B}_0 = 10^{2}\,\mathbf{I}$, équivalente à une régularisation de type \emph{ridge} de la solution. Ces mises à jour correspondent à l'algorithme d'apprentissage récursif de~\cite{Li2024rdf} ; $80$ itérations sont conduites par lien.
+
+\section*{Hyperparamètres du raffinement géométrique}
+Le raffinement géométrique de la Section~\ref{subsec:sdf_robot} part des poids issus de la régression récursive et les affine par descente de gradient sur la fonction de coût~\eqref{eq:loss_refinement}. Le jeu de supervision compte $20\,000$ rayons normaux vérifiés par lien : les décalages $\delta$ sont concentrés à $75$~\% dans la coquille critique $[1,10]$~mm, cohérente avec la marge $d_{\mathrm{safe}}=15$~mm, et étendus jusqu'à $50$~mm ; un candidat n'est retenu que si sa distance exacte recalculée coïncide avec le décalage à $0{,}25$~mm près et que la direction exacte du gradient s'écarte de moins de $5^{\circ}$ de la normale de départ. Le tableau~\ref{tab:sdf_training_params} rassemble les valeurs numériques.
+
+\begin{table}[htbp]
+\centering
+\caption{Hyperparamètres d'entraînement du modèle de distance du robot.}
+\label{tab:sdf_training_params}
+\begin{tabular}{lll}
+\hline
+\textbf{Symbole} & \textbf{Description} & \textbf{Valeur} \\ \hline
+\multicolumn{3}{l}{\emph{Régression de valeur (protocole de~\cite{Li2024rdf})}} \\
+--- & points près de la surface / uniformes & $8\times10^{5}$ / $8\times10^{5}$ \\
+$\mathbf{B}_0$ & initialisation des moindres carrés récursifs & $10^{2}\,\mathbf{I}$ \\
+--- & itérations récursives par lien & $80$ \\ \hline
+\multicolumn{3}{l}{\emph{Raffinement géométrique (contribution)}} \\
+--- & rayons normaux vérifiés par lien & $20\,000$ \\
+$\delta$ & décalages : coquille critique / maximum & $75$~\% dans $[1,10]$~mm / $50$~mm \\
+--- & tolérances de vérification (distance, direction) & $0{,}25$~mm, $5^{\circ}$ \\
+$\lambda_{\mathrm{ray}}$, $\lambda_{\mathrm{eik}}$ & poids des rayons et du terme eikonal & $2$, $0{,}05$ \\
+$\lambda_{\mathrm{dir}}$, $\lambda_{\mathrm{vec}}$ & poids d'alignement du gradient & $0{,}2$, $0{,}25$ \\
+$\omega$ & pondération de proximité & $1+4\,e^{-\bar{d}/\bar{\delta}}$ \\
+--- & optimiseur, ordonnancement & Adam, recuit en cosinus \\
+--- & époques de raffinement & $1500$ \\
+\hline
+\end{tabular}
+\end{table}

@@ -2,18 +2,26 @@
 \Chapter{MOTIVATION DE RECHERCHE ET OBJECTIFS}\label{sec:Metho}
 % =================================================================
 
+Ce chapitre a comme objectif de présenter les objectifs de ce mémoire et de définir la portée ainsi que les contraintes autour du développement du système.
 %------------------------------------------------------------------
-\section{Contexte et problématique}
-%------------------------------------------------------------------
-
-%------------------------------------------------------------------
-\section{Objectifs de recherche}
+\section{Positionnement de recherche et motivation}
 %------------------------------------------------------------------
 L’intégration d’un filtre de sécurité SDF-CBF fondé sur un SDF local du robot permet de corriger en temps réel les vitesses nominales générées par un modèle Flow Matching, afin d’exécuter des trajectoires dans des environnements non vus tout en réduisant les risques de collision et en préservant l’intention de la trajectoire nominale.
 %------------------------------------------------------------------
-\section{Contexte et problématique}
+\section{Objectifs de recherche}
 %------------------------------------------------------------------
+\subsection{Objectif principal}
+Développer un système permettant de réaliser des trajectoires générées par intelligence artificielle générative sans collision dans un environnement quasi-statique non vue durant l'entraînement sans réentraîner le modèle en temps réel.
 
+\subsection{Objectifs spécifiques}
+\begin{itemize}
+    \item \textbf{SO1:} Implémenter un système de détection et de segmentation afin de séparer la cible de l'environnement.
+    \item \textbf{SO2:} Récolter des données 
+    \item \textbf{SO3:} 
+    \item \textbf{SO4:} Intégrer un bouclier basé sur des fonctions de contraintes barrières pour éviter les collisions du robot avec l'environnement
+    \item \textbf{SO5:} Valider le système complet en simulation sur un robot Franka dans différents environnements quasi-statiques en mesurant les temps de calculs de chaque sous système et le taux de succès des différentes tâches basé sur la complétion des tâches ainsi que l'évitement des collisions.
+\end{itemize}
 %------------------------------------------------------------------
 \section{Portée et exclusions de la recherche}
 %------------------------------------------------------------------
+l'objectif n'est pas de déterminer le nombre de caméra nécessaire pour réaliser cette tâche, n'a pas été testé sur un robot réel, testé seulement sur deux scénarios, 
