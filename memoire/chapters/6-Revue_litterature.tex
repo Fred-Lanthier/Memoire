@@ -28,35 +28,35 @@ Pour surmonter ces écueils, Florence et al.~\cite{Florence2021Implicit} ont int
 \subsection{Modèles génératifs, politiques de diffusion et Flow Matching}
 Les politiques génératives modélisent explicitement la distribution des trajectoires expertes, ce qui leur permet de représenter naturellement la multimodalité inhérente aux comportements humains~\cite{WolfXXXXDiffusion,Cho2025Survey}. Récemment, la \textit{Diffusion Policy} de Chi et al.~\cite{ChiXXXXVisuomotor}, inspirée des modèles probabilistes de débruitage (\textit{Denoising Diffusion Probabilistic Models})~\cite{Ho2020Denoising} et de la planification générative~\cite{Janner2022Planning,Huang2023Diffusion}, a démontré des performances remarquables en manipulant des objets par un processus de débruitage stochastique itératif. De même, sa variante tridimensionnelle (\textit{3D Diffusion Policy}) conditionne cette génération sur un nuage de points~\cite{Ze2024Diffusion}, renforçant la robustesse géométrique. Toutefois, le principal inconvénient des politiques de diffusion réside dans leur latence d'inférence élevée : la génération d'une trajectoire requiert de nombreuses évaluations séquentielles du réseau de neurones, limitant leur application en boucle fermée à haute fréquence. Bien que des techniques de distillation de modèle (telles que ManiCM~\cite{Lu2025Manicm} ou d'autres approches accélérées~\cite{Prasad2024Consistency,Wang2024One}) parviennent à ramener l'inférence à une seule étape, elles nécessitent des phases d'entraînement complexes et peuvent dégrader la stabilité des trajectoires générées.
 
-Pour offrir une alternative déterministe plus directe et efficace, Lipman et al.~\cite{Lipman2023Flow} ont introduit le formalisme du \textit{Flow Matching}. L'objectif est d'apprendre un champ de vecteurs $v_\theta(\mathbf{x}, t)$, indexé par un temps de flux $t \in [0, 1]$, qui déplace continûment un échantillon initial issu d'une distribution simple $p_0(\mathbf{x})$ (typiquement une gaussienne standard $\mathcal{N}(\mathbf{0}, \mathbf{I})$) vers la distribution cible des trajectoires expertes $p_1(\mathbf{x})$. Une trajectoire candidate $\mathbf{x}_t$ est générée en intégrant l'équation différentielle ordinaire (ODE) associée :
+Pour offrir une alternative déterministe plus directe et efficace, Lipman et al.~\cite{Lipman2023Flow} ont introduit le formalisme du \textit{Flow Matching}. L'objectif est d'apprendre un champ de vitesses $u_t^{\theta}(X)$, indexé par un temps d'écoulement $t \in [0, 1]$, qui déplace continûment un échantillon initial issu d'une distribution simple $p_0$ (typiquement une gaussienne standard $\mathcal{N}(\mathbf{0}, \mathbf{I})$) vers la distribution cible des trajectoires expertes $p_1$. Une trajectoire candidate $X_t$ est générée en intégrant l'équation différentielle ordinaire (ODE) associée :
 \begin{equation}
-\frac{\mathrm{d}\mathbf{x}_t}{\mathrm{d}t} = v_\theta(\mathbf{x}_t, t).
+\frac{\mathrm{d}X_t}{\mathrm{d}t} = u_t^{\theta}(X_t).
 \end{equation}
-Le champ de vecteurs marginal engendrant la distribution de probabilité $p_t(\mathbf{x})$ étant généralement incalculable analytiquement, le \textit{Conditional Flow Matching} (CFM)~\cite{Tong2024Conditional} résout ce problème en définissant un chemin de probabilité conditionnel $p_t(\mathbf{x} \mid \mathbf{x}_0, \mathbf{x}_1) = \mathcal{N}(\mathbf{x} \mid \mu_t(\mathbf{x}_0, \mathbf{x}_1), \sigma_t^2 \mathbf{I})$ et son champ de vecteurs associé $u_t(\mathbf{x} \mid \mathbf{x}_0, \mathbf{x}_1)$ qui sont analytiquement traitables. Pour des distributions gaussiennes conditionnelles, ce champ cible s'exprime par :
+Le champ de vitesses marginal engendrant la distribution de probabilité $p_t$ étant généralement incalculable analytiquement, le \textit{Conditional Flow Matching} (CFM)~\cite{Tong2024Conditional} résout ce problème en définissant un chemin de probabilité conditionnel $p_t(X \mid X_0, X_1) = \mathcal{N}(X \mid \mu_t(X_0, X_1), \sigma_t^2 \mathbf{I})$ et son champ de vitesses associé $u_t(X \mid X_0, X_1)$ qui sont analytiquement traitables. Pour des distributions gaussiennes conditionnelles, ce champ cible s'exprime par :
 \begin{equation}
-u_t(\mathbf{x} \mid \mathbf{x}_0, \mathbf{x}_1) = \frac{\dot{\sigma}_t}{\sigma_t} \left(\mathbf{x} - \mu_t(\mathbf{x}_0, \mathbf{x}_1)\right) + \dot{\mu}_t(\mathbf{x}_0, \mathbf{x}_1),
+u_t(X \mid X_0, X_1) = \frac{\dot{\sigma}_t}{\sigma_t} \left(X - \mu_t(X_0, X_1)\right) + \dot{\mu}_t(X_0, X_1),
 \end{equation}
-où $\dot{\mu}_t$ et $\dot{\sigma}_t$ désignent les dérivées temporelles des paramètres du chemin. Le réseau de neurones $v_\theta$ est alors entraîné en minimisant la perte de régression du champ de vecteurs conditionnel :
+où $\dot{\mu}_t$ et $\dot{\sigma}_t$ désignent les dérivées temporelles des paramètres du chemin. Le réseau de neurones $u_t^{\theta}$ est alors entraîné en minimisant la perte de régression du champ de vitesses conditionnel :
 \begin{equation}
 \label{eq:cfm_loss}
-\mathcal{L}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0, 1],\ \mathbf{x}_1 \sim p_1,\ \mathbf{x}_0 \sim p_0,\ \mathbf{x}_t \sim p_t(\cdot \mid \mathbf{x}_0, \mathbf{x}_1)}\Big[\big\| v_\theta(\mathbf{x}_t, t) - u_t(\mathbf{x}_t \mid \mathbf{x}_0, \mathbf{x}_1)\big\|^2\Big].
+\mathcal{L}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0, 1],\ X_1 \sim p_1,\ X_0 \sim p_0,\ X_t \sim p_t(\cdot \mid X_0, X_1)}\Big[\big\| u_t^{\theta}(X_t) - u_t(X_t \mid X_0, X_1)\big\|^2\Big].
 \end{equation}
 Dans le cadre du \textit{Rectified Flow} proposé par Liu et al.~\cite{Liu2023Rectified}, le chemin est défini par interpolation linéaire simple entre le bruit et la donnée réelle, avec une variance constante :
 \begin{equation}
-\mu_t(\mathbf{x}_0, \mathbf{x}_1) = t \mathbf{x}_1 + (1-t) \mathbf{x}_0, \qquad \sigma_t = \sigma_{\min},
+\mu_t(X_0, X_1) = t X_1 + (1-t) X_0, \qquad \sigma_t = \sigma_{\min},
 \end{equation}
 ce qui réduit le champ cible $u_t$ au vecteur constant reliant le point initial au point final :
 \begin{equation}
-u_t(\mathbf{x}_t \mid \mathbf{x}_0, \mathbf{x}_1) = \mathbf{x}_1 - \mathbf{x}_0.
+u_t(X_t \mid X_0, X_1) = X_1 - X_0.
 \end{equation}
-Cette formulation linéaire favorise des trajectoires d'intégration quasi rectilignes, permettant d'intégrer l'ODE en un nombre réduit d'étapes de discrétisation tout en préservant la qualité des trajectoires. Pour adapter ce formalisme à la robotique, il suffit de conditionner le champ $v_\theta(\mathbf{x}, t \mid \mathbf{o})$ sur une observation sémantique ou géométrique $\mathbf{o}$ (comme un nuage de points), ce qui permet d'obtenir un planificateur de trajectoire réactif, comme l'illustre le framework PointFlowMatch~\cite{Chisari2024Manipulation}.
+Cette formulation linéaire favorise des trajectoires d'intégration quasi rectilignes, permettant d'intégrer l'ODE en un nombre réduit d'étapes de discrétisation tout en préservant la qualité des trajectoires. Pour adapter ce formalisme à la robotique, il suffit de conditionner le champ $u_t^{\theta}(X \mid c)$ sur une observation sémantique ou géométrique $c$ (comme un nuage de points), ce qui permet d'obtenir un planificateur de trajectoire réactif, comme l'illustre le framework PointFlowMatch~\cite{Chisari2024Manipulation}.
 
 Plus récemment, de nombreuses extensions ont cherché à accroître l'efficacité et la généralisation géométrique de ces modèles. Des approches telles que ManiFlow~\cite{Yan2025Maniflow}, MeanFlow~\cite{Geng2025Mean,Fang2026Omp} et les politiques à flux continu~\cite{Jiang2025Streaming} visent la génération de mouvements en une ou deux étapes d'inférence. D'autres travaux, à l'instar de FlowMP~\cite{Nguyen2025Flowmp,Soleymanzadeh2026Flow}, étendent le \textit{Flow Matching} aux dynamiques du second ordre afin de générer des trajectoires respectant les contraintes d'accélération et de couple. Enfin, la politique riemannienne (\textit{Riemannian Flow Matching Policy}, RFMP) de Braun et al.~\cite{Braun2024Riemannian} transpose ce formalisme directement sur des variétés non euclidiennes telles que $SE(3)$ par interpolation géodésique, réduisant les saccades de rotation et le temps de calcul. Cette combinaison unique d'expressivité multimodale, de rapidité d'intégration déterministe et de robustesse géométrique justifie l'adoption du \textit{Flow Matching} comme planificateur nominal d'intention au sein de notre architecture.
 
 \begin{figure}[htbp!]
     \centering
     \includegraphics[width=0.95\textwidth]{images/Méthodologie/FM_meta.png}
-    \caption[Champ de vitesse du \textit{Flow Matching}]{Représentation du champ de vitesse $u_t$ transportant la distribution initiale $p_0$ vers la distribution cible $p_1$ pour $t \in [0,1]$, tirée de \cite{lipman2024flowmatchingguidecode}}
+    \caption[Champ de vitesse du \textit{Flow Matching}]{Représentation du champ de vitesses $u_t$ transportant la distribution initiale $p_0$ vers la distribution cible $p_1$ pour $t \in [0,1]$, tirée de \cite{lipman2024flowmatchingguidecode}}
     \label{fig:FM}
 \end{figure}
 

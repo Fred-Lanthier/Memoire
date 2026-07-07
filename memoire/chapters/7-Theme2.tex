@@ -209,168 +209,177 @@ Les démonstrations proviennent de deux sources complémentaires : le robot et l
 
 Pour garantir un protocole reproductible, l'échantillonnage des configurations est défini dans deux repères imbriqués plutôt que de façon qualitative : le repère robot $\mathcal{F}_b$ (base du manipulateur, fixe) et un repère assiette $\mathcal{F}_p$ centré sur l'assiette. L'assiette est placée successivement aux $9$ positions d'une grille $3\times3$ exprimée directement dans $\mathcal{F}_b$ : centrée à $(0{,}40,\;0)$~m, de pas $0{,}08$~m selon $x_b$ et $0{,}20$~m selon $y_b$. Pour chacune, la cible occupe $5$ positions disposées en quinconce dans $\mathcal{F}_p$ (demi-écart de $0{,}06$~m), chacune assortie d'une orientation aléatoire. Cette grille produit $9\times5=45$ configurations, chacune réalisée une fois. La Figure~\ref{fig:protocole_echantillonnage} illustre cet échantillonnage. À chaque configuration, l'outil descend verticalement vers la cible (axe $-z$ de $\mathcal{F}_b$) en maintenant les dents verticales et alignées sur l'axe principal de la cible.
 
-\begin{figure}[H]
+\begin{figure}[htbp!]
     \centering
-    \includegraphics[width=0.8\textwidth]{images/Méthodologie/protocole_echantillonnage.pdf}
+    \includegraphics[width=0.65\textwidth]{images/Méthodologie/protocole_echantillonnage.pdf}
     \caption{Protocole d'échantillonnage des cibles, vu de dessus dans le repère de base du robot $\mathcal{F}_b$. Les assiettes ($26$~cm de diamètre) se chevauchant, seules trois des neuf positions de la grille $3\times3$ sont illustrées (supérieur droit, centre, inférieur gauche), le centre de chacune étant marqué par une croix noire. Autour de chaque centre, les $5$ points indiquent les positions de cible en quinconce.}
     \label{fig:protocole_echantillonnage}
 \end{figure}
 
 Chaque démonstration réelle est fournie par guidage kinesthésique : le robot, amené dans la configuration articulaire initiale $\mathbf{q}_0=[0,\,-0{,}126,\,0,\,-2{,}193,\,0,\,2{,}065,\,0{,}786]$~rad puis placé en mode de guidage manuel, est conduit par l'opérateur depuis cette posture jusqu'à la cible selon le schéma d'approche décrit ci-dessus. Pendant l'exécution, la chaîne d'acquisition échantillonne à $10$~Hz la pose du TCP dans le repère de base (position cartésienne et orientation en quaternion), sa vitesse linéaire et angulaire, ainsi que le flux RGB-D de la caméra montée à l'effecteur, chaque échantillon étant horodaté depuis le début de la trajectoire. La mise en œuvre de cette chaîne (deux nœuds ROS dédiés), le format d'enregistrement et l'organisation des fichiers sont détaillés à l'Annexe~\ref{annexe:data_protocol}.
 
-La simulation réutilise le même schéma d'échantillonnage mais l'élargit par une randomisation de hauteur couvrant un surensemble continu des configurations réelles : $15$ démonstrations simulées complètent ainsi les $45$ démonstrations réelles de la tâche d'alimentation. Le jeu de données de saisie et dépôt (\textit{pick-and-place}), quant à lui, est entièrement collecté en simulation.
+En simulation, l'environnement réplique la scène réelle : même configuration articulaire initiale $\mathbf{q}_0$, même montage de la caméra à l'effecteur et même cadence d'enregistrement de $10$~Hz, le robot y étant équipé de la fourchette par composition de son modèle URDF. Les démonstrations n'y sont toutefois pas fournies par guidage kinesthésique, mais par une politique experte scriptée qui reproduit le geste de l'opérateur en trois phases : approche alignée sur l'axe principal de la cible en conservant les dents de la fourhcette à la vertical, redressement du poignet qui ramène les dents à l'horizontale, puis transport vers une pose de livraison fixe ; une fois piquée, la cible est rigidement attachée à la fourchette. L'échantillonnage des configurations y est continu plutôt que discret. La position de la cible est tirée uniformément dans un rectangle du plan de travail délimité par le champs de vision de la caméra, son orientation uniformément sur $[-\pi,\pi]$, et sa géométrie parmi sept aliments maillés. Les septs aliments ont été sélectionnées pour leur différentes formes offrant ainsi une distribution plus élevée de la forme de la cible. Ces derniers sont : une rondelle de carotte, une poitrine de poulet, une saucisse, un sushi, un fleuron de brocoli, une pomme de terre, un cube et un nigiri. La randomisation de position de l'aliment étend en outre le protocole réel selon la hauteur. Pour ce faire, la cible repose sur un piédestal dont la hauteur est tirée uniformément entre $4$ et $10$~cm. Quinze démonstrations simulées complètent ainsi les $45$ démonstrations réelles de la tâche d'alimentation. La Figure~\ref{fig:sim_feeding_phases} illustre ces trois phases.
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{images/Méthodologie/0000.jpg}
+    \caption{État initial (configuration $\mathbf{q}_0$).}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{images/Méthodologie/0118.jpg}
+    \caption{Piquage : approche verticale alignée sur la cible.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{images/Méthodologie/0202.jpg}
+    \caption{Redressement effectué : dents horizontales, cible solidarisée, prête pour le transport.}
+\end{subfigure}
+\caption{Trois phases de la politique experte simulée pour la tâche d'alimentation.}
+\label{fig:sim_feeding_phases}
+\end{figure}
+
+Le jeu de données de saisie et dépôt (\textit{pick-and-place}), entièrement simulé, suit le même principe avec le Panda standard. Le cube y est un corps dynamique réellement saisi par la pince, sans attachement artificiel, et la politique experte enchaîne cinq phases listées ci-dessous :
+\begin{enumerate}
+  \item Descente : Approche du TCP du robot vers la cible pour centrer son centroide au niveau du TCP.
+  \item Saisie : fermeture de la pince pour aggriper la cible.
+  \item Transport : déplacement du TCP du robot selon un arc dont les pentes de départ et d'arrivée sont prescrites à $60^{\circ}$ et $-60^{\circ}$ par rapport à la table, faisant par le fait même varier la hauteur.
+  \item Dépôt : Ouverture de la pince pour déposer la cible dans la zone blanche.
+  \item Retrait : Soulèvement de la pince à une hauteur de 5 cm.
+\end{enumerate}
+Les positions du cube et de la boîte de dépôt sont tirées uniformément dans leurs zones respectives à chaque épisode, la randomisation de la boîte évitant que le modèle n'apprenne une position de dépôt fixe ; $40$ trajectoires sont ainsi collectées. Le détail des politiques expertes et des plages de randomisation est donné à l'Annexe~\ref{annexe:data_protocol}. La Figure~\ref{fig:sim_pickplace_phases} illustre trois de ces phases (descente, transport, dépôt).
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{images/Méthodologie/left_rgb_step_0000.png}
+    \caption{Descente : approche du cube avant la saisie.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{images/Méthodologie/left_rgb_step_0081.png}
+    \caption{Transport : arc reliant le point de saisie au point de dépôt, cube en vol.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{images/Méthodologie/left_rgb_step_0105.png}
+    \caption{Dépôt : cube posé sur la boîte, avant relâchement.}
+\end{subfigure}
+\caption{Trois phases de la politique experte simulée pour la tâche de saisie et dépôt.}
+\label{fig:sim_pickplace_phases}
+\end{figure}
 
 \subsection{Prétraitement des données}\label{subsec:pretraitement}
 
-À partir des données enregistrées selon le protocole de la Section~\ref{subsec:Protocol}, plusieurs étapes de prétraitement sont réalisées hors ligne afin d'accélérer l'entraînement du modèle. Ces étapes sont détaillées dans cette sous-section.
+Les enregistrements bruts issus du protocole de la Section~\ref{subsec:Protocol} contiennent les poses du TCP et les flux RGB-D, mais pas le nuage de points conditionnel attendu par le modèle génératif de la Section~\ref{sec:CFM}. Un prétraitement hors ligne les transforme donc en données d'entraînement en trois étapes : la détection de la cible dans la première image de chaque trajectoire, la génération du nuage de points conditionnel à chaque pas, puis la mise à jour du fichier de trajectoire. Réaliser ces étapes hors ligne évite de recalculer la perception à chaque époque d'entraînement et permet de valider visuellement les nuages générés avant celui-ci.
 
-\subsubsection{Détection avec un modèle de segmentation}
-La première étape consiste à détecter la cible dans la première image de chaque trajectoire. Cette détection est réalisée avec le modèle à l'état de l'art \textit{Segment Anything 3} (SAM3), qui effectue une segmentation guidée par requête textuelle : la liste des cibles possibles (\textit{Pink block}, \textit{Broccoli}, \textit{Carrot slice}, \textit{Chicken breast}, \textit{Sushi}) est fournie en entrée au modèle, qui retourne le masque de la cible dans l'image, celle-ci étant préalablement convertie au format \texttt{.jpg} attendu par le modèle. La détection n'est effectuée que sur la première image en raison de la distance minimale de mesure du capteur de profondeur, de $45$~cm selon le fabricant : l'approche amène rapidement la caméra sous cette distance, de sorte que seule la première image garantit une carte de profondeur valide de la cible.
+\subsubsection{Détection de la cible par segmentation}
+La première étape consiste à détecter la cible dans la première image de la caméra à l'effecteur de chaque trajectoire. Cette détection est réalisée avec le modèle SAM~3 présenté à la Section~\ref{subsec:SAM3} : l'image, préalablement convertie au format \texttt{.jpg} attendu par le modèle, lui est fournie accompagnée d'une requête textuelle décrivant la cible (\textit{Pink block}, \textit{Broccoli}, \textit{Carrot slice}, \textit{Chicken breast}, \textit{Sushi}, \textit{Nigiri}, \textit{Sausage} ou \textit{Potato} pour la tâche d'alimentation ; \textit{Red Cube} et \textit{Brown box} pour la tâche de saisie et dépôt), et le masque au score de confiance le plus élevé est retenu. La détection n'est effectuée que sur la première image en raison de la distance minimale de mesure du capteur de profondeur, de $45$~cm selon le fabricant : l'approche amène rapidement la caméra sous cette distance, de sorte que seule les premières images garantissent une carte de profondeur valide de la cible.
 
-\subsubsection{Génération du nuage de point conditionnel}
-Le modèle de Flow Matching décrit à la Section~\ref{sec:CFM} étant conditionné sur les nuages de points de l'outil et de la cible, ces nuages sont générés hors ligne pour chaque pas de chaque trajectoire, ce qui accélère l'entraînement et permet de valider les données utilisées. Cette génération s'appuie sur le masque obtenu à l'étape précédente, la carte de profondeur initiale, les angles articulaires à chaque pas et le modèle CAO de l'outil.
+\subsubsection{Génération du nuage de points conditionnel}
+Le modèle de Flow Matching décrit à la Section~\ref{sec:CFM} étant conditionné sur les nuages de points de l'outil et de la cible, un nuage fusionné est généré pour chaque pas de chaque trajectoire. Cette génération s'appuie sur quatre éléments : le masque obtenu à l'étape précédente, la carte de profondeur initiale, la pose du TCP à chaque pas et le modèle CAO de l'outil.
 
-La première étape consiste à générer le nuage de points de la cible dans le repère de la caméra. Le masque de la cible est superposé à la carte de profondeur initiale afin de ne conserver que les points de la cible, puis la position cartésienne de chaque point du masque est calculée par les équations ci-dessous :
+Le nuage de la cible est d'abord reconstruit dans le repère de la caméra. Le masque est superposé à la carte de profondeur initiale afin de ne conserver que les pixels de la cible dotés d'une profondeur valide, puis chaque pixel $(u,v)$ de profondeur $Z$ est rétroprojeté par le modèle sténopé :
 \begin{align}
   X_c &= \frac{Z}{f_x}(u-c_x) \\
   Y_c &= \frac{Z}{f_y}(v-c_y) \\
   Z_c &= Z
 \end{align}
+où $f_x$ et $f_y$ sont les longueurs focales de la caméra et $c_x$ et $c_y$ les coordonnées de son point principal, les paramètres intrinsèques de la caméra D415 utilisée ayant été obtenus auprès du fabricant. Le nuage résultant est ensuite exprimé dans le repère de la base du robot par la relation \eqref{eq:pose_cam}, évaluée à la pose du TCP du premier pas, où $\mathbf{T}_{cible}^{b}$ est la matrice de transformation entre la cible et la base du robot. Cette relation se déduit de la Figure~\ref{fig:rep}, qui représente l'ensemble des repères du système : $\mathcal{F}_b$ le repère de la base du robot, $\mathcal{F}_c$ celui de la caméra à l'effecteur, $\mathcal{F}_e$ celui du TCP et $\mathcal{F}_o$ celui de l'outil utilisé.
 
+\begin{equation}\label{eq:pose_cam}
+  \mathbf{T}_{cible}^{b} = \mathbf{T}_{e}^{b} \mathbf{T}_{c}^{e} \mathbf{T}_{cible}^{c}
+\end{equation}
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.7\textwidth]{images/Méthodologie/repere_frames.pdf}
-    \caption{Représentation schématique des frames des différents repères utilisés}\label{fig:rep}
+    \caption{Représentation schématique des différents repères du système}\label{fig:rep}
 \end{figure}
 
-où $f_x$ et $f_y$ sont les longueurs focales de la caméra et $c_x$ et $c_y$ les coordonnées de son point principal. Les paramètres intrinsèques de la caméra D415 utilisée ont été obtenus auprès du fabricant. Le nuage de points résultant est ensuite exprimé dans le repère de la base du robot par la relation \eqref{eq:pose_cam}, où $\mathbf{T}_{cible}^b$ est la matrice de transformation entre la cible et la base du robot. Cette relation se déduit de la Figure~\ref{fig:rep}, qui représente l'ensemble des repères du système : \{b\} le repère de la base du robot, \{c\} celui de la caméra à l'effecteur, \{e\} celui du TCP et \{o\} celui de l'outil utilisé. Le nuage est finalement sous-échantillonné à $512$ points par la stratégie d'échantillonnage du point le plus éloigné.
-
-\begin{equation}\label{eq:pose_cam}
-  \mathbf{T}_{cible}^{b} = \mathbf{T}_{e}^b \mathbf{T}_{c}^{e} \mathbf{T}_{cible}^{c}  
+Le nuage de l'outil est quant à lui obtenu à partir de son modèle CAO, dont la surface est échantillonnée avec la librairie \texttt{trimesh} (fonction \texttt{trimesh.sample.sample\_surface}). Ce nuage, défini dans le repère de l'outil $\mathcal{F}_o$, est positionné dans le repère de base à chaque pas par la relation \eqref{eq:pose_fork}, où $\mathbf{T}_{o}^{e}$ est la transformation constante entre le TCP et l'outil.
+\begin{equation}\label{eq:pose_fork}
+  \mathbf{T}_{o}^{b} = \mathbf{T}_{e}^{b} \mathbf{T}_{o}^{e}
 \end{equation}
 
-La seconde étape consiste à générer le nuage de points de l'outil. Le modèle CAO de l'outil étant disponible, son nuage de points est obtenu par échantillonnage de sa surface avec la librairie \texttt{trimesh} (fonction \texttt{trimesh.sample.sample\_surface}). Ce nuage est ensuite positionné à partir de la pose du repère de l'outil dans le repère du TCP, selon l'équation \eqref{eq:pose_fork}.
-\begin{equation}\label{eq:pose_fork}
-  \mathbf{T}_{f}^{b} = \mathbf{T}_{e}^b \mathbf{T}_{o}^{e}
-\end{equation} 
+À noter que $\mathbf{T}_{o}^{e}=\mathbf{I}$ dans le cas où l'outil est le TCP, comme pour la tâche de saisie et dépôt.
 
-À noter que la transformation $\mathbf{T}_o^e=\mathbf{I}$ dans le cas où l'outil est le TCP. Comme pour la cible, le nuage ainsi positionné est sous-échantillonné à $512$ points par la même stratégie. Les deux nuages résultants sont finalement fusionnés, puis exprimés dans le repère de l'outil \{o\}. Le nuage conditionnel compte ainsi $1024$ points pour la tâche d'alimentation ($512$ pour la cible et $512$ pour l'outil). Pour la tâche de saisie et dépôt (\textit{pick-and-place}), le nuage fusionné compte également $1024$ points, répartis entre la pince ($40\,\%$), le cube à saisir ($20\,\%$) et la boîte de dépôt ($40\,\%$), le sous-échantillonnage final utilisant la même stratégie du point le plus éloigné. Ces nuages fusionnés sont enregistrés aux côtés des données de trajectoire, augmentées de la pose de l'outil dans le repère de base \{b\} ; l'organisation des fichiers du jeu de données prétraité est détaillée à l'Annexe~\ref{annexe:data_protocol}.
+La carte de profondeur n'étant exploitable qu'au premier pas, la position de la cible aux pas suivants est reconstruite géométriquement plutôt que mesurée. Avant la saisie, la cible repose sur son support et son nuage demeure à sa position initiale. À partir de l'instant de saisie, elle est considérée rigidement solidaire de l'outil et son nuage suit le mouvement de celui-ci selon la relation \eqref{eq:cible_solidaire},
+\begin{equation}\label{eq:cible_solidaire}
+  \tilde{\mathbf{p}}_k = \mathbf{T}_{o,k}^{b}\,\bigl(\mathbf{T}_{o,g}^{b}\bigr)^{-1}\,\tilde{\mathbf{p}}_0, \qquad k \ge g
+\end{equation}
+où $\tilde{\mathbf{p}}_0$ est un point de la cible en coordonnées homogènes à sa position initiale, $\tilde{\mathbf{p}}_k$ ce même point au pas $k$, et $g$ l'indice du pas de saisie. Cette reconstruction suppose une saisie ferme et sans glissement, hypothèse cohérente avec le protocole de collecte de la Section~\ref{subsec:Protocol}.
+
+L'indice de saisie $g$ est déterminé différemment selon la tâche. Pour la tâche d'alimentation, la saisie s'effectue par piquage : les dents de la fourchette pénètrent la cible, de sorte que la distance euclidienne entre la pointe de l'outil, positionnée par la relation \eqref{eq:pose_fork}, et le centroïde de la cible décroît durant l'approche et atteint son minimum à l'insertion maximale. Cette distance est donc évaluée à chaque pas, lissée par un filtre gaussien d'écart-type de deux pas d'échantillonnage afin d'atténuer le bruit sur la pose et sur le centroïde, et l'indice de son minimum définit $g$.
+
+Pour la tâche de saisie et dépôt, la saisie s'effectue par fermeture de la pince. Un état binaire de la pince, ouverte ou fermée, est plutôt dérivé à chaque pas des données enregistrées, à partir de la commande envoyée à la pince ou, à défaut, de l'ouverture moyenne des doigts comparée à un seuil de $3$~cm. La première transition vers l'état fermé définit $g$. La relation \eqref{eq:cible_solidaire} solidarise alors le cube au TCP jusqu'à la réouverture de la pince au dépôt, après quoi son nuage demeure à sa position de dépôt. La boîte de dépôt, qui n'est jamais saisie, conserve sa position initiale pendant toute la trajectoire.
+
+Les nuages de l'outil et de la cible sont ensuite fusionnés, puis sous-échantillonnés à $1024$ points par la stratégie d'échantillonnage du point le plus éloigné, qui préserve la couverture géométrique des deux objets. Pour la tâche de saisie et dépôt (\textit{pick-and-place}), le cube à saisir et la boîte de dépôt sont détectés puis reconstruits par la même chaîne de segmentation et de rétroprojection ; le nuage fusionné compte également $1024$ points, répartis entre la pince ($40\,\%$), le cube ($20\,\%$) et la boîte de dépôt ($40\,\%$), avec la même stratégie de sous-échantillonnage.
+
+Le nuage fusionné est finalement centré, en translation seulement, sur l'origine du repère de l'outil. La position de l'outil est soustraite de chaque point, sans qu'aucune rotation ne soit appliquée, de sorte que les axes du nuage restent alignés sur ceux du repère de base $\mathcal{F}_b$. Ce centrage rend la représentation invariante à la position absolue de la scène dans l'espace de travail, ce qui favorise la généralisation aux différentes configurations du protocole, tout en préservant l'information d'orientation. Un changement de repère complet vers $\mathcal{F}_o$, rotation comprise, serait au contraire dégénéré : après la saisie, l'outil et la cible sont immobiles dans le repère de l'outil et l'observation deviendrait constante, en plus de masquer la direction de la gravité, nécessaire pour distinguer les différentes phases.
+
+\subsubsection{Mise à jour des données de trajectoire}
+La dernière étape recopie le fichier JSON de chaque trajectoire dans le jeu de données prétraité et l'augmente de quatre éléments : le nom du fichier du nuage conditionnel associé à chaque pas ; la pose de l'outil dans le repère de base $\mathcal{F}_b$ à chaque pas (position et orientation en quaternion), calculée par la relation \eqref{eq:pose_fork} à partir de la pose du TCP enregistrée ; l'état binaire de la pince $s_k\in\{0,1\}$ à chaque pas, dérivé des données enregistrées comme décrit plus haut pour la tâche de saisie et dépôt, et constant à $1$ pour la tâche d'alimentation, la pince y demeurant fermée sur la fourchette pendant toute la trajectoire ; et la transformation constante $\mathbf{T}_{o}^{e}$, consignée une seule fois à la racine du fichier. La pose de l'outil et l'état binaire de la pince forment ensemble l'observation proprioceptive à dix dimensions du modèle de la Section~\ref{sec:CFM} et définissent l'espace dans lequel les trajectoires sont générées. L'organisation des fichiers du jeu de données prétraité est détaillée à l'Annexe~\ref{annexe:data_protocol}.
 
 % =================================================================
 \section{Génération de trajectoire par Flow Matching} \label{sec:CFM}
 % =================================================================
-Cette section traite de l'ensemble de l'architecture et des hyperparamètres utilisés pour entraîner le modèle de Flow Matching conditionnel afin de généré les trajectoires robotiques.
-\subsection{Formulation mathématique du Flow Matching conditionnel}
-Présenter la provenance et les mathématiques
+Cette section présente le modèle génératif du système : la formulation mathématique du Flow Matching conditionnel, l'architecture qui la réalise, puis la procédure d'entraînement et ses hyperparamètres. Le même modèle, avec les mêmes hyperparamètres, est employé pour les deux tâches ; seul le jeu de données d'entraînement change.
 
+\subsection{Formulation mathématique du Flow Matching conditionnel}
+
+Le Flow Matching \cite{Lipman2023Flow, Liu2023Rectified} est un paradigme génératif qui transporte une distribution source simple $p_0$, ici la gaussienne standard, vers la distribution cible des données $p_1$. Ce transport est décrit par un champ de vitesses dépendant du temps $u_t$, dont le flot $\psi_t$ est défini par l'équation différentielle ordinaire \eqref{eq:psi} avec la condition initiale $\psi_0(x)=x$ :
 \begin{equation}
   \label{eq:psi}
   \frac{\mathrm{d}}{\mathrm{d} t}\psi_t(x) = u_t(\psi_t(x))
 \end{equation}
+Un échantillon $X_0\sim p_0$ transporté par ce flot, $X_t=\psi_t(X_0)$, suit une courbe continue dans l'espace des données ; si le champ $u_t$ est bien choisi, la distribution de $X_1$ coïncide avec $p_1$, et générer un échantillon revient à intégrer numériquement cette équation de $t=0$ à $t=1$.
+
+Plutôt que d'apprendre ce champ implicitement comme le font les modèles de diffusion, le Flow Matching le régresse directement. Le chemin probabiliste retenu est l'interpolation linéaire \eqref{eq:fm_gt} entre une paire bruit-donnée $(X_0, X_1)$,
 \begin{equation}
   \label{eq:fm_gt}
   X_t = (1-t)X_0 + tX_1
 \end{equation}
-
+dont la vitesse conditionnelle vaut $\dot{X}_t = X_1-X_0$. L'objectif d'entraînement minimise l'écart quadratique entre le champ appris $u_t^{\theta}$, paramétré par un réseau de neurones de poids $\theta$, et cette vitesse :
 \begin{equation}
   \label{eq:Loss}
-  \mathcal{L(\theta)} = \mathbb{E}_{t,X_0,X_1}\lVert u_t^{\theta}(X_t)-(X_1-X_0)\rVert^2 \text{, où } t\sim U[0,1],\text{ } X_0\sim\mathcal{N}(0,1), \text{ } X_1\sim q
+  \mathcal{L}(\theta) = \mathbb{E}_{t,X_0,(X_1,c)}\bigl\lVert u_t^{\theta}(X_t \mid c)-(X_1-X_0)\bigr\rVert^2 \text{, où } t\sim \mathcal{U}[0,1],\text{ } X_0\sim\mathcal{N}(\mathbf{0},\mathbf{I}), \text{ } (X_1,c)\sim \mathcal{D}
 \end{equation}
+où $\mathcal{D}$ est le jeu de démonstrations et $c$ l'observation associée à chaque segment, décrite plus bas. Lipman et al. démontrent que ce simple objectif conditionnel possède les mêmes gradients que la régression du champ marginal exact \cite{Lipman2023Flow}. Deux propriétés motivent ce choix face aux modèles de diffusion : la cible de régression est une différence directe $X_1-X_0$, sans paramétrisation de score ni pondération de bruit, et les chemins d'échantillonnage quasi rectilignes qu'induit l'interpolation linéaire autorisent une intégration précise en une dizaine de pas \cite{Liu2023Rectified, lipman2024flowmatchingguidecode}, là où les modèles de diffusion en requièrent typiquement bien davantage ; cette économie est déterminante pour générer les trajectoires à la cadence de replanification visée.
+
+Dans le cadre de ce travail, un échantillon $X_1$ est un segment de trajectoire de l'outil sur un horizon de $H=16$ pas, $X_1=[\mathbf{a}_1,\dots,\mathbf{a}_H]\in\mathbb{R}^{H\times10}$. Chaque action $\mathbf{a}_k\in\mathbb{R}^{10}$ regroupe la position de l'outil (trois composantes), son orientation (six composantes) et l'état binaire de la pince (une composante), tels que définis à la Section~\ref{subsec:pretraitement}. L'orientation adopte la représentation 6D continue de Zhou et al.~\cite{Zhou2020Continuity}, soit les deux premières colonnes de la matrice de rotation : contrairement au quaternion, cette représentation est exempte de discontinuités, ce qui en facilite la régression par un réseau de neurones ; le quaternion consigné dans les données prétraitées y est converti au chargement. Le champ de vitesses est enfin conditionné sur l'observation $c$ de la scène, $u_t^{\theta}(X_t \mid c)$, de sorte que le modèle apprend la distribution conditionnelle des segments experts $p_1(X_1\mid c)$ plutôt que leur distribution marginale.
+
 \subsection{Architecture du modèle}
-Présenter les entrants, les extrants, l'architecture du modèle (EMA, normalisation, MLP pour encodeur, application du conditionnement des trajectoires), comment il résout l'ODE (avec approximation d'Euler) et comment j'obtiens les positions finales
 
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[
-    font=\sffamily\small,
-    % Style inspiré de "Attention Is All You Need"
-    layer_core/.style={draw, fill=gray!6, draw=black!80, minimum width=3.4cm, minimum height=0.6cm, align=center, thick},
-    layer_activation/.style={draw, fill=yellow!15, draw=black!80, minimum width=3.4cm, minimum height=0.5cm, align=center, thick},
-    layer_norm/.style={draw, fill=blue!10, draw=black!80, minimum width=3.4cm, minimum height=0.5cm, align=center, thick},
-    layer_cond/.style={draw, fill=green!12, draw=green!60!black, minimum width=3.0cm, minimum height=0.55cm, align=center, thick},
-    block_math/.style={draw, circle, fill=white, draw=black, minimum size=0.5cm, inner sep=0pt, font=\bfseries},
-    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=black!80},
-    cond_arrow/.style={-{Stealth[scale=0.9]}, thick, draw=green!60!black, dashed}
-]
+Le modèle réalise le champ de vitesses conditionnel $u_t^{\theta}(X_t \mid c)$ : il reçoit l'observation $c$, le segment intermédiaire $X_t$ et le temps d'écoulement $t$, et produit une vitesse à dix dimensions pour chacune des $H$ actions du segment.
 
-    % ================= BRANCHE GAUCHE : FLUX PRINCIPAL (X) =================
-    \node (in_x) at (0, 11.2) {\textbf{Entrée} $x$ {\footnotesize $(B, C_{\text{in}}, L)$}};
+L'observation regroupe le nuage de points conditionnel de la Section~\ref{subsec:pretraitement} ($1024\times3$) et la proprioception des deux derniers pas, soit deux vecteurs à dix dimensions rassemblant la pose de l'outil et l'état binaire de la pince. Conformément au centrage du prétraitement, toutes les positions, celles du nuage comme celles des poses observées et générées, sont exprimées relativement à la position courante de l'outil, les orientations demeurant dans le repère de base. Avant d'entrer dans le réseau, les positions et l'état de la pince sont normalisés linéairement dans $[-1,1]$ à partir des minima et maxima du jeu d'entraînement ; la représentation 6D de l'orientation, déjà bornée dans $[-1,1]$, est laissée telle quelle.
 
-    % --- PREMIER BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
-    \node[layer_core] (conv1) at (0, 9.9) {Conv1D {\footnotesize ($3\times3$)}};
-    \node[layer_norm] (gn1) at (0, 8.9) {GroupNorm};
-    \node[layer_activation] (mish1) at (0, 7.9) {Mish};
-    
-    % --- POINT DE MODULATION FILMAFFINE ---
-    \node[block_math] (mult) at (0, 6.0) {$\times$};
-    \node[block_math] (add) at (0, 4.5) {$+$};
-    
-    % --- SECOND BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
-    \node[layer_core] (conv2) at (0, 2.6) {Conv1D {\footnotesize ($3\times3$)}};
-    \node[layer_norm] (gn2) at (0, 1.6) {GroupNorm};
-    \node[layer_activation] (mish2) at (0, 0.6) {Mish};
+Deux encodeurs transforment cette observation en un vecteur de conditionnement. Le nuage de points traverse l'encodeur léger de \textit{3D Diffusion Policy}~\cite{Ze2024Diffusion} : un perceptron multicouche partagé entre les points ($3\to64\to128\to256$, normalisation de couche et ReLU), suivi d'un max-pooling sur l'ensemble des points, qui rend le descripteur invariant à leur ordre, puis d'une projection linéaire vers $\mathbb{R}^{64}$. La proprioception traverse quant à elle un perceptron ($20\to128\to64$, activation Mish). Les deux descripteurs concaténés forment le vecteur de conditionnement $c\in\mathbb{R}^{128}$.
 
-    % --- SOMME RÉSIDUELLE FINALE ---
-    \node[block_math] (res_sum) at (0, -0.9) {$+$};
-    \node (out) at (0, -2.0) {\textbf{Sortie} $\text{out}$ {\footnotesize $(B, C_{\text{out}}, L)$}};
+Le temps d'écoulement $t$ doit également être fourni au réseau, le champ de vitesses \eqref{eq:Loss} en dépendant explicitement. Un scalaire brut constituerait toutefois un signal trop pauvre pour moduler l'ensemble du réseau : $t$ est plutôt encodé par le plongement sinusoïdal introduit avec l'architecture Transformer \cite{Vaswani2017Attention},
+\begin{equation}\label{eq:sinus_emb}
+  \boldsymbol{\gamma}(t) = \bigl[\sin(\omega_1 t'),\,\dots,\,\sin(\omega_{d/2}\, t'),\;\cos(\omega_1 t'),\,\dots,\,\cos(\omega_{d/2}\, t')\bigr], \qquad \omega_i = 10000^{-\frac{i-1}{d/2-1}}
+\end{equation}
+où $d=256$ est la dimension du plongement et $t'=1000\,t$ une mise à l'échelle qui ramène l'intervalle $[0,1]$ à la plage d'indices pour laquelle ces fréquences ont été conçues. La progression géométrique des pulsations $\omega_i$ fait varier chaque paire sinus--cosinus à une échelle temporelle différente : les basses fréquences distinguent grossièrement le début de la fin de l'écoulement, tandis que les hautes fréquences en résolvent les variations fines, le tout en demeurant une fonction lisse de $t$. Ce plongement est raffiné par un perceptron ($256\to1024\to256$, activation Mish), puis concaténé au vecteur $c$ pour constituer le conditionnement global $c_g\in\mathbb{R}^{384}$ ($128+256$) : c'est par ce vecteur que la dépendance du champ $u_t^{\theta}$ au temps $t$ et à l'observation $c$ entre dans le réseau de vitesse.
 
+Le réseau de vitesse est le U-Net 1D conditionnel popularisé par \textit{Diffusion Policy}~\cite{ChiXXXXVisuomotor}, illustré à la Figure~\ref{fig:attention_style_unet_perfect_final}. Sur cette figure, chaque triplet indique la forme du tenseur qui transite entre les blocs : $B$ est la taille du lot, le deuxième terme le nombre de canaux et le troisième la longueur temporelle. Le segment $X_t\in\mathbb{R}^{H\times10}$, noté $x_t$ sur la figure, y est traité comme un signal unidimensionnel de longueur $H$ à dix canaux, et la sortie $\mathbf{v}_t$, de même forme, est l'estimation de la vitesse $u_t^{\theta}(X_t \mid c)$ pour chacune des $H$ actions. Le réseau comprend trois niveaux de résolution ($256$, $512$ puis $1024$ canaux, la longueur temporelle étant divisée par deux entre les niveaux), un goulot central, puis une remontée symétrique dont chaque niveau concatène les cartes du niveau descendant correspondant (connexions saut, opérateur C sur la figure). Tous les niveaux sont constitués de blocs résiduels conditionnels, détaillés à la Figure~\ref{fig:attention_style_residual_block_clean_90} : deux convolutions 1D, chacune suivie d'une normalisation de groupe et de l'activation Mish \eqref{eq:mish_activation},
+\begin{equation}
+\text{Mish}(x) = x \cdot \tanh\left(\ln\left(1 + e^x\right)\right)
+\label{eq:mish_activation}
+\end{equation}
+le conditionnement global $c_g$ y étant appliqué par modulation affine de type FiLM : un gain $\gamma\in\mathbb{R}^{C_{\text{out}}}$ et un biais $\beta\in\mathbb{R}^{C_{\text{out}}}$, prédits par un perceptron à partir de $c_g$, modulent canal par canal les cartes de caractéristiques entre les deux convolutions. Sur la Figure~\ref{fig:attention_style_residual_block_clean_90}, $x$ désigne la carte de caractéristiques entrant dans le bloc, de forme $(B, C_{\text{in}}, H)$, où $C_{\text{in}}$ et $C_{\text{out}}$ sont les nombres de canaux à l'entrée et à la sortie du bloc et $H$ la longueur temporelle au niveau de résolution courant, divisée par deux à chaque descente ; la connexion résiduelle traverse une convolution $1\times1$ lorsque $C_{\text{in}}\neq C_{\text{out}}$ afin d'accorder les dimensions. Cette injection du conditionnement à tous les niveaux de résolution permet à l'observation d'influencer autant la forme d'ensemble du segment que ses détails locaux.
 
-    % ================= BRANCHE DROITE : CONDITIONNEMENT (C) =================
-    \node (in_c) at (6.0, 11.2) {\textbf{Condition} $c$ {\footnotesize $(B, D_{\text{cond}})$}};
-    
-    % Stack de l'encodeur aligné verticalement
-    \node[layer_activation] (c_mish) at (6.0, 9.9) {Mish};
-    \node[layer_core] (c_linear) at (6.0, 8.9) {Linear};
-    \node[layer_core] (c_unflat) at (6.0, 7.9) {Unflatten};
-    
-    % Modulations affines (Scale et Bias)
-    \node[layer_cond] (scale) at (4.0, 6.0) {\textbf{Scale} $\gamma$\\{\footnotesize $(B, C_{\text{out}}, 1)$}};
-    \node[layer_cond] (bias) at (4.0, 4.5) {\textbf{Bias} $\beta$\\{\footnotesize $(B, C_{\text{out}}, 1)$}};
+Le choix de ce U-Net convolutif plutôt que d'une tête Transformer, l'autre architecture de débruitage proposée par \textit{Diffusion Policy} \cite{ChiXXXXVisuomotor}, tient à trois considérations. D'abord, Chi et al. rapportent que la variante convolutive s'entraîne de façon stable et convient à la plupart des tâches sans réglage particulier, alors que la variante Transformer est nettement plus sensible aux hyperparamètres \cite{ChiXXXXVisuomotor} ; avec un jeu de données limité à quelques dizaines de démonstrations par tâche, cette robustesse en régime de faibles données prime. Ensuite, les biais inductifs des convolutions temporelles, localité et régularité, correspondent à la nature des données : les trajectoires démontrées sont lisses et échantillonnées à $10$~Hz, sans les changements d'action à haute fréquence pour lesquels la variante Transformer est recommandée. Enfin, l'horizon généré est court ($H=16$) : l'atout principal de l'auto-attention, la modélisation des dépendances à longue portée, n'apporte rien ici, le goulot du U-Net couvrant déjà l'horizon entier après deux sous-échantillonnages.
 
+À l'inférence, la génération d'un segment consiste à intégrer l'équation \eqref{eq:psi} de $t=0$ à $t=1$ à partir d'un tirage $X_0\sim\mathcal{N}(\mathbf{0},\mathbf{I})$, par le schéma d'Euler explicite :
+\begin{equation}\label{eq:euler}
+  X_{t+\Delta t} = X_t + \Delta t\, u_t^{\theta}(X_t \mid c), \qquad \Delta t = 1/N.
+\end{equation}
+Le segment obtenu est dénormalisé puis converti en consignes exécutables : les positions absolues sont récupérées en réappliquant la position courante de l'outil, inverse du centrage en translation ; la matrice de rotation de chaque action est reconstruite par orthonormalisation de Gram--Schmidt de ses six composantes d'orientation \cite{Zhou2020Continuity} ; et l'état binaire de la pince est obtenu par seuillage de la dixième composante à $0{,}5$. Le résultat est une séquence de $H=16$ poses de l'outil accompagnées de la commande de la pince, transmise à la chaîne de conversion et d'exécution de la section suivante.
 
-    % ================= BRANCHE GAUCHE : CONNEXION RÉSIDUELLE =================
-    \node[layer_core] (res_conv) at (-3.6, 5.25) {\textbf{residual\_conv}\\{\footnotesize Conv1D $1\times1$}\\{\footnotesize \textit{(si $C_{\text{in}} \neq C_{\text{out}}$)}}};
-
-
-    % ================= CONNEXIONS ET FLÈCHES =================
-    % Connexions Flux Principal X
-    \draw[arrow] (in_x) -- (conv1);
-    \draw[arrow] (conv1) -- (gn1);
-    \draw[arrow] (gn1) -- (mish1);
-    \draw[arrow] (mish1) -- (mult);
-    \draw[arrow] (mult) -- (add);
-    \draw[arrow] (add) -- (conv2);
-    \draw[arrow] (conv2) -- (gn2);
-    \draw[arrow] (gn2) -- (mish2);
-    \draw[arrow] (mish2) -- (res_sum);
-    \draw[arrow] (res_sum) -- (out);
-
-    % Connexions internes de l'encodeur C
-    \draw[arrow] (in_c) -- (c_mish);
-    \draw[arrow] (c_mish) -- (c_linear);
-    \draw[arrow] (c_linear) -- (c_unflat);
-    
-    % --- ROUTAGE DE CONDITIONNEMENT AVEC UN SEUL ANGLE DROIT STRICT (90°) ---
-    % On descend verticalement depuis le bas de Unflatten, puis on tourne à 90° à l'horizontale (|- )
-    \draw[cond_arrow] (c_unflat.south) |- (scale.east);
-    \draw[cond_arrow] (c_unflat.south) |- (bias.east);
-    
-    % Guidage de Scale et Bias vers les opérations de multiplication et d'addition
-    \draw[cond_arrow] (scale.west) -- (mult.east);
-    \draw[cond_arrow] (bias.west) -- (add.east);
-
-    % Liaison Résiduelle Externe
-    \draw[arrow] (in_x.south) ++(0,-0.1) -- ++(0,-0.3) -| (res_conv.north);
-    \draw[arrow] (res_conv.south) |- (res_sum.west);
-
-\end{tikzpicture}
-\caption{Architecture du module \texttt{ConditionalResidualBlock1D} avec un tracé orthogonal à angle droit unique vers les entrées latérales.}
-\label{fig:attention_style_residual_block_clean_90}
-\end{figure}
-
-
-\begin{figure}[htbp]
+\begin{figure}[tb]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
@@ -389,7 +398,7 @@ Présenter les entrants, les extrants, l'architecture du modèle (EMA, normalisa
 ]
 
     % ================= CENTRE : CONDITIONNEMENT ET AXE CENTRAL =================
-    \node[block_cond] (cond) at (6.0, 4.5) {\textbf{Conditioning Embedding}\\{\footnotesize \texttt{global\_feature}}};
+    \node[block_cond] (cond) at (6.0, 4.5) {\textbf{Conditionnement global} $c_g$\\{\footnotesize $(B, 384)$}};
     
     % Ligne de bus verticale centrale descendante ajustée au millimètre près (Y = -6.3)
     \coordinate (bus4) at (6.0, -6.3);
@@ -493,30 +502,151 @@ Présenter les entrants, les extrants, l'architecture du modèle (EMA, normalisa
 
 \end{tikzpicture}%
 }
-\caption{Architecture globale finale du \texttt{ConditionalUnet1D} au style épuré, corrigée de tout dépassement de tracé.}
+\caption{Architecture du réseau de vitesse \texttt{ConditionalUnet1D} : encodeur-décodeur 1D à trois niveaux de résolution, connexions saut et injection du conditionnement global dans chaque bloc résiduel. Chaque triplet indique la forme du tenseur transitant entre les blocs : taille de lot $B$, nombre de canaux, longueur temporelle ($H=16$).}
 \label{fig:attention_style_unet_perfect_final}
 \end{figure}
 
-\begin{equation}
-\text{Mish}(x) = x \cdot \tanh\left(\ln\left(1 + e^x\right)\right)
-\label{eq:mish_activation}
-\end{equation}
+\begin{figure}[tb]
+\centering
+\resizebox{!}{12cm}{%
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    % Style inspiré de "Attention Is All You Need"
+    layer_core/.style={draw, fill=gray!6, draw=black!80, minimum width=3.4cm, minimum height=0.6cm, align=center, thick},
+    layer_activation/.style={draw, fill=yellow!15, draw=black!80, minimum width=3.4cm, minimum height=0.5cm, align=center, thick},
+    layer_norm/.style={draw, fill=blue!10, draw=black!80, minimum width=3.4cm, minimum height=0.5cm, align=center, thick},
+    layer_cond/.style={draw, fill=green!12, draw=green!60!black, minimum width=3.0cm, minimum height=0.55cm, align=center, thick},
+    block_math/.style={draw, circle, fill=white, draw=black, minimum size=0.5cm, inner sep=0pt, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=black!80},
+    cond_arrow/.style={-{Stealth[scale=0.9]}, thick, draw=green!60!black, dashed}
+]
+
+    % ================= BRANCHE GAUCHE : FLUX PRINCIPAL (X) =================
+    \node (in_x) at (0, 11.2) {\textbf{Entrée} $x$ {\footnotesize $(B, C_{\text{in}}, H)$}};
+
+    % --- PREMIER BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
+    \node[layer_core] (conv1) at (0, 9.9) {Conv1D {\footnotesize ($3\times3$)}};
+    \node[layer_norm] (gn1) at (0, 8.9) {GroupNorm};
+    \node[layer_activation] (mish1) at (0, 7.9) {Mish};
+    
+    % --- POINT DE MODULATION FILMAFFINE ---
+    \node[block_math] (mult) at (0, 6.0) {$\times$};
+    \node[block_math] (add) at (0, 4.5) {$+$};
+    
+    % --- SECOND BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
+    \node[layer_core] (conv2) at (0, 2.6) {Conv1D {\footnotesize ($3\times3$)}};
+    \node[layer_norm] (gn2) at (0, 1.6) {GroupNorm};
+    \node[layer_activation] (mish2) at (0, 0.6) {Mish};
+
+    % --- SOMME RÉSIDUELLE FINALE ---
+    \node[block_math] (res_sum) at (0, -0.9) {$+$};
+    \node (out) at (0, -2.0) {\textbf{Sortie} $\text{out}$ {\footnotesize $(B, C_{\text{out}}, H)$}};
+
+
+    % ================= BRANCHE DROITE : CONDITIONNEMENT (C) =================
+    \node (in_c) at (6.0, 11.2) {\textbf{Conditionnement global} $c_g$ {\footnotesize $(B, D_{\text{cond}})$}};
+    
+    % Stack de l'encodeur aligné verticalement
+    \node[layer_activation] (c_mish) at (6.0, 9.9) {Mish};
+    \node[layer_core] (c_linear) at (6.0, 8.9) {Linear};
+    \node[layer_core] (c_unflat) at (6.0, 7.9) {Unflatten};
+    
+    % Modulations affines (Scale et Bias)
+    \node[layer_cond] (scale) at (4.0, 6.0) {\textbf{Échelle} $\gamma$\\{\footnotesize $(B, C_{\text{out}}, 1)$}};
+    \node[layer_cond] (bias) at (4.0, 4.5) {\textbf{Biais} $\beta$\\{\footnotesize $(B, C_{\text{out}}, 1)$}};
+
+
+    % ================= BRANCHE GAUCHE : CONNEXION RÉSIDUELLE =================
+    \node[layer_core] (res_conv) at (-3.6, 5.25) {\textbf{residual\_conv}\\{\footnotesize Conv1D $1\times1$}\\{\footnotesize \textit{(si $C_{\text{in}} \neq C_{\text{out}}$)}}};
+
+
+    % ================= CONNEXIONS ET FLÈCHES =================
+    % Connexions Flux Principal X
+    \draw[arrow] (in_x) -- (conv1);
+    \draw[arrow] (conv1) -- (gn1);
+    \draw[arrow] (gn1) -- (mish1);
+    \draw[arrow] (mish1) -- (mult);
+    \draw[arrow] (mult) -- (add);
+    \draw[arrow] (add) -- (conv2);
+    \draw[arrow] (conv2) -- (gn2);
+    \draw[arrow] (gn2) -- (mish2);
+    \draw[arrow] (mish2) -- (res_sum);
+    \draw[arrow] (res_sum) -- (out);
+
+    % Connexions internes de l'encodeur C
+    \draw[arrow] (in_c) -- (c_mish);
+    \draw[arrow] (c_mish) -- (c_linear);
+    \draw[arrow] (c_linear) -- (c_unflat);
+    
+    % --- ROUTAGE DE CONDITIONNEMENT AVEC UN SEUL ANGLE DROIT STRICT (90°) ---
+    % On descend verticalement depuis le bas de Unflatten, puis on tourne à 90° à l'horizontale (|- )
+    \draw[cond_arrow] (c_unflat.south) |- (scale.east);
+    \draw[cond_arrow] (c_unflat.south) |- (bias.east);
+    
+    % Guidage de Scale et Bias vers les opérations de multiplication et d'addition
+    \draw[cond_arrow] (scale.west) -- (mult.east);
+    \draw[cond_arrow] (bias.west) -- (add.east);
+
+    % Liaison Résiduelle Externe
+    \draw[arrow] (in_x.south) ++(0,-0.1) -- ++(0,-0.3) -| (res_conv.north);
+    \draw[arrow] (res_conv.south) |- (res_sum.west);
+
+\end{tikzpicture}%
+}
+\caption{Architecture du bloc résiduel conditionnel (\texttt{ConditionalResidualBlock1D}) du réseau de vitesse, avec sa modulation affine par le conditionnement global. $B$ désigne la taille du lot, $C_{\text{in}}$ et $C_{\text{out}}$ les nombres de canaux à l'entrée et à la sortie du bloc, $H$ la longueur temporelle du niveau de résolution courant et $D_{\text{cond}}=384$ la dimension du conditionnement global $c_g$.}
+\label{fig:attention_style_residual_block_clean_90}
+\end{figure}
 
 \subsection{Entraînement du modèle}
-Présentation des hyperparamètres choisis et de la Loss curve (finalement loss curve pas si importante comme on présente une méthodologie).
+
+Les trajectoires prétraitées sont découpées en échantillons par fenêtre glissante : à chaque pas d'une trajectoire correspond un échantillon regroupant le nuage conditionnel courant, la proprioception des deux derniers pas et le segment des $H=16$ actions à venir, soit $1{,}6$~s à la cadence d'enregistrement de $10$~Hz. Les trajectoires sont réparties entre entraînement ($80\,\%$) et validation ($20\,\%$).
+
+Chaque échantillon d'entraînement subit une augmentation aléatoire qui préserve la cohérence géométrique entre le nuage et les poses : une rotation de la scène complète autour de la verticale, tirée uniformément dans $\pm15^{\circ}$ et appliquée simultanément au nuage, aux positions et aux composantes d'orientation ; une translation uniforme de $\pm1$~cm appliquée au nuage et aux positions ; et un bruit gaussien d'écart-type $5$~mm, tronqué à $\pm1$~cm, ajouté aux points du nuage pour imiter le bruit du capteur. L'état binaire de la pince n'est pas modifié par l'augmentation.
+
+Le Tableau~\ref{tab:fm_hyperparams} rassemble les hyperparamètres d'entraînement, identiques pour les deux tâches. L'optimisation minimise la perte \eqref{eq:Loss} avec AdamW, un pas d'apprentissage suivant un recuit en cosinus après une période d'échauffement et un écrêtage du gradient à une norme unitaire. Une moyenne mobile exponentielle (EMA) des poids du modèle est maintenue tout au long de l'entraînement et sert tant à l'évaluation qu'au déploiement, ce qui lisse les oscillations des derniers pas d'optimisation ; le point de contrôle retenu est celui qui minimise la perte de validation évaluée avec ces poids moyennés.
+
+\begin{table}[htbp]
+\centering
+\caption{Hyperparamètres d'entraînement du modèle de Flow Matching.}
+\label{tab:fm_hyperparams}
+\begin{tabular}{ll}
+\toprule
+Hyperparamètre & Valeur \\
+\midrule
+Horizon de prédiction $H$ / horizon d'observation & $16$ / $2$ \\
+Dimension des actions et de la proprioception & $10$ \\
+Points du nuage conditionnel & $1024$ \\
+Taille de lot & $128$ \\
+Nombre d'époques & $500$ \\
+Optimiseur & AdamW \\
+Pas d'apprentissage initial & $1\times10^{-4}$ \\
+Régularisation (\textit{weight decay}) & $1\times10^{-6}$ \\
+Ordonnancement du pas d'apprentissage & cosinus, $500$ pas d'échauffement \\
+Écrêtage du gradient (norme) & $1{,}0$ \\
+Taux de décroissance EMA (maximal) & $0{,}9999$ \\
+Pas d'intégration à l'inférence $N$ & $10$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
 % =================================================================
 \section{Conversion et exécution de la trajectoire nominale}
 % =================================================================
-\subsection{Conversion outil - TCP}
-Mettre une image des repères TCP - Outil et de la matrice de Transformation et comment on fait pour calculer la pose du TCP à contrôler en fonction de la pose de l'outil
-\subsection{Cinématique inverse pour obtenir la trajectoire articulaire nominale}
-La trajectoire générée par \textit{Flow Matching} décrit le mouvement du lien contrôlé dans l'espace cartésien : sur l'horizon $H$, le modèle produit une séquence de poses que la conversion outil--TCP de la sous-section précédente ramène en poses désirées du repère TCP, ${}^{b}\mathbf{T}_k^{\star}\in SE(3)$, $k=1,\dots,H$. Le robot étant commandé dans l'espace articulaire, chaque pose doit être convertie en une configuration $\mathbf{q}_k\in\mathbb{R}^7$ par cinématique inverse. Seules les sept articulations du bras interviennent dans la tâche : les deux articulations de la pince complètent le vecteur de configuration du modèle mais n'influent pas sur la pose du TCP, et la préhension est commandée séparément. Le manipulateur disposant de sept articulations pour une tâche de pose à six degrés de liberté, le problème est redondant et son issue doit être fixée par un critère explicite.
+La sortie du modèle de la section précédente est une séquence de poses de l'outil dans l'espace cartésien ; le robot, lui, est asservi dans l'espace articulaire. Cette section décrit la chaîne qui transforme chaque segment généré en une trajectoire articulaire exécutable : le passage des poses de l'outil aux poses du TCP, leur conversion en configurations articulaires par cinématique inverse, puis le réajustement temporel qui leur affecte des instants de passage produisant un profil de vitesse régulier.
 
-La résolution s'effectue, pour chaque point de passage, par une descente de Gauss--Newton amortie sur l'erreur de pose, implémentée en C++ avec la bibliothèque \texttt{Pinocchio}. À l'itération courante, l'écart entre la pose atteinte $\mathbf{T}(\mathbf{q})$ et la pose désirée $\mathbf{T}_k^{\star}$ est mesuré dans l'algèbre de Lie de $SE(3)$, via le logarithme du groupe,
+\subsection{Conversion outil--TCP}
+Le modèle de Flow Matching est entraîné et échantillonné dans le repère de l'outil $\mathcal{F}_o$ : pour la tâche d'alimentation, les poses générées sont celles de la pointe de la fourchette, soit l'élément qui interagit physiquement avec la cible. Le contrôleur du robot n'asservit toutefois pas ce repère, mais celui du TCP $\mathcal{F}_e$. La pose du TCP à commander s'obtient en inversant la relation \eqref{eq:pose_fork} utilisée au prétraitement (Section~\ref{subsec:pretraitement}) :
+\begin{equation}\label{eq:tcp_from_tool}
+  \mathbf{T}_{e,k}^{b} = \mathbf{T}_{o,k}^{b}\,\bigl(\mathbf{T}_{o}^{e}\bigr)^{-1}, \qquad k=1,\dots,H,
+\end{equation}
+où $\mathbf{T}_{o,k}^{b}$ est la pose homogène de l'outil au pas $k$, assemblée à partir de la position et de la matrice de rotation issues de l'inférence (Section~\ref{sec:CFM}), et $\mathbf{T}_{o}^{e}$ la transformation rigide constante entre le TCP et l'outil, illustrée à la Figure~\ref{fig:rep} et consignée dans les fichiers de trajectoire (Section~\ref{subsec:pretraitement}). Cette transformation étant connue et invariante, la conversion est exacte et ne coûte qu'un produit matriciel par pose ; pour la tâche de saisie et dépôt, l'outil est le TCP lui-même ($\mathbf{T}_{o}^{e}=\mathbf{I}$). Les poses ainsi obtenues constituent les poses désirées du TCP, notées $\mathbf{T}_{e,k}^{b\star}$ dans la sous-section suivante.
+\subsection{Cinématique inverse pour obtenir la trajectoire articulaire nominale}
+La trajectoire générée par \textit{Flow Matching} décrit le mouvement du lien contrôlé dans l'espace cartésien : sur l'horizon $H$, le modèle produit une séquence de poses que la conversion outil--TCP de la sous-section précédente ramène en poses désirées du TCP, $\mathbf{T}_{e,k}^{b\star}\in SE(3)$, $k=1,\dots,H$. Le robot étant commandé dans l'espace articulaire, chaque pose doit être convertie en une configuration $\mathbf{q}_k\in\mathbb{R}^7$ par cinématique inverse. Seules les sept articulations du bras interviennent dans la tâche : les deux articulations de la pince complètent le vecteur de configuration du modèle mais n'influent pas sur la pose du TCP, et la préhension est commandée séparément. Le manipulateur disposant de sept articulations pour une tâche de pose à six degrés de liberté, le problème est redondant et son issue doit être fixée par un critère explicite.
+
+La résolution s'effectue, pour chaque point de passage, par une descente de Gauss--Newton amortie sur l'erreur de pose, implémentée en C++ avec la bibliothèque \texttt{Pinocchio}. À l'itération courante, l'écart entre la pose atteinte $\mathbf{T}_{e}^{b}(\mathbf{q})$ et la pose désirée $\mathbf{T}_{e,k}^{b\star}$ est mesuré dans l'algèbre de Lie de $SE(3)$, via le logarithme du groupe,
 \[
-\mathbf{e}(\mathbf{q}) = \log\!\big( (\mathbf{T}_k^{\star})^{-1}\,\mathbf{T}(\mathbf{q}) \big) \in \mathbb{R}^6.
+\mathbf{e}(\mathbf{q}) = \log\!\big( (\mathbf{T}_{e,k}^{b\star})^{-1}\,\mathbf{T}_{e}^{b}(\mathbf{q}) \big) \in \mathbb{R}^6.
 \]
 La Jacobienne géométrique du repère TCP, $\mathbf{J}(\mathbf{q})\in\mathbb{R}^{6\times7}$, donne le torseur cinématique (vitesses linéaire et angulaire) du TCP produit par une vitesse articulaire. Au premier ordre, elle relie donc un incrément $\Delta\mathbf{q}$ à la variation de l'erreur de pose qu'il induit, $\mathbf{e}(\mathbf{q}+\Delta\mathbf{q})\approx\mathbf{e}(\mathbf{q})+\mathbf{J}(\mathbf{q})\,\Delta\mathbf{q}$. L'incrément articulaire combine alors une tâche principale, celle de réduire $\mathbf{e}$, ainsi qu'une tâche secondaire confinée au noyau de $\mathbf{J}$, c'est-à-dire aux mouvements articulaires qui laissent la pose du TCP inchangée :
 \[
@@ -605,7 +735,7 @@ Les modèles finaux de chaque lien enchaînent ainsi les deux étapes, la régre
 \subsection{Fonction barrière}\label{subsec:barriere}
 À l'exécution, chaque point obstacle $\mathbf{p}_i$ est ramené dans le repère normalisé de chaque lien protégé via la cinématique directe, puis évalué par le modèle appris :
 \[
-\mathbf{x}_{l,i}(\mathbf{q}) = \mathbf{T}_l(\mathbf{q})^{-1}\mathbf{p}_i,
+\mathbf{x}_{l,i}(\mathbf{q}) = \mathbf{T}_{l}^{b}(\mathbf{q})^{-1}\,\mathbf{p}_i,
 \qquad
 d_{l,i}(\mathbf{q}) = s_l\,\boldsymbol{\Phi}\!\left(\frac{\mathbf{x}_{l,i}-\mathbf{o}_l}{s_l}\right)\mathbf{w}_l.
 \]
@@ -639,22 +769,22 @@ La projection~\eqref{eq:cbf_qp} repose entièrement sur le gradient $\nabla_{\ma
 \]
 toutes trois dérivables analytiquement. Les différentielles correspondantes sont établies successivement, puis recombinées par la règle de chaîne et agrégées à travers le soft-min. Cette dérivation distingue le présent filtre de l'implémentation de référence de~\cite{Li2024rdf}, qui obtient le gradient articulaire par différences finies sur la cinématique directe : la forme close en fournit la valeur exacte, sans choix d'un pas de perturbation et à coût indépendant du nombre d'articulations perturbées.
 
-Tout d'abord, en ce qui concerne la différentielle cinématique, l'obstacle est fixe dans le repère de base $\mathcal{F}_b$ ($\dot{\mathbf{p}}_i=\mathbf{0}$), mais paraît mobile dans le repère $\mathcal{F}_l$ que les articulations déplacent. Sa position locale $\mathbf{x}_{l,i}={}^{b}\mathbf{R}_l^{\top}(\mathbf{p}_i-{}^{b}\mathbf{d}_l)$ vérifie la relation de fermeture $\mathbf{p}_i = {}^{b}\mathbf{d}_l + {}^{b}\mathbf{R}_l\,\mathbf{x}_{l,i}$, où ${}^{b}\mathbf{R}_l(\mathbf{q})$ et ${}^{b}\mathbf{d}_l(\mathbf{q})$ sont la rotation et la translation de $\mathbf{T}_l(\mathbf{q})$. En dérivant cette relation par rapport au temps et en annulant $\dot{\mathbf{p}}_i$ :
+Tout d'abord, en ce qui concerne la différentielle cinématique, l'obstacle est fixe dans le repère de base $\mathcal{F}_b$ ($\dot{\mathbf{p}}_i=\mathbf{0}$), mais paraît mobile dans le repère $\mathcal{F}_l$ que les articulations déplacent. Sa position locale $\mathbf{x}_{l,i}=(\mathbf{R}_{l}^{b})^{\top}(\mathbf{p}_i-\mathbf{d}_{l}^{b})$ vérifie la relation de fermeture $\mathbf{p}_i = \mathbf{d}_{l}^{b} + \mathbf{R}_{l}^{b}\,\mathbf{x}_{l,i}$, où $\mathbf{R}_{l}^{b}(\mathbf{q})$ et $\mathbf{d}_{l}^{b}(\mathbf{q})$ sont la rotation et la translation de $\mathbf{T}_{l}^{b}(\mathbf{q})$. En dérivant cette relation par rapport au temps et en annulant $\dot{\mathbf{p}}_i$ :
 \[
-\mathbf{0} = {}^{b}\dot{\mathbf{d}}_l + {}^{b}\dot{\mathbf{R}}_l\,\mathbf{x}_{l,i} + {}^{b}\mathbf{R}_l\,\dot{\mathbf{x}}_{l,i}.
+\mathbf{0} = \dot{\mathbf{d}}_{l}^{b} + \dot{\mathbf{R}}_{l}^{b}\,\mathbf{x}_{l,i} + \mathbf{R}_{l}^{b}\,\dot{\mathbf{x}}_{l,i}.
 \]
-Les blocs linéaire et angulaire de la Jacobienne géométrique du lien, ${}^{b}\mathbf{J}_{L,l}$ et ${}^{b}\mathbf{J}_{A,l}$, relient ces dérivées à la vitesse articulaire par ${}^{b}\dot{\mathbf{d}}_l = {}^{b}\mathbf{J}_{L,l}\dot{\mathbf{q}}$ et ${}^{b}\dot{\mathbf{R}}_l = \big[{}^{b}\mathbf{J}_{A,l}\dot{\mathbf{q}}\big]_\times\,{}^{b}\mathbf{R}_l$. En les substituant et en isolant le terme de vitesse locale :
+Les blocs linéaire et angulaire de la Jacobienne géométrique du lien, $\mathbf{J}_{L,l}^{b}$ et $\mathbf{J}_{A,l}^{b}$, relient ces dérivées à la vitesse articulaire par $\dot{\mathbf{d}}_{l}^{b} = \mathbf{J}_{L,l}^{b}\dot{\mathbf{q}}$ et $\dot{\mathbf{R}}_{l}^{b} = \big[\mathbf{J}_{A,l}^{b}\dot{\mathbf{q}}\big]_\times\,\mathbf{R}_{l}^{b}$. En les substituant et en isolant le terme de vitesse locale :
 \[
-{}^{b}\mathbf{R}_l\,\dot{\mathbf{x}}_{l,i}
-= -\,{}^{b}\mathbf{J}_{L,l}\dot{\mathbf{q}}
-- \big[{}^{b}\mathbf{J}_{A,l}\dot{\mathbf{q}}\big]_\times\,{}^{b}\mathbf{R}_l\,\mathbf{x}_{l,i}.
+\mathbf{R}_{l}^{b}\,\dot{\mathbf{x}}_{l,i}
+= -\,\mathbf{J}_{L,l}^{b}\dot{\mathbf{q}}
+- \big[\mathbf{J}_{A,l}^{b}\dot{\mathbf{q}}\big]_\times\,\mathbf{R}_{l}^{b}\,\mathbf{x}_{l,i}.
 \]
-Une multiplication à gauche par ${}^{b}\mathbf{R}_l^{\top}$, suivie des identités du produit vectoriel $\mathbf{R}^{\top}[\mathbf{a}]_\times\mathbf{R}=[\mathbf{R}^{\top}\mathbf{a}]_\times$ et $[\mathbf{a}]_\times\mathbf{b}=-[\mathbf{b}]_\times\mathbf{a}$, isole la Jacobienne recherchée $\mathbf{J}_{x_{l,i}}=\partial\mathbf{x}_{l,i}/\partial\mathbf{q}$, telle que $\dot{\mathbf{x}}_{l,i}=\mathbf{J}_{x_{l,i}}\dot{\mathbf{q}}$ :
+Une multiplication à gauche par $(\mathbf{R}_{l}^{b})^{\top}$, suivie des identités du produit vectoriel $\mathbf{R}^{\top}[\mathbf{a}]_\times\mathbf{R}=[\mathbf{R}^{\top}\mathbf{a}]_\times$ et $[\mathbf{a}]_\times\mathbf{b}=-[\mathbf{b}]_\times\mathbf{a}$, isole la Jacobienne recherchée $\mathbf{J}_{x_{l,i}}=\partial\mathbf{x}_{l,i}/\partial\mathbf{q}$, telle que $\dot{\mathbf{x}}_{l,i}=\mathbf{J}_{x_{l,i}}\dot{\mathbf{q}}$ :
 \[
 \boxed{\;
 \mathbf{J}_{x_{l,i}}(\mathbf{q}) =
--\,{}^{b}\mathbf{R}_l^{\top}\,{}^{b}\mathbf{J}_{L,l}
-+ \big[\mathbf{x}_{l,i}\big]_\times\,{}^{b}\mathbf{R}_l^{\top}\,{}^{b}\mathbf{J}_{A,l}
+-\,(\mathbf{R}_{l}^{b})^{\top}\,\mathbf{J}_{L,l}^{b}
++ \big[\mathbf{x}_{l,i}\big]_\times\,(\mathbf{R}_{l}^{b})^{\top}\,\mathbf{J}_{A,l}^{b}
 \;}
 \]
 le premier terme traduisant la translation du repère du lien, le second sa rotation. La matrice antisymétrique associée au produit vectoriel y vaut
@@ -688,12 +818,12 @@ d'où, en dérivant le produit tensoriel selon chacun des trois axes, le gradien
 \end{bmatrix}.
 \]
 
-La composition des trois différentielles, en tenant compte de la mise à l'échelle métrique $d_{l,i}=s_l\,\bar{d}_l$, fournit le gradient articulaire d'un point obstacle : le facteur $s_l$ se simplifie avec celui de la normalisation, de sorte que le gradient spatial métrique se réduit à $\nabla_{\mathbf{x}}d_{l,i}=\tfrac{1}{2}\,\nabla_{\mathbf{u}}\bar{d}_l$. Cette expression vaut pour les points dont la coordonnée normalisée reste dans le cube $[-1,1]^3$ ; pour la correction conservatrice appliquée hors de ce domaine (Section~\ref{subsec:barriere}), la composante polynomiale s'annule sur les axes bornés au cube et le gradient s'y réduit à la direction radiale unitaire allant du point borné vers l'obstacle, dérivée exacte de la distance euclidienne ajoutée. Les contraintes effectivement actives portant sur des points proches de la surface du robot, c'est néanmoins la branche intérieure qui gouverne la projection. Plutôt que d'assembler explicitement la Jacobienne $\mathbf{J}_{x_{l,i}}$ pour chacun des points --- ce qui matérialiserait un tenseur coûteux ---, on applique les mêmes identités du produit vectoriel pour réécrire $\nabla_{\mathbf{q}}d_{l,i}=\mathbf{J}_{x_{l,i}}^{\top}\nabla_{\mathbf{x}}d_{l,i}$ directement dans le repère de base. En notant $\mathbf{g}_{l,i}={}^{b}\mathbf{R}_l\,\nabla_{\mathbf{x}}d_{l,i}$ le gradient spatial exprimé dans $\mathcal{F}_b$ et $\mathbf{r}_{l,i}=\mathbf{p}_i-{}^{b}\mathbf{d}_l$ le vecteur reliant l'origine du repère du lien à l'obstacle :
+La composition des trois différentielles, en tenant compte de la mise à l'échelle métrique $d_{l,i}=s_l\,\bar{d}_l$, fournit le gradient articulaire d'un point obstacle : le facteur $s_l$ se simplifie avec celui de la normalisation, de sorte que le gradient spatial métrique se réduit à $\nabla_{\mathbf{x}}d_{l,i}=\tfrac{1}{2}\,\nabla_{\mathbf{u}}\bar{d}_l$. Cette expression vaut pour les points dont la coordonnée normalisée reste dans le cube $[-1,1]^3$ ; pour la correction conservatrice appliquée hors de ce domaine (Section~\ref{subsec:barriere}), la composante polynomiale s'annule sur les axes bornés au cube et le gradient s'y réduit à la direction radiale unitaire allant du point borné vers l'obstacle, dérivée exacte de la distance euclidienne ajoutée. Les contraintes effectivement actives portant sur des points proches de la surface du robot, c'est néanmoins la branche intérieure qui gouverne la projection. Plutôt que d'assembler explicitement la Jacobienne $\mathbf{J}_{x_{l,i}}$ pour chacun des points --- ce qui matérialiserait un tenseur coûteux ---, on applique les mêmes identités du produit vectoriel pour réécrire $\nabla_{\mathbf{q}}d_{l,i}=\mathbf{J}_{x_{l,i}}^{\top}\nabla_{\mathbf{x}}d_{l,i}$ directement dans le repère de base. En notant $\mathbf{g}_{l,i}=\mathbf{R}_{l}^{b}\,\nabla_{\mathbf{x}}d_{l,i}$ le gradient spatial exprimé dans $\mathcal{F}_b$ et $\mathbf{r}_{l,i}=\mathbf{p}_i-\mathbf{d}_{l}^{b}$ le vecteur reliant l'origine du repère du lien à l'obstacle :
 \[
 \boxed{\;
 \nabla_{\mathbf{q}}d_{l,i} =
--\,{}^{b}\mathbf{J}_{L,l}^{\top}\,\mathbf{g}_{l,i}
--\,{}^{b}\mathbf{J}_{A,l}^{\top}\,\big(\mathbf{r}_{l,i}\times\mathbf{g}_{l,i}\big).
+-\,(\mathbf{J}_{L,l}^{b})^{\top}\,\mathbf{g}_{l,i}
+-\,(\mathbf{J}_{A,l}^{b})^{\top}\,\big(\mathbf{r}_{l,i}\times\mathbf{g}_{l,i}\big).
 \;}
 \]
 Cette forme, retenue dans l'implémentation, ne requiert que deux produits matrice-vecteur et un produit vectoriel par lien, et évite de construire la Jacobienne point par point.
