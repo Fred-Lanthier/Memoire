@@ -1,169 +1,240 @@
 % !TEX root = ../Document.tex
 \Chapter{RÉSULTATS ET DISCUSSION}\label{sec:Theme3}
-Présentation avec CBF et sans CBF
 
-Présentation de la détection avec SAM 3
+% =================================================================
+% ORGANISATION DU CHAPITRE (par question, pas par cas d'étude) :
+%   5.1 Protocole : bancs d'essai, scénarios, métriques — définis UNE fois.
+%   5.2 Validation des composants : SDF (fait), planificateur nominal.
+%   5.3 Sécurité : A/B avec vs sans filtre (tableau maître) + une étude
+%       détaillée par tâche Panda (alimentation faite, saisie-dépôt à faire).
+%   5.4 Ablations : une page chacune, chaque ablation valide une décision
+%       de conception du Chapitre 4 (1 phrase de motivation, 1 tableau ou
+%       figure, 1 paragraphe de constat).
+%   5.5 Généralisation inter-embodiment (xArm7).
+%   5.6 Temps de calcul. 5.7 Cas d'échec. 5.8 Discussion.
+% Les galeries par essai et les cellules d'ablation secondaires vont à
+% l'Annexe~\ref{annexe:resultats_complementaires}, pas ici.
+% =================================================================
 
-Listes des figures pour les résultats
+Ce chapitre présente la validation expérimentale du système, phase d'évaluation de SO5 et SO6. Plutôt que de dérouler les résultats tâche par tâche, il est organisé par question : chaque section apporte la réponse expérimentale à l'un des critères de validation du Chapitre~\ref{sec:Metho}, en s'appuyant sur le banc d'essai qui isole le mieux le mécanisme évalué. La Section~\ref{sec:res_protocole} définit une seule fois les bancs d'essai, les scénarios et les métriques. La Section~\ref{sec:res_validation} valide les composants pris isolément : le modèle géométrique de sécurité, puis le planificateur nominal. La Section~\ref{sec:res_securite} répond à la question centrale, l'apport du filtre SDF-CBF, par une comparaison avec et sans filtre puis par deux études détaillées. La Section~\ref{sec:res_ablations} isole la contribution de chaque mécanisme de conception par des ablations dédiées, et la Section~\ref{sec:res_xarm} évalue le transfert de l'architecture à un bras différent. Les Sections~\ref{sec:res_temps} à~\ref{sec:res_discussion} closent le chapitre par le budget temporel, les cas d'échec et la discussion.
 
+% =================================================================
+\section{Protocole expérimental}\label{sec:res_protocole}
+% =================================================================
+
+\subsection{Bancs d'essai}\label{subsec:res_bancs}
+Trois bancs d'essai partagent la même instance du système : la chaîne de perception, le planificateur \textit{Flow Matching}, l'exécuteur et le bouclier \ac{CBF} du Chapitre~\ref{sec:Theme2} y sont déployés sans modification, seuls la tâche, le robot et la source du nuage d'obstacles changent (Tableau~\ref{tab:res_bancs}). Le banc d'alimentation exerce le système dans sa configuration complète : la caméra au poignet alimente la chaîne SAM~3/SAM~2 et la carte persistante, qui fournit au filtre ses points obstacles. Les deux bancs de saisie et dépôt remplacent cette perception embarquée par un nuage d'obstacles synthétique publié directement au filtre : la géométrie des obstacles y est contrôlée exactement, ce qui permet de composer les scénarios géométriques (prisme, croissant, sphère mobile) et d'attribuer chaque comportement au mécanisme évalué plutôt qu'au bruit de perception. Le troisième banc reprend la tâche de saisie et dépôt sur un bras xArm7 afin d'évaluer le transfert d'embodiment (Section~\ref{sec:res_xarm}). Conformément à la portée établie au Chapitre~\ref{sec:Metho}, tous les essais sont conduits en simulation Gazebo.
+% TODO: vérifier la ligne « Caméra » du tableau pour les bancs saisie-dépôt
+% (statique ?) et sa cohérence avec la portée du ch. 3 (« une caméra RGB-D
+% montée au poignet ») ; préciser d'où vient le conditionnement (SAM vs
+% vérité terrain du cube, use_gt_cube) sur ces bancs.
+
+\begin{table}[htbp]
+\centering
+\caption{Bancs d'essai utilisés pour la validation expérimentale.}
+\label{tab:res_bancs}
+\begin{tabular}{lccc}
+\toprule
+ & \textbf{Alimentation} & \textbf{Saisie et dépôt} & \textbf{Saisie et dépôt} \\
+\midrule
+Robot & Panda 7 DDL & Panda 7 DDL & xArm7 \\
+Outil / effecteur & fourchette & pince Franka & pince Franka \\
+Caméra (D415) & poignet & statique & statique \\
+Source d'obstacles & carte persistante & nuage synthétique & nuage synthétique \\
+Politique FM & alimentation & saisie-dépôt & saisie-dépôt (identique) \\
+% TODO: compléter/ajuster les lignes (liens protégés, d_safe, cadences si
+% elles diffèrent d'un banc à l'autre).
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Scénarios}\label{subsec:res_scenarios}
+Cinq scénarios sollicitent chacun un mécanisme précis du système ; le Tableau~\ref{tab:res_scenarios} indique quels bancs exécutent chacun d'eux. Le scénario \emph{sans obstacle critique} constitue la référence : aucun obstacle n'approche la trajectoire nominale, et il vérifie la transparence du filtre (interventions et déviation attendues nulles). Le scénario d'\emph{obstacles statiques} place un obstacle convexe sur le chemin nominal de l'outil et force un contournement. L'\emph{obstacle concave} (croissant) ouvre une poche autour du chemin nominal : il matérialise la limite de vivacité assumée du filtre (Section~\ref{subsec:garanties}), dont le comportement d'arrêt sûr attendu est documenté parmi les cas d'échec. La \emph{sphère mobile} traverse l'espace de travail à vitesse constante et sollicite le resserrement dynamique (Section~\ref{subsec:contrainte}) ; conformément à la portée des garanties, ce scénario évalue une robustification, sans revendication de garantie formelle. L'\emph{occlusion} masque temporairement l'obstacle au champ de vision de la caméra au poignet pendant que le robot opère à proximité : il éprouve la mémoire spatiale de la carte persistante face à la perte d'information instantanée.
+% TODO: dimensions et positions exactes des obstacles, vitesse(s) de la
+% sphère, durée d'occlusion ; N essais par cellule à fixer AVANT de lancer
+% la campagne.
+
+\begin{table}[htbp]
+\centering
+\caption{Matrice des scénarios évalués par banc d'essai ($N$ essais par cellule).}
+\label{tab:res_scenarios}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Scénario} & \textbf{Alimentation} & \textbf{Saisie--dépôt (Panda)} & \textbf{Saisie--dépôt (xArm7)} \\
+\midrule
+Sans obstacle critique        & $N=$ \ldots & $N=$ \ldots & $N=$ \ldots \\
+Obstacle(s) statique(s)    & $N=$ \ldots & $N=$ \ldots & $N=$ \ldots \\
+Obstacle concave (croissant)  & ---         & $N=$ \ldots & --- \\
+Obstacle mobile (sphère)      & $N=$ \ldots & --- & --- \\
+Occlusion / perte de suivi    & $N=$ \ldots & ---         & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Métriques}\label{subsec:res_metriques}
+Les métriques suivantes sont utilisées dans tout le chapitre et ne sont définies qu'ici :
 \begin{itemize}
-    \item Trajectoire de la pointe de la fourchette dans le nuage persistent map;
-    \begin{enumerate}
-        \item Nuage de points de la scène;
-        \item Trajectoire sans CBF
-        \item Trajectoire avec CBF
-        \item Cible.
-    \end{enumerate}
-    \item Évolution de $h(q)$ en fonction du temps;
-    \begin{enumerate}
-        \item $h_{\text{corr}}$;
-        \item ligne zéro.
-        \item zones où le CBF est actif (en rouge par exemple).
-    \end{enumerate}
-    \item Distance obstalce-robot en fonction du temps
-    \item Décomposition des vitesses en fonction du temps
-    \begin{enumerate}
-        \item $\lvert dq_{ff} \rvert$;
-        \item $\lvert dq_{feedback} \rvert$;
-        \item $\lvert dq_{base} \rvert$
-        \item $\lvert dq_{cbf_{delta}} \rvert$
-        \item $\lvert dq_{escape} \rvert$
-        \item $\lvert dq_{safe} \rvert$.
-        \item Objectif: Expliquer le comportement du système et montré quand le FLow Matching dirige le robot seul, quand le CBF intervient, quand l'échappement est nécessaire, si la vitesse corrigée devient trop aggressive, etc.
-    \end{enumerate}
-    \item Effet du filtre passe bas
-    \begin{enumerate}
-        \item Vitesse avant CBF brute
-        \item Vitesse avant CBF filtrée
-    \end{enumerate}
-    \item Temps de calcul du pipeline. Faire un boxplot (ou un tableau) sur:
-    \begin{enumerate}
-        \item Temps de détection avec SAM3
-        \item Temps de suivi avec SAM2
-        \item Temps de mise à jour persistent map
-        \item Temps de génération de trajectoire avec Flow Matching
-        \item Temps de calcul de la cinématique inverse
-        \item Temps de calcul des points critiques
-        \item Temps de calcul de la correction de trajectoire
-        \item Temps total du pipeline
-    \end{enumerate}
-    \item Résistance faces aux occlusions et pertes de détection.
-    \begin{enumerate}
-        \item Détection dispo / indispo dans le temps
-        \item Images présentants pertes de détection puis redétection
-    \end{enumerate}
-    \item NE PAS OUBLIER LA DÉTECTION INITALE DES FORK TEETH
-    \item Cas d'échec (comme la figure de Félix).
+  \item \textbf{Taux de succès} : fraction des essais où la tâche est complétée dans un délai maximal $T_{\max}$, la complétion étant le piquage effectif de la cible pour la tâche d'alimentation et le dépôt du cube dans la boîte pour la saisie et dépôt ; % TODO: valeur de T_max et tolérances précises (profondeur de piquage / position du cube).
+  \item \textbf{Collisions} : nombre d'essais avec contact estimé, c'est-à-dire une distance minimale entre les corps protégés du robot et le nuage de points instantané de la caméra inférieure à $0{,}5$~mm. Ce juge est indépendant de la carte persistante sur laquelle agit le filtre : le flux brut de la caméra est utilisé directement, de sorte que le critère ne dépend pas de la représentation dont le filtre se sert pour éviter ;
+  % NOTE: bien parler de distance (pas de h : h = d - d_safe, un h de 0,5 mm
+  % serait une distance de 15,5 mm). Limite à assumer dans le texte : le flux
+  % caméra est partiel (occlusions, champ de vision) ; pour le scénario
+  % d'occlusion, le juge peut être aveugle au moment critique — le mentionner
+  % ou compléter par la vérité terrain de l'obstacle si disponible.
+  \item \textbf{Marge minimale $h_{\min}$} : plus petite valeur de la barrière corrigée atteinte au cours de l'essai ;
+  \item \textbf{Durée de violation} : temps cumulé passé sous la marge de sécurité ($h<0$) ;
+  \item \textbf{Temps de complétion} : durée entre le début de l'essai et le critère de succès, calculée sur les essais réussis seulement ;
+  \item \textbf{Temps de blocage} : temps cumulé pendant lequel la progression de la tâche est gelée ; % TODO: reprendre le seuil de l'horloge de progression du système.
+  \item \textbf{Déviation de trajectoire} : distance (DTW) entre la trajectoire de l'outil exécutée et la trajectoire nominale, mesurant le coût du filtrage sur l'intention ;
+  \item \textbf{Temps de calcul} : durée de chaque étape du pipeline (Section~\ref{sec:res_temps}).
 \end{itemize}
+Sauf mention contraire, les taux de succès et les collisions sont rapportés en proportion des $N$ essais de la cellule, et les métriques continues par leur médiane et leur écart interquartile ; la marge minimale $h_{\min}$ est également rapportée en pire cas, la sécurité se jugeant sur l'essai le plus défavorable.
 
 % =================================================================
-\section{Protocol expérimental}
+\section{Validation des composants}\label{sec:res_validation}
 % =================================================================
-\subsection{Description des scénarios testés}
-\subsubsection{Pick and place}
-\subsubsection{Robot assisted feeding}
-\subsection{Métriques utilisées}
-À compléter.
+Cette section valide isolément les deux composants appris du système avant leur évaluation conjointe : le modèle géométrique au c\oe ur du filtre de sécurité, la \ac{SDF} du robot approximée par polynômes de Bernstein (Section~\ref{subsec:sdf_robot}), puis le planificateur nominal par \textit{Flow Matching} (Section~\ref{sec:CFM}).
 
+\subsection{Précision du SDF du robot}\label{subsec:res_sdf_precision}
+Trois propriétés de la \ac{SDF} sont évaluées par rapport à la vérité terrain calculée sur les maillages du robot : la précision de la distance, la qualité de la direction du gradient et le temps de calcul.
 
-% =================================================================
-\section{validation du modèle géométrique de sécurité}
-% =================================================================
-Cette section valide le modèle géométrique au c\oe ur du filtre de sécurité : la \ac{SDF} du robot approximée par polynômes de Bernstein (section~\ref{subsec:sdf_robot}). Trois propriétés sont évaluées par rapport à la vérité terrain calculée sur les maillages du robot : la précision de la distance, la qualité de la direction du gradient et le temps de calcul.
-
-Le protocole est le suivant : pour chacun des six corps protégés, des rayons sont lancés depuis la surface le long de la normale sortante (40 rayons par corps), et la \ac{SDF} est évaluée en 25 échantillons par rayon, entre 1~mm et 50~mm de la surface. Seuls les rayons \emph{propres} sont conservés, c'est-à-dire ceux dont la distance exacte à l'union des corps coïncide avec l'avancée le long de la normale, ce qui garantit que l'axe des abscisses des figures correspond bien à la distance réelle à la surface du robot. Les échantillons situés hors du domaine d'entraînement du modèle d'un corps (7,7~\% des points, principalement au-delà de 35~mm) sont exclus, car le modèle y retourne une borne géométrique plutôt que la \ac{SDF} apprise. Au total, 5541 points extérieurs vérifiés sont retenus.
-
-\subsection{Précision du SDF du robot}
-La figure~\ref{fig:distance_SDF} compare la distance prédite à la distance exacte. L'erreur absolue moyenne est de 1,96~mm avec un biais négligeable ($-0{,}02$~mm) et une corrélation $R = 0{,}9869$. La distribution des erreurs signées est centrée et symétrique, avec un 99\textsuperscript{e} centile de l'erreur absolue de 6,8~mm.
+Le protocole est le suivant : pour chacun des neuf corps protégés, des rayons sont lancés depuis la surface le long de la normale sortante (40 rayons par corps), et la \ac{SDF} est évaluée en 25 échantillons par rayon, entre 1~mm et 50~mm de la surface. Seuls les rayons \emph{propres} sont conservés, c'est-à-dire ceux dont la distance exacte à l'union des corps coïncide avec l'avancée le long de la normale, ce qui garantit que l'axe des abscisses des figures correspond bien à la distance réelle à la surface du robot. Les échantillons situés hors du domaine d'entraînement du modèle d'un corps (7,7~\% des points, principalement au-delà de 35~mm) sont exclus, car le modèle y retourne une borne géométrique plutôt que la \ac{SDF} apprise. Au total, 5541 points extérieurs vérifiés sont retenus. La Figure~\ref{fig:sdf_isosurface} donne un aperçu qualitatif du modèle évalué.
 
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/fig_sdf.svg}
-    \caption{Précision de la distance du \ac{SDF} de Bernstein. (a)~Profil de distance le long des normales à la surface du robot ; (b)~distribution de l'erreur signée par rapport à la distance exacte calculée sur les maillages.}\label{fig:SDF}
+    \caption{Visualisation qualitative du \ac{SDF} de Bernstein pour trois configurations articulaires : gradients $\nabla d$ évalués le long des normales à la surface du robot.}\label{fig:sdf_isosurface}
+    % TODO: vérifier la description exacte du contenu (configurations, ce que
+    % représentent les flèches) et l'ajuster.
 \end{figure}
 
-La figure~\ref{fig:erreur_grad_SDF}(a) présente l'erreur angulaire entre le gradient du modèle et la direction exacte (vecteur vers le point de surface le plus proche). L'erreur médiane globale est de $5{,}4^\circ$, et reste sous $10^\circ$ pour la grande majorité des points dès 5~mm de la surface. La figure~\ref{fig:erreur_grad_SDF}(b) montre la norme du gradient : une \ac{SDF} exacte satisfait la propriété eikonale $\|\nabla h\| = 1$, et le modèle s'en approche au-delà de 10~mm, avec un affaissement vers $0{,}7$ tout près de la surface, où le polynôme lisse le passage par zéro.
+La figure~\ref{fig:distance_SDF} compare la distance prédite à la distance exacte. L'erreur absolue moyenne est de 1,96~mm avec un biais négligeable ($-0{,}02$~mm) et une corrélation $R = 0{,}9869$. La distribution des erreurs signées est centrée et symétrique, avec un 99\textsuperscript{e} centile de l'erreur absolue de 6,8~mm.
 
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/fig1_distance_accuracy.svg}
-    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:distance_SDF}
+    \caption{Précision de la distance du \ac{SDF} de Bernstein. (a)~Profil de distance le long des normales à la surface du robot ; (b)~distribution de l'erreur signée par rapport à la distance exacte calculée sur les maillages.}\label{fig:distance_SDF}
 \end{figure}
+
+La figure~\ref{fig:erreur_grad_SDF}(a) présente l'erreur angulaire entre le gradient du modèle et la direction exacte (vecteur vers le point de surface le plus proche). L'erreur médiane globale est de $5{,}4^\circ$, et reste sous $10^\circ$ pour la grande majorité des points dès 5~mm de la surface. La figure~\ref{fig:erreur_grad_SDF}(b) montre la norme du gradient : une \ac{SDF} exacte satisfait la propriété eikonale $\|\nabla d\| = 1$, et le modèle s'en approche au-delà de 10~mm, avec un affaissement vers $0{,}7$ tout près de la surface, où le polynôme lisse le passage par zéro.
 
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/fig2_gradient_accuracy.svg}
-    \caption{Trajectoire multimodale générée par \textit{Flow Matching}.}\label{fig:fm_trajectoire_multimodale}
+    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:erreur_grad_SDF}
 \end{figure}
 
-Ces résultats justifient la marge de sécurité $d_{\mathrm{safe}} = 15$~mm retenue au chapitre précédent : l'erreur de distance au 99\textsuperscript{e} centile (6,8~mm) reste largement inférieure à la marge, de sorte qu'une sous-estimation de la distance par le modèle ne suffit pas à amener le robot au contact. De plus, à $d_{\mathrm{safe}}$, la direction du gradient (erreur médiane $\approx 6^\circ$) et sa norme ($\approx 1$) sont déjà bien conditionnées, ce qui assure que la contrainte \ac{CBF} pousse le robot dans la bonne direction au moment où le filtre s'active.
+Ces résultats justifient la marge de sécurité $d_{\mathrm{safe}} = 15$~mm retenue au chapitre précédent, selon la distinction établie à la Section~\ref{subsec:garanties} : en régime établi ($h_{\min} \geq 0$), la distance apprise est d'au moins $15$~mm et l'erreur au 99\textsuperscript{e} centile (6,8~mm) laisse une distance réelle d'au moins $8{,}2$~mm ; dans le pire transitoire certifié de la variante à valeur exacte ($h_{\mathrm{corr}}=0$, plancher de $5{,}8$~mm), cette erreur de queue n'est plus dominée par le calcul seul, et c'est la marge mesurée au maillage exact, rapportée plus loin, qui établit l'évitement physique. De plus, à $d_{\mathrm{safe}}$, la direction du gradient (erreur médiane $\approx 6^\circ$) et sa norme ($\approx 1$) sont déjà bien conditionnées, ce qui assure que la contrainte \ac{CBF} pousse le robot dans la bonne direction au moment où le filtre s'active.
 
-\subsection{Temps d'évaluation du SDF et du gradient}
-La figure~\ref{fig:temps_SDF} compare le temps d'évaluation conjointe de la distance et du gradient entre le modèle de Bernstein (analytique, sur \ac{GPU}) et la vérité terrain par requête de proximité sur les maillages (\texttt{trimesh}, sur \ac{CPU}). Le temps du modèle forme un plateau d'environ 5~ms jusqu'à quelques milliers de points : à ces tailles, le coût est dominé par des frais fixes par appel (cinématique directe, $\approx 2{,}5$~ms, lancement des noyaux \ac{GPU}, évaluation du gradient et transferts mémoire), le coût par point étant négligeable tant que le \ac{GPU} n'est pas saturé. La croissance ne devient visible qu'au-delà d'environ 4096 points, soit bien après le point d'opération du filtre ($K = 100$ points critiques). Au point d'opération, l'évaluation reste donc largement en deçà du budget de 13,3~ms imposé par la boucle de commande à 75~Hz, tandis que la requête sur maillage croît linéairement avec le nombre de points et dépasse ce budget d'un à deux ordres de grandeur, ce qui exclut son utilisation en ligne.
+\subsection{Temps d'évaluation du SDF et du gradient}\label{subsec:res_sdf_temps}
+La figure~\ref{fig:temps_SDF} compare le temps d'évaluation conjointe de la distance et du gradient entre le modèle de Bernstein (analytique, sur \ac{GPU}) et la vérité terrain par requête de proximité sur les maillages (\texttt{trimesh}, sur \ac{CPU}). Le temps du modèle forme un plateau d'environ 5~ms jusqu'à quelques milliers de points : à ces tailles, le coût est dominé par des frais fixes par appel (cinématique directe, $\approx 2{,}5$~ms, lancement des noyaux \ac{GPU}, évaluation du gradient et transferts mémoire), le coût par point étant négligeable tant que le \ac{GPU} n'est pas saturé. La croissance ne devient visible qu'au-delà d'environ 4096 points, soit bien après le point d'opération du filtre ($K = 100$ points critiques). Au point d'opération, l'évaluation reste donc largement en deçà du budget de 10~ms imposé par la boucle de commande à 100~Hz, tandis que la requête sur maillage croît linéairement avec le nombre de points et dépasse ce budget d'un à deux ordres de grandeur, ce qui exclut son utilisation en ligne.
+
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/fig3_speed.svg}
     \caption{Temps de calcul de la distance et du gradient : modèle de Bernstein (\ac{GPU}) contre vérité terrain sur maillages (\ac{CPU}), en fonction du nombre de points de requête.}\label{fig:temps_SDF}
 \end{figure}
-\subsection{Visualisation des points critiques sélectionnés}
+
+\subsection{Sélection des points critiques}\label{subsec:res_points_critiques}
+La Figure~\ref{fig:Red_point} illustre en situation le mécanisme de sélection de la Section~\ref{subsec:selection} : parmi les voxels de la carte persistante, le préfiltre sphérique autour des liens protégés puis la conservation des $K=100$ points de plus faible \ac{SDF} corps-complet retiennent les points rouges, seuls transmis au filtre comme contraintes potentielles. La sélection épouse la géométrie du bras plutôt qu'une simple boule autour de l'outil : des points sont retenus le long des liens intermédiaires dès qu'un obstacle s'en approche, conformément à la protection corps-complet du Chapitre~\ref{sec:Theme2}. L'isosurface $d_{\mathrm{robot}}=1{,}5$~cm tracée autour de l'outil matérialise la frontière certifiée $h=0$ que le filtre défend.
+% TODO: vérifier sur la figure la description de l'élément bleu (enveloppe
+% vs cible) et la valeur de K affichée.
 
 \begin{figure}[htpb]
     \centering
     \includegraphics[width=0.7\textwidth]{images/Results/Red_point_cloud.png}
-    \caption{Sélection des points les plus proches pour contraindre le CBF}\label{fig:Red_point}
+    \caption{Sélection des $K$ points de la carte persistante les plus proches du robot (en rouge) qui contraignent le filtre \ac{CBF} ; l'isosurface $d_{\mathrm{robot}}=1{,}5$~cm forme l'enveloppe de sécurité autour de l'outil (en bleu).}\label{fig:Red_point}
+    % TODO: vérifier la description de l'élément bleu (enveloppe vs cible).
 \end{figure}
-Enveloppe de sécurité correspondant à l’isosurface ($d_{\mathrm{robot}}=1{,}5\ \mathrm{cm}$).
 
+\subsection{Validation du planificateur nominal}\label{subsec:res_fm}
+Cette sous-section évalue le planificateur \textit{Flow Matching} seul, hors de la boucle de sécurité : fidélité aux démonstrations expertes, comportement le long de l'horizon de prédiction et multimodalité des générations.
 
-% =================================================================
-\section{Qualité de la génération nominale}
-% =================================================================
-\subsection{Trajectoire générée sans obstacle critique}
+La Figure~\ref{fig:dist_err_FM} présente la distribution des erreurs de reproduction sur le jeu de validation : la déviation de position (DTW) affiche une médiane de $0{,}67$~cm et l'erreur de rotation finale une médiane de $3{,}21^\circ$. Ces erreurs sont du même ordre que la variabilité des démonstrations expertes elles-mêmes : le planificateur restitue l'intention démontrée sans dégradation notable.
+% TODO: vérifier les valeurs (médiane/moyenne), la comparaison à la
+% variabilité des démonstrations, et ajouter le protocole exact (jeu de
+% validation, nombre de segments, graine).
+
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/fm_distribution_erreur.svg}
-    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:dist_err_FM}
+    \caption{Fidélité du planificateur nominal aux démonstrations expertes sur le jeu de validation. (a)~Distribution de la déviation de position (DTW) ; (b)~distribution de l'erreur de rotation finale.}\label{fig:dist_err_FM}
 \end{figure}
+
+La Figure~\ref{fig:err_horizon} montre la croissance de l'erreur le long de l'horizon de prédiction : l'incertitude s'accumule avec le point de l'horizon $k$. Ce profil justifie le fonctionnement en horizon glissant retenu au Chapitre~\ref{sec:Theme2} : la regénération à $10$~Hz fait que seuls les premiers points de chaque segment sont exécutés, là où l'erreur est la plus faible, la queue de l'horizon n'étant jamais atteinte.
+% TODO: appuyer avec les valeurs (médiane à k=15) et le nombre de points
+% effectivement consommés entre deux regénérations.
+
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/fm_erreur_horizon.svg}
-    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:err_horizon}
+    \caption{Erreur de prédiction en fonction du point $k$ de l'horizon. (a)~Erreur de position ; (b)~erreur de rotation. Bandes : percentiles 10--90 et écart interquartile.}\label{fig:err_horizon}
 \end{figure}
-\subsection{Cohérence de la trajectoire avec la cible}
+
+La Figure~\ref{fig:fm_trajectoire_multimodale} superpose plusieurs générations issues de la même observation, illustrant la capacité du modèle à représenter la multimodalité des démonstrations, et la Figure~\ref{fig:denoising} illustre l'intégration du flot, du bruit initial ($t=0$) au segment généré ($t=1$). Des scènes supplémentaires sont présentées à l'Annexe~\ref{annexe:resultats_complementaires}.
+
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/fm_trajectoire_multimodale.svg}
-    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:erreur_grad_SDF}
+    \caption{Générations multiples du planificateur pour une même observation, superposées à la vérité terrain. (a)~Plan $XY$ ; (b)~plan $XZ$.}\label{fig:fm_trajectoire_multimodale}
 \end{figure}
-À compléter.
 
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/fm_denoising_scene_25_25.svg}
-    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_2525}
+    \caption{Intégration du flot pour une scène de la tâche d'alimentation : segment $X_t$ à $t=0$ (bruit), $t=0{,}5$ et $t=1$ (généré), dans les plans $XZ$ (haut) et $YZ$ (bas).}\label{fig:denoising}
 \end{figure}
+
+% =================================================================
+\section{Sécurité et évitement d'obstacles}\label{sec:res_securite}
+% =================================================================
+Cette section répond à la question centrale de ce mémoire : le filtre SDF-CBF permet-il d'exécuter sans collision, dans des environnements non vus à l'entraînement, les trajectoires produites par le planificateur génératif, sans réentraînement de celui-ci ? La comparaison principale oppose le système complet au même système en mode observation (\textit{monitor only}), où la barrière et les diagnostics sont calculés mais aucune correction n'est appliquée.
+
+\subsection{Résultats agrégés avec et sans filtre}\label{subsec:res_ab}
+% C'EST LE TABLEAU MAÎTRE : toutes les sections suivantes y renvoient.
+% TODO: lancer la campagne A/B (cbf_monitor_only:=true) sur les scénarios du
+% Tableau tab:res_scenarios et remplir.
+% TODO (promesse du ch. 4, subsec:garanties) : une fois le tableau rempli,
+% ajouter UNE phrase lisant la colonne h_min contre le budget de
+% discrétisation couvert par d_safe (« la marge effectivement conservée à
+% l'exécution »), avec la Figure fig:h_ev citée comme illustration du
+% mécanisme de suivi de frontière.
+À compléter.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparaison avec et sans filtre SDF-CBF, agrégée sur $N$ essais par cellule : taux de succès, collisions, marge minimale $h_{\min}$ et déviation de trajectoire (métriques de la Section~\ref{subsec:res_metriques}).}
+\label{tab:res_master}
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Scénario} & \textbf{Condition} & \textbf{Succès} & \textbf{Collisions} & $\boldsymbol{h_{\min}}$ \textbf{(mm)} & \textbf{Déviation (cm)} \\
+\midrule
+Prisme statique   & sans filtre & \ldots & \ldots & \ldots & --- \\
+                  & avec filtre & \ldots & \ldots & \ldots & \ldots \\
+\addlinespace
+Sphère mobile     & sans filtre & \ldots & \ldots & \ldots & --- \\
+                  & avec filtre & \ldots & \ldots & \ldots & \ldots \\
+% TODO: une paire de lignes par scénario et par banc ; ajouter la tâche
+% d'alimentation et la saisie-dépôt.
+\bottomrule
+\end{tabular}
+\end{table}
+
+La Figure~\ref{fig:comparaison_avec_sans} illustre la comparaison sur un essai représentatif : trajectoire de la pointe de l'outil dans la carte persistante, avec et sans filtre, jusqu'à la cible.
 À compléter.
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/fm_denoising_scene_32_25.svg}
-    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_3225}
+    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/comparison_avec_sans.svg}
+    \caption{Trajectoire de la pointe de l'outil avec et sans filtre SDF-CBF pour un essai représentatif, superposée au nuage d'obstacles de la carte persistante et à la cible.}\label{fig:comparaison_avec_sans}
+    % TODO: vérifier le contenu exact de la figure et ajuster la légende.
 \end{figure}
-À compléter.
 
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/fm_denoising_scene_60_25.svg}
-    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:denoising_6025}
-\end{figure}
-À compléter.
+\subsection{Étude détaillée : tâche d'alimentation}\label{subsec:res_feeding_deep}
+Les sous-sections suivantes analysent en profondeur un essai représentatif de la tâche d'alimentation en présence d'obstacles, en suivant la chaîne de commande du Chapitre~\ref{sec:Theme2} : la barrière et la contrainte d'abord, puis la décomposition des vitesses qui révèle l'action de chaque étage du filtre.
 
-% =================================================================
-\section{Sécurité et évitement d'obstacle}
-% =================================================================
-\subsection{Comparaison des trajectoires avec et sans SDF-CBF}
-\subsection{Évolution de \texorpdfstring{$h(q)$}{h(q)} et de la contrainte de sécurité}
-La Figure~\ref{fig:h_ev} présente l'évolution de la barrière $h_{\mathrm{soft}}$ et de sa valeur compensée $h_{\mathrm{corr}}$ au cours d'un essai représentatif. Les bandes vertes marquent les cycles où la projection corrige la vitesse ($\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}\neq 0$) ; les bandes jaunes, ceux où seule la réparation intervient — la vitesse instantanée satisfait la contrainte, mais la commande filtrée, qui porte la mémoire des cycles précédents, échoue à la revérification et est corrigée par $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$. Après la phase d'approche, le système opère en régime de suivi de frontière : $h_{\mathrm{corr}}$ se stabilise à quelques millimètres de la frontière pendant que le robot progresse tangentiellement le long des surfaces vers la cible, conformément au comportement attendu de la projection préservant la composante tangentielle (Section~\ref{subsec:projection}).
+\subsubsection{Évolution de la barrière et de la contrainte de sécurité}
+La Figure~\ref{fig:h_ev} présente l'évolution de la barrière $h_{\mathrm{soft}}$ et de sa valeur compensée $h_{\mathrm{corr}}$ au cours d'un essai représentatif. Les bandes vertes marquent les cycles où la projection corrige la vitesse ($\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}\neq 0$) ; les bandes jaunes, ceux où seule la réparation intervient : la vitesse instantanée satisfait la contrainte, mais la commande filtrée, qui porte la mémoire des cycles précédents, échoue à la revérification et est corrigée par $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$. Après la phase d'approche, le système opère en régime de suivi de frontière : $h_{\mathrm{corr}}$ se stabilise à quelques millimètres de la frontière pendant que le robot progresse tangentiellement le long des surfaces vers la cible, conformément au comportement attendu de la projection préservant la composante tangentielle (Section~\ref{subsec:projection}).
 
 \begin{figure}[htpb]
     \centering
@@ -179,102 +250,262 @@ La Figure~\ref{fig:constraint_ev} compare la valeur de la contrainte de sécurit
     \caption{Contrainte de sécurité évaluée sur la vitesse nominale (avant projection) et sur la commande finale (après réparation). Les valeurs négatives de la courbe nominale correspondent aux violations qu'aurait commises la trajectoire générée sans filtre.}\label{fig:constraint_ev}
 \end{figure}
 
-\subsection{Déviation entre trajectoire nominale et trajectoire sécurisée}
-À compléter.
+\subsubsection{Décomposition des vitesses articulaires}\label{subsec:res_decomposition}
+Cette sous-section déroule, articulation par articulation, la construction de la vitesse nominale des Sections~\ref{subsec:vitesse_nominale} à~\ref{subsec:commande} : le feedforward retimé $\dot{\mathbf{q}}_{\mathrm{ff}}$, la correction de suivi $\dot{\mathbf{q}}_{\mathrm{fb}}$ et la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ qui en résulte, entrée du filtre de sécurité.
+% TODO: une fois la figure ci-dessous activée, remplacer « Cette sous-section
+% déroule » par « La Figure~\ref{fig:vel_nominal_joints} déroule ». La réparation n'étant pas journalisée par le nœud, $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ est reconstituée en rejouant le filtre passe-bas de sortie sur les signaux enregistrés, reconstruction validée par un résidu médian de $10^{-4}$~rad/s sur les cycles sans réparation.
 
-% =================================================================
-\section{Analyse des vitesses et de la fluidité}
-% =================================================================
-% TODO: régénérer les figures et rafraîchir les valeurs numériques avec la
-% campagne d'essais finale.
-\subsection{Décomposition des vitesses articulaires}\label{subsec:res_decomposition}
-La Figure~\ref{fig:vel_decomp} déroule la chaîne complète des Sections~\ref{subsec:vitesse_nominale} à~\ref{subsec:commande}. Le panneau~(a) montre la construction de la vitesse nominale : le feedforward retimé $\dot{\mathbf{q}}_{\mathrm{ff}}$, de norme constante par construction, la correction de suivi $\dot{\mathbf{q}}_{\mathrm{fb}}$, et la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ qui en résulte. Le panneau~(b) montre ce que le filtre de sécurité en fait : les deux corrections, projection $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ et réparation $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$, et la vitesse effectivement commandée $\dot{\mathbf{q}}_{\mathrm{final}}$, superposées à $\dot{\mathbf{q}}_{\mathrm{base}}$ comme référence commune aux deux panneaux. La réparation n'étant pas journalisée par le nœud, $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ est reconstituée en rejouant le filtre passe-bas de sortie sur les signaux enregistrés, reconstruction validée par un résidu médian de $10^{-4}$~rad/s sur les cycles sans réparation. Les normes sont exprimées dans l'espace articulaire (rad/s) ; la vitesse cartésienne de l'outil s'en déduit par la jacobienne et varie avec la configuration du bras.
+% TODO: déposer la figure par articulation de la construction de la vitesse
+% nominale dans images/Results/, activer l'environnement ci-dessous et
+% ajuster le nom de fichier, la description et la légende à son contenu réel.
+%\begin{figure}[htpb]
+%    \centering
+%    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/nominal_velocity_per_joint.svg}
+%    \caption{Construction de la vitesse nominale pour chacune des sept articulations : feedforward retimé $\dot{q}_{\mathrm{ff}}$, correction de suivi $\dot{q}_{\mathrm{fb}}$ et vitesse nominale filtrée $\dot{q}_{\mathrm{base}}$.}\label{fig:vel_nominal_joints}
+%\end{figure}
 
-Trois observations ressortent. Premièrement, $\|\dot{\mathbf{q}}_{\mathrm{ff}}\|$ est constante à $0{,}25$~rad/s sur toute la tâche : le retiming à vitesse articulaire constante (Section~\ref{subsec:dqff}) remplit son rôle et fournit au filtre une référence régulière. Deuxièmement, la correction de projection est strictement nulle hors des zones d'activation : le filtre est transparent dès que la contrainte est satisfaite, ce qui confirme le mécanisme de transmission directe. On remarque d'ailleurs des épisodes où $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ est active alors que $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ demeure nulle (vers 5~s et 22~s) : la barrière y effleure la frontière sans la presser — la projection juge la vitesse instantanée admissible, mais la commande filtrée, qui porte la mémoire des cycles précédents, échoue à la revérification et est corrigée par la réparation. Troisièmement, la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ présente un bruit important dont l'analyse spectrale situe la puissance dominante à $12$~Hz, soit exactement la fréquence de regénération du planificateur : chaque nouvelle trajectoire générée déplace légèrement la consigne, et le gain de suivi $K_p$ transforme ces sauts en impulsions de vitesse.
+Trois observations quantitatives ressortent des signaux enregistrés, indépendamment de leur représentation graphique. Premièrement, $\|\dot{\mathbf{q}}_{\mathrm{ff}}\|$ est constante à $0{,}25$~rad/s sur toute la tâche : le retiming à vitesse articulaire constante (Section~\ref{subsec:dqff}) remplit son rôle et fournit au filtre une référence régulière. Deuxièmement, la correction de projection est strictement nulle hors des zones d'activation : le filtre est transparent dès que la contrainte est satisfaite, ce qui confirme le mécanisme de transmission directe. On remarque d'ailleurs des épisodes où $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ est active alors que $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ demeure nulle (vers 5~s et 22~s) : la barrière y effleure la frontière sans la presser ; la projection juge la vitesse instantanée admissible, mais la commande filtrée, qui porte la mémoire des cycles précédents, échoue à la revérification et est corrigée par la réparation. Troisièmement, la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ présente un bruit important dont l'analyse spectrale situe la puissance dominante à $12$~Hz, soit exactement la fréquence de regénération du planificateur : chaque nouvelle trajectoire générée déplace légèrement la consigne, et le gain de suivi $K_p$ transforme ces sauts en impulsions de vitesse.
+% TODO (cohérence de configuration) : ce paragraphe cite ||q̇_ff|| = 0,25 rad/s
+% et une regénération à 12 Hz, mesurés sur le run analysé ; le Chapitre 4 fixe
+% v* = 0,3 rad/s (Section dqff) et la figure d'architecture 10 Hz. Lors de la
+% régénération des figures finales, refaire le run avec la configuration gelée
+% du Chapitre 4 et accorder ces trois nombres (ou expliciter la config du run).
 
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/velocity_decomposition.svg}
-    \caption{Décomposition des vitesses articulaires. (a)~Construction de la vitesse nominale : feedforward retimé à norme constante $\dot{\mathbf{q}}_{\mathrm{ff}}$, correction de suivi $\dot{\mathbf{q}}_{\mathrm{fb}}$ et vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$. (b)~Action du filtre de sécurité : corrections de projection $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ et de réparation $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ (reconstituée par rejeu du filtre de sortie), et vitesse commandée $\dot{\mathbf{q}}_{\mathrm{final}}$. Courbes lissées sur $0{,}25$~s.}\label{fig:vel_decomp}
-\end{figure}
-
-\subsection{Action du filtre de sécurité sur la vitesse commandée}\label{subsec:res_cbf_action}
-La Figure~\ref{fig:cbf_action} superpose la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ (ce que le robot ferait en l'absence d'obstacle) et la vitesse commandée $\dot{\mathbf{q}}_{\mathrm{final}}$. Sur les cycles où le filtre intervient effectivement (projection ou réparation), la surface entre les deux courbes est teintée selon le sens de l'intervention : freinage lorsque le filtre retire de la vitesse, poussée lorsqu'il en ajoute (récupération hors de la marge). L'écart entre les deux courbes se lit donc directement comme l'amplitude de la modification. Hors des zones d'activation, $\|\dot{\mathbf{q}}_{\mathrm{final}}\|$ demeure légèrement sous $\|\dot{\mathbf{q}}_{\mathrm{base}}\|$ ($\approx 5$~\% en moyenne) : ce n'est pas une intervention de sécurité mais l'effet du filtre passe-bas de sortie ($\tau_{\mathrm{safe}}=0{,}2$~s), qui, en moyennant des vecteurs dont la direction fluctue d'un cycle à l'autre, produit une norme inférieure à la moyenne des normes — le même mécanisme d'annulation vectorielle que celui décrit à la Section~\ref{subsec:res_replan}.
-
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/cbf_action.svg}
-    \caption{Action du filtre de sécurité : vitesse nominale et vitesse commandée superposées. Les surfaces teintées, restreintes aux cycles où le filtre intervient (projection ou réparation), distinguent le freinage de la poussée de récupération ; l'écart résiduel non teinté est l'effet du filtre passe-bas de sortie.}\label{fig:cbf_action}
-\end{figure}
+\subsubsection{Action du filtre de sécurité sur la vitesse commandée}\label{subsec:res_cbf_action}
+La Figure~\ref{fig:joint_vel} superpose, pour chacune des sept articulations, la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ (ce que le robot ferait en l'absence d'obstacle), la correction de projection et la vitesse effectivement commandée $\dot{\mathbf{q}}_{\mathrm{final}}$ : l'écart entre les courbes se lit directement comme l'amplitude de l'intervention du filtre, et la correction se concentre sur les articulations ayant le plus d'autorité sur la barrière.
+% TODO: raffiner l'analyse par articulation (lesquelles, sur quels épisodes)
+% une fois la figure régénérée, et Y AJOUTER LA VITESSE MESURÉE (q̇_mes en
+% tirets) pour fermer la chaîne nominal -> commandé -> exécuté ; ajuster la
+% légende en conséquence.
 
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/per_joint_velocity.svg}
-    \caption{Action du filtre de sécurité : vitesse nominale et vitesse commandée superposées. Les surfaces teintées, restreintes aux cycles où le filtre intervient (projection ou réparation), distinguent le freinage de la poussée de récupération ; l'écart résiduel non teinté est l'effet du filtre passe-bas de sortie.}\label{fig:joint_vel}
+    \caption{Vitesse nominale, correction de projection et vitesse commandée pour chacune des sept articulations.}\label{fig:joint_vel}
 \end{figure}
 
-\subsection{Effet du rééchantillonnage du planificateur sur la vitesse exécutée}\label{subsec:res_replan}
+Hors des zones d'activation, la vitesse commandée demeure légèrement sous la nominale ($\approx 5$~\% en moyenne sur la norme) : ce n'est pas une intervention de sécurité mais l'effet du filtre passe-bas de sortie ($\tau_{\mathrm{safe}}=0{,}08$~s).
+% TODO (cohérence de configuration) : le run analysé utilisait peut-être
+% tau_safe = 0,2 s ; le Tableau des paramètres du Chapitre 4 gèle 0,08 s.
+% Vérifier la valeur du run final et accorder ce paragraphe (l'atténuation
+% d'~5 % dépend de tau_safe). Celui-ci supprime la gigue de direction du gradient induite par le rafraîchissement de la sélection des points critiques à $30$~Hz, au prix d'un retard de l'ordre de $\tau_{\mathrm{safe}}$ et de cette atténuation : en moyennant des vecteurs dont la direction fluctue d'un cycle à l'autre, il produit une norme inférieure à la moyenne des normes, le même mécanisme d'annulation vectorielle que celui décrit à la Section~\ref{subsec:res_replan}. La contrainte de sécurité est réévaluée après ce lissage par l'étape de réparation (Section~\ref{subsec:commande}), dont l'activité quasi systématique sur les cycles actifs (Figure~\ref{fig:constraint_ev}) mesure précisément ce que le lissage érode.
+% TODO (résidu Dykstra) : ajouter ici (ou près de fig:constraint_ev) le résidu
+% de contrainte maximal en sortie des N_it balayages de Dykstra (avant
+% réparation) et après réparation. Cela ferme l'argument du Chapitre 4 :
+% admissibilité approchée par les balayages tronqués, rétablie par la
+% réévaluation finale sur la commande émise. Point de départ mesuré
+% (runPP1005, saisie-dépôt) : constr_final >= -1e-5 sur tout le run
+% (exactement sur la borne, arrondi fp32), nominal jusqu'à -0,087 avant
+% projection.
+% TODO (frein réflexe) : ajouter l'évaluation du frein réflexe (signal alpha
+% de /cbf_reflex/status) : sur runPP1005 (longeage de paroi), alpha médian
+% 0,93, p10 0,26, freinage actif sur 23 % des échantillons ; h_min -0,7 mm
+% avec frein ; bras d'ablation enable_cbf_reflex:=false pour le compromis
+% fidélité/sécurité ; suivi mesuré vs commande émise (alpha*dq_final) :
+% RMS 0,090 rad/s contre 0,122 vs dq_final.
+
+\subsubsection{Effet du rééchantillonnage du planificateur sur la vitesse exécutée}\label{subsec:res_replan}
 La décomposition révèle un effet systémique du fonctionnement en horizon glissant. Bien que $\|\dot{\mathbf{q}}_{\mathrm{ff}}\|=0{,}25$~rad/s et que la correction de suivi soit en moyenne alignée avec le feedforward (composante moyenne de $+0{,}03$~rad/s le long de $\dot{\mathbf{q}}_{\mathrm{ff}}$), la vitesse nominale filtrée ne moyenne que $\approx 0{,}15$~rad/s. La cause n'est pas un freinage mais un phénomène vectoriel : à chaque regénération, la \emph{direction} instantanée de $\dot{\mathbf{q}}_{\mathrm{ff}}$ saute (rotations atteignant $80^\circ$ entre cycles consécutifs au 95\textsuperscript{e} centile), et le filtre passe-bas, en moyennant des vecteurs dont la direction alterne à $12$~Hz, produit un vecteur de norme inférieure à la moyenne des normes. Près de 40~\% de la vitesse demandée est ainsi perdue par annulation vectorielle, indépendamment de tout obstacle. Ce constat motive l'agrégation temporelle des trajectoires générées (moyennage pondéré des dernières générations) comme amélioration future du planificateur.
 
-\subsection{Effet du filtrage sur la commande sécurisée}
-La Figure~\ref{fig:filter_effect} compare la norme de la vitesse sécurisée avant et après le filtre passe-bas de sortie. Le filtre supprime la gigue de direction du gradient induite par le rafraîchissement de la sélection des points critiques à $30$~Hz, au prix d'un retard de l'ordre de $\tau_{\mathrm{safe}}$ ; la contrainte de sécurité est réévaluée après filtrage par l'étape de réparation (Section~\ref{subsec:commande}).
+\subsubsection{Analyse de l'interface de commande}\label{subsec:res_interface}
+L'instrumentation du rapport entre le taux de variation de la barrière commandé ($\nabla h^\top\dot{\mathbf{q}}_{\mathrm{final}}$) et celui réellement exécuté ($\nabla h^\top\dot{\mathbf{q}}_{\mathrm{mes}}$) a guidé le choix de l'interface de commande et justifie a posteriori celui de la Section~\ref{subsec:commande}. Deux interfaces fondées sur une consigne de \emph{position}, évaluées en cours de développement, présentaient chacune un mode de défaillance. Avec une consigne ré-ancrée à chaque cycle sur la position mesurée, le rapport exécuté/commandé mesuré était proche de zéro : les corrections de sécurité étaient réabsorbées avant d'être réalisées, et le robot demeurait immobilisé contre la frontière malgré une commande de dégagement soutenue. À l'inverse, avec une référence intégrée à un pas supérieur à la période réelle de la boucle, la référence avançait plus vite que la vitesse certifiée et le rapport devenait négatif et supérieur à l'unité en valeur absolue : le robot traversait la frontière en oscillant, produisant des violations répétées de la marge. L'interface retenue élimine ces deux régimes en supprimant l'intermédiaire : la vitesse certifiée est transmise directement au contrôleur de vitesse articulaire, la référence de position intégrée n'étant conservée qu'à des fins de supervision (Section~\ref{subsec:commande}).
+
+La Figure~\ref{fig:hdot_interface} rapporte ce même rapport avec l'interface retenue : le taux de variation de la barrière réellement exécuté suit le taux commandé, ce qui confirme que les corrections certifiées par le filtre sont effectivement réalisées par le contrôleur de vitesse bas niveau.
+% TODO: vérifier cette lecture sur la figure (valeur typique du rapport,
+% retard visible) et ajuster la phrase et la légende. Figures de support
+% pour l'Annexe E : position_reference_tracking.svg, mode_flags.svg,
+% h_groups.svg.
 
 \begin{figure}[htpb]
     \centering
-    \includesvg[inkscapelatex=false]{images/Results/filter_effect.svg}
-    \caption{Norme de la vitesse sécurisée avant et après le filtre passe-bas de sortie ($\tau_{\mathrm{safe}}=0{,}2$~s).}\label{fig:filter_effect}
+    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/hdot_cmd_vs_real.svg}
+    \caption{Taux de variation de la barrière commandé ($\nabla h^\top\dot{\mathbf{q}}_{\mathrm{final}}$) et réellement exécuté ($\nabla h^\top\dot{\mathbf{q}}_{\mathrm{mes}}$) avec l'interface de commande retenue.}\label{fig:hdot_interface}
 \end{figure}
 
-\subsection{Analyse de l'interface de commande}\label{subsec:res_interface}
-L'instrumentation du rapport entre le taux de variation de la barrière commandé ($\nabla h^\top\dot{\mathbf{q}}_{\mathrm{final}}$) et celui réellement exécuté ($\nabla h^\top\dot{\mathbf{q}}_{\mathrm{mes}}$) a mis en évidence deux modes de défaillance de l'interface entre le filtre de sécurité et le contrôleur de position bas niveau, justifiant a posteriori les choix de conception de la Section~\ref{subsec:commande}. Avec une consigne ré-ancrée à chaque cycle sur la position mesurée, le rapport exécuté/commandé mesuré était proche de zéro : les corrections de sécurité étaient réabsorbées avant d'être réalisées, et le robot demeurait immobilisé contre la frontière malgré une commande de dégagement soutenue. À l'inverse, avec un pas d'intégration supérieur à la période réelle de la boucle, la référence avançait plus vite que la vitesse certifiée et le rapport devenait négatif et supérieur à l'unité en valeur absolue : le robot traversait la frontière en oscillant, produisant des violations répétées de la marge. L'interface retenue — intégration de la référence persistante au pas réel $\Delta t$ avec borne d'avance — élimine ces deux régimes.
-% TODO: ajouter le rapport exécuté/commandé mesuré avec la configuration finale.
+\subsection{Étude détaillée : tâche de saisie et dépôt}\label{subsec:res_pp_deep}
+% TODO: UNE figure composite maximum (h(t) + vitesses, panneaux a/b) + un
+% paragraphe. Les comportements propres à la saisie-dépôt (métrique de tâche)
+% sont traités dans les ablations de la Section sec:res_ablations ; le
+% croissant est documenté aux cas d'échec. Ne pas les dupliquer ici.
+À compléter.
 
 % =================================================================
-\section{Performance et temps de calcul}
+\section{Ablations des mécanismes}\label{sec:res_ablations}
 % =================================================================
+Chaque mécanisme de conception du Chapitre~\ref{sec:Theme2} est isolé par une ablation dédiée : le système complet est comparé au même système dont le seul mécanisme évalué est désactivé, sur le scénario qui sollicite ce mécanisme. Chaque ablation suit le même gabarit : la décision de conception qu'elle valide, le résultat agrégé, le constat.
+% TODO (promis en 4.x, barrière) : ablation valeur soft-min contre valeur
+% exacte (cbf_barrier_value_mode soft/hard) : marges h_min mesurées, durée des
+% violations, épisodes de récupération, lissage des commandes ; attendu : le
+% mode soft respecte mieux les marges (ensemble certifié plus fort, signal
+% lisse), le mode exact freine moins tôt sur nuage dense.
+
+\subsection{Carte persistante contre perception instantanée}\label{subsec:res_abl_persistance}
+% Valide : Section 4.3 (cartes persistantes). Banc : alimentation, scénario
+% occlusion. Condition ablatée : cbf_obs_topic:=/perception/cleaned_obstacles
+% (champ de vision instantané seulement).
+% Figures prévues (notes de planification) :
+%   - disponibilité de la détection dans le temps (dispo/indispo) ;
+%   - images montrant perte de détection puis redétection (SAM3/SAM2) ;
+%   - h(t) avec et sans persistance pendant l'occlusion.
+La carte persistante du Chapitre~\ref{sec:Theme2} découple la sécurité du champ de vision instantané : une caméra au poignet perd l'obstacle dès que le bras s'en détourne, précisément au moment où il s'en approche. L'ablation alimente le filtre directement par le nuage instantané nettoyé plutôt que par la carte, sur le scénario d'occlusion du banc d'alimentation : sans mémoire spatiale, l'obstacle occulté disparaît des contraintes du filtre au moment où elles importent le plus.
+À compléter.
+
+\subsection{Métrique de tâche contre métrique euclidienne}\label{subsec:res_abl_metrique}
+% Valide : la projection en métrique de tâche W (Section subsec:projection).
+% Banc : saisie-dépôt Panda, prisme. Condition ablatée :
+% cbf_projection_metric:=identity. Métrique clé : déviation TCP (DTW) entre
+% trajectoire exécutée et nominale, à sécurité égale.
+La projection en métrique de tâche $\mathbf{W}$ (Section~\ref{subsec:projection}) répartit la correction de sécurité préférentiellement dans le noyau de la tâche afin de préserver le mouvement de l'outil. L'ablation la remplace par la métrique euclidienne, à scénario et réglages par ailleurs identiques (saisie et dépôt, prisme statique) : à sécurité égale, la déviation de l'outil (DTW) entre trajectoires exécutée et nominale mesure ce que la métrique de tâche préserve de l'intention.
+À compléter.
+
+\subsection{Dégagement postural : neutralité de sécurité et progression}\label{subsec:res_abl_clearance}
+% Valide : le dégagement postural (Section subsec:minima), SEUL mécanisme de
+% déblocage restant, et son statut de terme APF-like objectif-seulement :
+% la sécurité appartient aux contraintes, le dégagement n'agit que sur la
+% progression. Banc : saisie-dépôt Panda. Scénario : conflit porté par le
+% CORPS (obstacle dans le volume balayé du coude/avant-bras, corridor TCP
+% libre) — c'est le seul régime où le terme a de l'autorité. Condition
+% ablatée : cbf_nullspace_clearance_gain:=0 (contre 0,3), scénarios appariés,
+% mêmes graines.
+% PRÉDICTIONS (énoncées avant la campagne, à confronter telles quelles) :
+%   1. colonnes de sécurité indiscernables entre les deux bras (zéro
+%      collision des deux côtés, h_min pire-cas et durées de violation
+%      comparables) — la neutralité de sécurité, structurelle, vérifiée
+%      empiriquement ;
+%   2. colonnes de tâche meilleures avec dégagement : taux de complétion,
+%      temps de complétion, taux de blocage (arrêt sûr sans progression) ;
+%   3. sur le scénario à contrainte portée par la MAIN (prisme barrant le
+%      transport), les deux bras quasi identiques sur TOUTES les colonnes :
+%      la rampe d'autorité a s'éteint, le terme ne fait rien là où il ne
+%      peut pas aider.
+% Rédaction du constat : « sécurité inchangée » (pas « toujours bonne », pas
+% « améliorée ») ; si les prédictions échouent, rapporter l'échec ou retirer
+% le terme du système.
+Le dégagement postural (Section~\ref{subsec:minima}) est le seul mécanisme de déblocage du filtre, et son statut est celui d'une heuristique de progression : il n'entre que dans l'objectif du problème de projection, jamais dans ses contraintes, de sorte que la sécurité ne peut structurellement pas en dépendre. L'ablation vérifie empiriquement cette neutralité et mesure ce que le terme achète : à scénarios appariés (conflit porté par le corps du bras, corridor de l'outil libre), la condition ablatée ($k_{\mathrm{clear}}=0$) est comparée à la condition nominale sur les colonnes de sécurité, attendues indiscernables, et sur les colonnes de progression (taux et temps de complétion, taux d'arrêt sûr sans progression), attendues favorables au dégagement.
+À compléter.
+
+\subsection{Resserrement dynamique face à un obstacle mobile}\label{subsec:res_abl_hdot}
+% Valide : le terme dynamique-hdot (Section subsec:contrainte). Banc : sphère
+% mobile. Condition ablatée : cbf_dynamic_hdot_enabled:=false. Métriques :
+% h_min, durée de violation en fonction de la vitesse de la sphère.
+Le resserrement dynamique (Section~\ref{subsec:contrainte}) fait céder le robot proportionnellement à la vitesse d'approche estimée de l'environnement, avant même que la barrière ne décroisse. L'ablation le désactive face à la sphère mobile et rapporte $h_{\min}$ et la durée de violation en fonction de la vitesse de la sphère.
+À compléter.
+
+Conformément à la portée des garanties établie à la Section~\ref{subsec:garanties}, aucune garantie formelle n'est revendiquée face aux obstacles mobiles : le resserrement dynamique est une robustification dont l'apport est ici évalué empiriquement.
+
+\subsection{Réparation de la commande filtrée}\label{subsec:res_abl_reparation}
+% Valide : l'étape de réparation après le filtre passe-bas de sortie
+% (Section subsec:commande). L'étude détaillée (Section subsec:res_feeding_deep)
+% montre qu'elle intervient sur la quasi-totalité des cycles où la projection
+% est active ; cette ablation quantifie les violations que le filtre de sortie
+% causerait sans elle. Banc : alimentation, obstacles statiques (suffit, le
+% mécanisme est sollicité dès que le filtre est actif). Condition ablatée :
+% réparation désactivée. % TODO: nom exact du drapeau de lancement.
+% Métriques : h_min, durée de violation, à sécurité comparée au système complet.
+L'étude détaillée de la Section~\ref{subsec:res_feeding_deep} montre que la réparation intervient sur la quasi-totalité des cycles où la projection est active, le filtre passe-bas de sortie érodant une partie de la correction au sein même du cycle. Cette ablation la désactive pour quantifier les violations que ce lissage causerait seul : $h_{\min}$ et la durée de violation sont comparées au système complet sur le banc d'alimentation avec obstacles statiques.
+À compléter.
+
+% =================================================================
+\section{Généralisation inter-embodiment}\label{sec:res_xarm}
+% =================================================================
+% Banc : saisie-dépôt xArm7. La politique FM, son nuage de conditionnement et
+% le filtre sont inchangés ; seuls la cinématique et les SDF de Bernstein par
+% lien (réentraînés pour l'xArm7) changent. Contenu prévu : un paragraphe de
+% mise en place, UN tableau Panda vs xArm7 sur les mêmes scénarios, UNE figure.
+% NOTE : pas de sous-section xArm7 au Chapitre 4 (décision) ; le paragraphe de
+% mise en place dit simplement que la méthodologie est agnostique à
+% l'embodiment et que seuls cinématique + SDF par lien sont réentraînés.
+Le transfert vers le xArm7 n'introduit aucune méthodologie nouvelle : la chaîne du Chapitre~\ref{sec:Theme2} est agnostique à l'embodiment. La politique de \textit{Flow Matching} génère des poses de l'outil dans l'espace de la tâche et son conditionnement perceptif est inchangé ; seuls les éléments propres au bras sont substitués, à savoir le modèle cinématique (URDF et cinématique inverse) et les \ac{SDF} de Bernstein par lien, réentraînés sur les maillages du xArm7 par le protocole de la Section~\ref{subsec:sdf_robot}. Le filtre de sécurité, ses barrières et ses réglages sont identiques. Le Tableau~\ref{tab:res_xarm} compare les deux bras sur les scénarios communs de la tâche de saisie et dépôt.
+% TODO: vérifier que les réglages sont réellement identiques (d_safe, K,
+% nombre de liens protégés du xArm7, politique FM strictement inchangée ou
+% adaptée) ; ajouter UNE figure côte à côte (même scénario, deux bras).
+À compléter.
 
 \begin{table}[htbp]
 \centering
-\caption{Statistiques descriptives par étape (stage)}
+\caption{Comparaison Panda et xArm7 sur les scénarios communs de la tâche de saisie et dépôt ($N$ essais par cellule, métriques de la Section~\ref{subsec:res_metriques}).}
+\label{tab:res_xarm}
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Scénario} & \textbf{Robot} & \textbf{Succès} & \textbf{Collisions} & $\boldsymbol{h_{\min}}$ \textbf{(mm)} & \textbf{Déviation (cm)} \\
+\midrule
+Sans obstacle critique  & Panda & \ldots & \ldots & \ldots & \ldots \\
+                        & xArm7 & \ldots & \ldots & \ldots & \ldots \\
+\addlinespace
+Obstacle(s) statique(s) & Panda & \ldots & \ldots & \ldots & \ldots \\
+                        & xArm7 & \ldots & \ldots & \ldots & \ldots \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =================================================================
+\section{Performance et temps de calcul}\label{sec:res_temps}
+% =================================================================
+% Option : boxplot (images/Results/timing_boxplot.svg) si plus lisible que
+% le tableau.
+Le Tableau~\ref{tab:stage_stats} rapporte les statistiques des temps de calcul par étape du pipeline, mesurés en cours d'exécution sur la plateforme de la Section~\ref{subsec:plateforme}. Les étapes se rattachent à la hiérarchie de fréquences du Chapitre~\ref{sec:Theme2} : à la fréquence de commande, \texttt{cbf\_total} couvre le cycle complet du bouclier, dont la projection et la réparation (\texttt{cbf\_correction}) constituent le coût dominant ; à la cadence de cartographie, l'intégration et l'éviction de la carte persistante (\texttt{persistent\_integrate}, \texttt{persistent\_evict}) et la sélection des points critiques (\texttt{critical\_point\_selection}) ; à la cadence de replanification, l'encodage du nuage de conditionnement (\texttt{fm\_encode}), la génération (\texttt{fm\_generation}) et la cinématique inverse (\texttt{ik}) ; la perception sémantique (\texttt{sam3\_detect}, \texttt{sam2\_track}) s'exécute de manière asynchrone.
+% TODO: préciser la campagne source de ces mesures (essai(s), scénario, banc).
+
+Trois constats se dégagent. D'abord, le bouclier tient son budget en régime nominal : la médiane de \texttt{cbf\_total} ($8{,}60$~ms) reste sous la période de $10$~ms de la boucle à $100$~Hz, mais sa queue ($22{,}06$~ms au 95\textsuperscript{e} centile) la dépasse ; lors de ces cycles, le pas de discrétisation effectif s'allonge au-delà de la valeur budgétée dans la marge $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}).
+% TODO: quantifier la fraction de cycles en dépassement, vérifier la cause
+% probable (contention du GPU partagé avec la génération et la perception)
+% et rattacher l'excédent au budget de d_safe.
+Ensuite, la sélection des points critiques (médiane à $39{,}62$~ms) s'exécute en pratique légèrement sous la cadence visée de $30$~Hz ; l'obsolescence de l'ensemble actif qui en résulte demeure du même ordre que la valeur prise en compte dans le budget de la marge.
+% TODO: confirmer la cadence effective mesurée et l'obsolescence réelle.
+Enfin, la replanification tient largement sa cadence : la génération ($62{,}07$~ms en moyenne) et l'encodage s'inscrivent dans la période de $100$~ms à $10$~Hz, et la cinématique inverse est négligeable ($0{,}27$~ms).
+
+La ligne \texttt{sam3\_detect} ne compte que deux occurrences, et c'est là un comportement nominal plutôt qu'un déficit statistique : SAM~3 n'est invoqué qu'à l'acquisition initiale de la cible puis à chaque réacquisition après une perte de suivi, le suivi continu étant assuré par SAM~2 (\texttt{sam2\_track}). Le nombre d'occurrences compte donc les (ré)acquisitions de l'essai, et le coût de chacune (jusqu'à $335$~ms) est absorbé hors du chemin critique par l'architecture asynchrone, la carte persistante continuant d'alimenter le filtre pendant la détection.
+
+\begin{table}[htbp]
+\centering
+\caption{Statistiques descriptives des temps de calcul par étape du pipeline (durées en millisecondes).}
 \label{tab:stage_stats}
 \begin{tabular}{lcccccc}
 \toprule
-\textbf{Stage} & \textbf{n} & \textbf{Mean} & \textbf{std/min} & \textbf{Med} & \textbf{p95} & \textbf{Max} \\
+\textbf{Étape} & \textbf{n} & \textbf{Moyenne} & \textbf{Écart-type} & \textbf{Médiane} & \textbf{p95} & \textbf{Max} \\
 \midrule
-cbf\_command                     & 1660 & 1.88   & 2.12   & 1.38   & 4.98   & 31.10  \\
-cbf\_correction                  & 1660 & 7.58   & 5.41   & 6.50   & 17.65  & 41.44  \\
-cbf\_total                       & 1660 & 9.91   & 6.43   & 8.60   & 22.06  & 57.81  \\
-critical\_point\_selection       & 832  & 42.27  & 18.35  & 39.62  & 75.49  & 148.81 \\
-fm\_encode                       & 263  & 1.51   & 2.21   & 1.02   & 2.85   & 20.87  \\
-fm\_generation                   & 263  & 62.07  & 6.40   & 61.62  & 73.89  & 83.89  \\
-ik                               & 255  & 0.27   & 0.09   & 0.25   & 0.43   & 0.93   \\
-persistent\_evict                & 709  & 3.17   & 1.74   & 2.76   & 5.90   & 22.08  \\
-persistent\_integrate            & 1753 & 1.02   & 1.06   & 0.84   & 1.80   & 23.85  \\
-% planner\_total                   & 263  & 64.22  & 7.07   & 63.64  & 78.04  & 94.15  \\
-% projection                       & 313  & 22.86  & 7.00   & 20.95  & 40.22  & 50.77  \\
-sam2\_track                      & 132  & 53.85  & 15.10  & 52.77  & 78.66  & 91.14  \\
-sam3\_detect                     & 2    & 182.45 & 152.72 & 182.45 & 319.89 & 335.16 \\
-% trajectory\_build                & 254  & 25.05  & 3.90   & 24.31  & 31.54  & 44.99  \\
+cbf\_command                     & 1660 & 1,88   & 2,12   & 1,38   & 4,98   & 31,10  \\
+cbf\_correction                  & 1660 & 7,58   & 5,41   & 6,50   & 17,65  & 41,44  \\
+cbf\_total                       & 1660 & 9,91   & 6,43   & 8,60   & 22,06  & 57,81  \\
+critical\_point\_selection       & 832  & 42,27  & 18,35  & 39,62  & 75,49  & 148,81 \\
+fm\_encode                       & 263  & 1,51   & 2,21   & 1,02   & 2,85   & 20,87  \\
+fm\_generation                   & 263  & 62,07  & 6,40   & 61,62  & 73,89  & 83,89  \\
+ik                               & 255  & 0,27   & 0,09   & 0,25   & 0,43   & 0,93   \\
+persistent\_evict                & 709  & 3,17   & 1,74   & 2,76   & 5,90   & 22,08  \\
+persistent\_integrate            & 1753 & 1,02   & 1,06   & 0,84   & 1,80   & 23,85  \\
+% planner\_total                   & 263  & 64,22  & 7,07   & 63,64  & 78,04  & 94,15  \\
+% projection                       & 313  & 22,86  & 7,00   & 20,95  & 40,22  & 50,77  \\
+sam2\_track                      & 132  & 53,85  & 15,10  & 52,77  & 78,66  & 91,14  \\
+sam3\_detect                     & 2    & 182,45 & 152,72 & 182,45 & 319,89 & 335,16 \\
+% trajectory\_build                & 254  & 25,05  & 3,90   & 24,31  & 31,54  & 44,99  \\
 \bottomrule
 \end{tabular}
-\smallskip
-\begin{flushleft}
-\end{flushleft}
+% TODO: traduire/expliciter les noms d'étapes (ou les mapper vers les modules
+% du ch. 4 dans une colonne dédiée) et confirmer que "Écart-type" est bien la
+% statistique de la colonne source (std).
+% NOTE : n=2 pour sam3_detect est normal et à expliquer dans le texte :
+% SAM3 n'est invoqué qu'à l'acquisition initiale de la cible et à chaque
+% réacquisition après perte de suivi ; n compte donc les (re)détections de
+% l'essai, le suivi continu étant assuré par sam2_track.
 \end{table}
 
+% =================================================================
+\section{Cas d'échec et limites}\label{sec:res_echecs}
+% =================================================================
+% TODO: trois ou quatre échecs documentés (une figure composite), chacun relié
+% à une limitation annoncée à la Section subsec:garanties ou à la portée de la
+% Section 3.3. Ne pas oublier :
+%   - la détection initiale des dents de la fourchette (fork teeth) ;
+%   - les pertes de suivi prolongées au-delà de la temporisation ;
+%   - le cas d'échec type "figure de Félix" (séquence d'images annotées).
+Les échecs observés pendant les campagnes sont documentés ici sans complaisance, chacun rattaché à une limitation déjà annoncée, qu'il s'agisse de la portée des garanties (Section~\ref{subsec:garanties}) ou des exclusions du Chapitre~\ref{sec:Metho} : aucun d'eux ne contredit une propriété revendiquée.
 À compléter.
 
 % =================================================================
-\section{Performances globales et limites}
+\section{Discussion}\label{sec:res_discussion}
 % =================================================================
-\subsection{Taux de succès des scénarios}
-\subsubsection{Pick and place}
-\subsubsection{Robot assisted feeding}
-\subsection{Cas d'échec}
+% TODO: synthèse transversale : (i) les critères de validation au regard du
+% tableau maître ; (ii) coût du filtrage (déviation, annulation vectorielle) ;
+% (iii) ce que les ablations disent des choix de conception ; (iv) portée et
+% limites (quasi statique, simulation) en préparation de la conclusion.
 À compléter.
-
-
-
-% =================================================================
-\section{Discussion}
-% =================================================================

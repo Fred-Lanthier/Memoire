@@ -3,9 +3,15 @@
 \babel@toc {french}{}
 \babel@toc {english}{}
 \babel@toc {french}{}
-\contentsline {table}{\numberline {2.1}{\ignorespaces Tableau comparatif des frameworks de planification et de sécurité de l'état de l'art.\relax }}{20}{table.caption.11}%
-\contentsline {table}{\numberline {4.1}{\ignorespaces Hyperparamètres d'entraînement du modèle de Flow Matching.\relax }}{40}{table.caption.23}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Temps d'évaluation conjointe des barrières $h_l$ et de la Jacobienne de contrainte complète ($L\times 7$) pour $100$ points obstacles, en fonction du nombre $L$ de liens protégés inclus : gradient analytique en forme close contre différentiation automatique (moyenne $\pm $ écart-type en ms, $100$ répétitions), avec l'erreur absolue maximale entre les deux Jacobiennes.\relax }}{50}{table.caption.24}%
-\contentsline {table}{\numberline {4.3}{\ignorespaces Paramètres du filtre de sécurité SDF-CBF.\relax }}{60}{table.caption.25}%
-\contentsline {table}{\numberline {5.1}{\ignorespaces Statistiques descriptives par étape (stage)\relax }}{77}{table.caption.45}%
-\contentsline {table}{\numberline {B.1}{\ignorespaces Hyperparamètres d'entraînement du modèle de distance du robot.\relax }}{93}{table.caption.60}%
+\contentsline {table}{\numberline {2.1}{\ignorespaces Tableau comparatif des frameworks de planification et de sécurité de l'état de l'art.\relax }}{22}{table.caption.11}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Critères de validation associés aux objectifs de recherche.\relax }}{26}{table.caption.12}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Hiérarchie des mécanismes du système selon leur rôle vis-à-vis des objectifs de recherche.\relax }}{31}{table.caption.13}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Hyperparamètres d'entraînement du modèle de Flow Matching.\relax }}{46}{table.caption.30}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Temps d'évaluation conjointe des barrières $h_l$ et de la Jacobienne de contrainte complète ($L\times 7$) pour $100$ points obstacles, en fonction du nombre $L$ de liens protégés inclus : gradient analytique en forme close contre différentiation automatique (moyenne $\pm $ écart-type en ms, $100$ répétitions), avec l'erreur absolue maximale entre les deux Jacobiennes.\relax }}{57}{table.caption.40}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Paramètres du filtre de sécurité SDF-CBF.\relax }}{70}{table.caption.55}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Bancs d'essai utilisés pour la validation expérimentale.\relax }}{72}{table.caption.56}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Matrice des scénarios évalués par banc d'essai ($N$ essais par cellule).\relax }}{72}{table.caption.57}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Comparaison avec et sans filtre SDF-CBF, agrégée sur $N$ essais par cellule : taux de succès, collisions, marge minimale $h_{\qopname \relax m{min}}$ et déviation de trajectoire (métriques de la Section~\ref {subsec:res_metriques}).\relax }}{80}{table.caption.67}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Comparaison Panda et xArm7 sur les scénarios communs de la tâche de saisie et dépôt ($N$ essais par cellule, métriques de la Section~\ref {subsec:res_metriques}).\relax }}{87}{table.caption.78}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Statistiques descriptives des temps de calcul par étape du pipeline (durées en millisecondes).\relax }}{89}{table.caption.79}%
+\contentsline {table}{\numberline {C.1}{\ignorespaces Hyperparamètres d'entraînement du modèle de distance du robot.\relax }}{110}{table.caption.97}%

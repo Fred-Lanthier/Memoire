@@ -12,6 +12,11 @@
 %%  les unes à la suite des autres.
 %%  All annexes must be included in this document one after the other.
 \Annexe{Protocole détaillé d'acquisition des démonstrations}\label{annexe:data_protocol}
+% TODO (reproductibilité, revue Codex) : documenter la synchronisation entre
+% l'état du robot et le flux RGB-D (horodatage, interpolation éventuelle), la
+% procédure de calibration caméra-TCP et son erreur, les topics/types de
+% messages ROS exacts, les graines aléatoires et la configuration du
+% découpage entraînement/validation (par trajectoire, avant fenêtrage).
 
 Cette annexe détaille la mise en œuvre du protocole de collecte de la Section~\ref{subsec:Protocol} : la procédure opératoire, l'architecture logicielle d'acquisition et le format de stockage des enregistrements. Ce format, défini en début de projet, est autoporteur : les données sont lisibles sans dépendance à ROS (JSON, PNG, NumPy), ce qui permet au pipeline d'entraînement de les consommer directement, là où un conteneur standard de type \texttt{rosbag} aurait exigé une étape d'extraction préalable.
 
@@ -132,7 +137,258 @@ Pour la tâche d'alimentation, le robot est le Panda muni de la fourchette, obte
 
 Pour la tâche de saisie et dépôt, le robot est le Panda standard et la saisie est physique : la politique ne commande que la position et la pince, l'orientation verticale de la pince étant fixée par la configuration initiale et maintenue par le contrôleur. Le cube (dynamique, $4$~cm, lacet aléatoire) apparaît dans un rectangle de $10\times10$~cm sous l'empreinte initiale de la caméra de poignet, ce qui garantit sa visibilité dans la première image ; la boîte de dépôt ($16\times16\times1$~cm) apparaît dans une zone aléatoire à la droite du robot couvrant les positions utilisées au déploiement. La machine à états à huit phases (survol, descente, saisie, dégagement, transport, dépôt, relâchement, retrait) suit ses segments de chemin par jalon : le paramètre d'avancement ne progresse que lorsque le TCP a rejoint le point courant du chemin, de sorte que les portions raides de l'arc de transport sont effectivement parcourues plutôt que coupées. Comme pour la tâche d'alimentation, le cube et la boîte sont segmentés par SAM~3 dans la première image et leurs nuages de points sont reconstruits par la chaîne de rétroprojection de la Section~\ref{subsec:pretraitement}. Quatre environnements parallèles sur dix épisodes produisent les $40$ trajectoires (Figure~\ref{fig:sim_pickplace_phases}).
 
+\Annexe{Détails de l'architecture du réseau de vitesse}\label{annexe:unet_details}
+% TODO (reproductibilité, revue Codex) : préciser padding et stride des
+% convolutions, nombre de groupes du GroupNorm, opérateurs exacts de descente/
+% remontée (stride 2 ? interpolation ?), forme de la modulation FiLM (scale+
+% shift) et nombre total de paramètres du réseau.
+
+Cette annexe rassemble les détails architecturaux du modèle génératif de la Section~\ref{sec:CFM} : les encodeurs du conditionnement, le plongement du temps d'écoulement, puis le réseau de vitesse \texttt{ConditionalUnet1D} et son bloc résiduel conditionnel. Ces composants sont repris des architectures publiées de \textit{Diffusion Policy}~\cite{ChiXXXXVisuomotor} et de \textit{3D Diffusion Policy}~\cite{Ze2024Diffusion} ; leur conception n'est pas une contribution de ce mémoire, et ils sont documentés ici pour rendre le document autonome et reproductible.
+
+\section*{Encodeurs du conditionnement}
+Le nuage de points conditionnel ($1024\times3$) traverse l'encodeur léger de \textit{3D Diffusion Policy}~\cite{Ze2024Diffusion} : un perceptron multicouche partagé entre les points ($3\to64\to128\to256$, normalisation de couche et ReLU), suivi d'un max-pooling sur l'ensemble des points, qui rend le descripteur invariant à leur ordre, puis d'une projection linéaire vers $\mathbb{R}^{64}$. La proprioception des deux derniers pas traverse quant à elle un perceptron ($20\to128\to64$, activation Mish). Les deux descripteurs concaténés forment le vecteur de conditionnement $c\in\mathbb{R}^{128}$ de la Section~\ref{sec:CFM}.
+
+\section*{Plongement du temps d'écoulement}
+Le temps d'écoulement $t$ est fourni au réseau par le plongement sinusoïdal introduit avec l'architecture Transformer~\cite{Vaswani2017Attention} :
+\begin{equation}\label{eq:sinus_emb}
+  \boldsymbol{\gamma}(t) = \bigl[\sin(\omega_1 t'),\,\dots,\,\sin(\omega_{d/2}\, t'),\;\cos(\omega_1 t'),\,\dots,\,\cos(\omega_{d/2}\, t')\bigr], \qquad \omega_i = 10000^{-\frac{i-1}{d/2-1}}
+\end{equation}
+où $d=256$ est la dimension du plongement et $t'=1000\,t$ une mise à l'échelle qui ramène l'intervalle $[0,1]$ à la plage d'indices pour laquelle ces fréquences ont été conçues. La progression géométrique des pulsations $\omega_i$ résout ainsi $t$ à toutes les échelles, des variations grossières aux plus fines, tout en demeurant une fonction lisse. Ce plongement est raffiné par un perceptron ($256\to1024\to256$, activation Mish), puis concaténé au vecteur $c$ pour constituer le conditionnement global $c_g\in\mathbb{R}^{384}$ ($128+256$).
+
+\section*{Réseau de vitesse et bloc résiduel conditionnel}
+La Figure~\ref{fig:attention_style_unet_perfect_final} présente la vue d'ensemble du réseau de vitesse : chaque triplet y indique la forme du tenseur qui transite entre les blocs, soit la taille du lot $B$, le nombre de canaux et la longueur temporelle, et le segment $X_t$ y est noté $x_t$.
+
+Chaque bloc résiduel conditionnel enchaîne deux convolutions 1D (noyau 3), chacune suivie d'une normalisation de groupe et de l'activation Mish
+\begin{equation}
+\text{Mish}(x) = x \cdot \tanh\left(\ln\left(1 + e^x\right)\right)
+\label{eq:mish_activation}
+\end{equation}
+le conditionnement global $c_g$ y étant appliqué par modulation affine de type FiLM : un gain $\gamma\in\mathbb{R}^{C_{\text{out}}}$ et un biais $\beta\in\mathbb{R}^{C_{\text{out}}}$, prédits par un perceptron à partir de $c_g$, modulent canal par canal les cartes de caractéristiques entre les deux convolutions. La Figure~\ref{fig:attention_style_residual_block_clean_90} détaille ce bloc. $x$ y désigne la carte de caractéristiques entrant dans le bloc, de forme $(B, C_{\text{in}}, H)$, où $C_{\text{in}}$ et $C_{\text{out}}$ sont les nombres de canaux à l'entrée et à la sortie du bloc et $H$ la longueur temporelle au niveau de résolution courant, divisée par deux à chaque descente ; la connexion résiduelle traverse une convolution $1\times1$ lorsque $C_{\text{in}}\neq C_{\text{out}}$ afin d'accorder les dimensions.
+
+\begin{figure}[tb]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    % Style épuré "Attention Is All You Need"
+    block_in/.style={draw, fill=gray!6, draw=black!80, minimum width=2.4cm, minimum height=0.7cm, align=center, thick},
+    block_enc/.style={draw, fill=blue!8, draw=black!80, minimum width=2.8cm, minimum height=0.7cm, align=center, thick},
+    block_dec/.style={draw, fill=orange!8, draw=black!80, minimum width=2.6cm, minimum height=0.7cm, align=center, thick},
+    block_bot/.style={draw, fill=purple!8, draw=black!80, minimum width=2.8cm, minimum height=0.7cm, align=center, thick},
+    block_cond/.style={draw, fill=green!10, draw=green!60!black, minimum width=4.5cm, minimum height=0.7cm, align=center, thick},
+    block_math/.style={draw, circle, fill=white, draw=black, minimum size=0.5cm, inner sep=0pt, font=\bfseries\footnotesize},
+    % Styles de flèches
+    arrow/.style={-{Stealth[scale=0.9]}, thick, draw=black!80},
+    skip_arrow/.style={-{Stealth[scale=0.9]}, dashed, thick, draw=black!50},
+    cond_arrow/.style={-{Stealth[scale=0.8]}, thick, draw=green!60!black, dashed}
+]
+
+    % ================= CENTRE : CONDITIONNEMENT ET AXE CENTRAL =================
+    \node[block_cond] (cond) at (6.0, 4.5) {\textbf{Conditionnement global} $c_g$\\{\footnotesize $(B, 384)$}};
+    
+    % Ligne de bus verticale centrale descendante ajustée au millimètre près (Y = -6.3)
+    \coordinate (bus4) at (6.0, -6.3);
+    \draw[draw=green!60!black, thick, dashed] (cond.south) -- (bus4);
+
+    % ================= NIVEAU 1 (Y = 2.0, Dimension temporelle = H) =================
+    \node[block_in] (in) at (-2.5, 2.0) {\textbf{Entrée} $x_t$\\{\footnotesize $(B, 10, H)$}};
+    \node[block_enc] (e1_1) at (0.6, 2.0) {ResBlock 1 \\ {\footnotesize $(B, 256, H)$}};
+    \node[block_enc] (e1_2) at (3.8, 2.0) {ResBlock 2 \\ {\footnotesize $(B, 256, H)$}};
+    
+    \node[block_math] (cat1) at (8.0, 2.0) {\textbf{C}};
+    \node[block_dec] (d1_1) at (10.4, 2.0) {Conv1DBlock \\ {\footnotesize $(B, 256, H)$}};
+    \node[block_dec] (d1_2) at (13.6, 2.0) {Conv1D Final \\ {\footnotesize Out: $(B, 10, H)$}};
+    \node[block_in] (out) at (16.8, 2.0) {\textbf{Sortie} $\mathbf{v}_t$\\{\footnotesize $(B, 10, H)$}};
+
+    % ================= NIVEAU 2 (Y = -1.2, Dimension temporelle = H/2) =================
+    \node[block_enc] (e2_1) at (0.6, -1.2) {ResBlock 1 \\ {\footnotesize $(B, 512, H/2)$}};
+    \node[block_enc] (e2_2) at (3.8, -1.2) {ResBlock 2 \\ {\footnotesize $(B, 512, H/2)$}};
+    
+    \node[block_math] (cat2) at (8.0, -1.2) {\textbf{C}};
+    \node[block_dec] (d2_1) at (10.4, -1.2) {ResBlock 1 \\ {\footnotesize $(B, 256, H/2)$}};
+    \node[block_dec] (d2_2) at (13.6, -1.2) {ResBlock 2 \\ {\footnotesize $(B, 256, H/2)$}};
+
+    % ================= NIVEAU 3 (Y = -4.4, Dimension temporelle = H/4) =================
+    \node[block_enc] (e3_1) at (0.6, -4.4) {ResBlock 1 \\ {\footnotesize $(B, 1024, H/4)$}};
+    \node[block_enc] (e3_2) at (3.8, -4.4) {ResBlock 2 \\ {\footnotesize $(B, 1024, H/4)$}};
+    
+    \node[block_math] (cat3) at (8.0, -4.4) {\textbf{C}};
+    \node[block_dec] (d3_1) at (10.4, -4.4) {ResBlock 1 \\ {\footnotesize $(B, 512, H/4)$}};
+    \node[block_dec] (d3_2) at (13.6, -4.4) {ResBlock 2 \\ {\footnotesize $(B, 512, H/4)$}};
+
+    % ================= NIVEAU 4: GOULOT (Y = -7.2, Dimension temporelle = H/4) =================
+    \node[block_bot] (b1) at (3.8, -7.2) {MidBlock 1 \\ {\footnotesize $(B, 1024, H/4)$}};
+    \node[block_bot] (b2) at (8.0, -7.2) {MidBlock 2 \\ {\footnotesize $(B, 1024, H/4)$}};
+
+
+    % ================= FLÈCHES DU FLUX PRINCIPAL X =================
+    % Niveau 1
+    \draw[arrow] (in) -- (e1_1);
+    \draw[arrow] (e1_1) -- (e1_2);
+    \draw[arrow] (cat1) -- (d1_1);
+    \draw[arrow] (d1_1) -- (d1_2);
+    \draw[arrow] (d1_2) -- (out);
+    
+    % Descente N1 -> N2
+    \draw[arrow] (e1_2.south) -- ++(0,-0.3) -| (e2_1.north);
+    
+    % Niveau 2
+    \draw[arrow] (e2_1) -- (e2_2);
+    \draw[arrow] (cat2) -- (d2_1);
+    \draw[arrow] (d2_1) -- (d2_2);
+    
+    % Descente N2 -> N3
+    \draw[arrow] (e2_2.south) -- ++(0,-0.3) -| (e3_1.north);
+    
+    % Niveau 3
+    \draw[arrow] (e3_1) -- (e3_2);
+    \draw[arrow] (cat3) -- (d3_1);
+    \draw[arrow] (d3_1) -- (d3_2);
+    
+    % Descente N3 -> Goulot
+    \draw[arrow] (e3_2.south) -- ++(0,-0.3) -| (b1.north);
+    
+    % Goulot
+    \draw[arrow] (b1) -- (b2);
+    
+    % Remontées par le haut (Contournement surélevé à +1.4cm de l'axe horizontal)
+    \draw[arrow] (b2.north) -- ++(0,1.4) -| (cat3.south);
+    \draw[arrow] (d3_2.north) -- ++(0,1.4) -| (cat2.south);
+    \draw[arrow] (d2_2.north) -- ++(0,1.4) -| (cat1.south);
+
+
+    % ================= SKIP CONNECTIONS HORIZONTALES NETTES =================
+    \draw[skip_arrow] (e1_2.east) -- node[above, text=black!60] {\footnotesize \textit{cat}} (cat1.west);
+    \draw[skip_arrow] (e2_2.east) -- node[above, text=black!60] {\footnotesize \textit{cat}} (cat2.west);
+    \draw[skip_arrow] (e3_2.east) -- node[above, text=black!60] {\footnotesize \textit{cat}} (cat3.west);
+
+
+    % ================= FLÈCHES DE CONDITIONNEMENT EN PARFAITE SYMÉTRIE =================
+    % --- Niveau 1 (Coudes horizontaux alignés à Y = 3.0) ---
+    \draw[cond_arrow] (6.0, 3.0) -| ([xshift=-0.7cm]e1_1.north east);
+    \draw[cond_arrow] (6.0, 3.0) -| ([xshift=-0.7cm]e1_2.north east);
+    \draw[cond_arrow] (6.0, 3.0) -| ([xshift=0.7cm]d1_1.north west);
+    \draw[cond_arrow] (6.0, 3.0) -| ([xshift=0.7cm]d1_2.north west);
+
+    % --- Niveau 2 (Coudes horizontaux alignés à Y = -0.2) ---
+    \draw[cond_arrow] (6.0, -0.2) -| ([xshift=-0.7cm]e2_1.north east);
+    \draw[cond_arrow] (6.0, -0.2) -| ([xshift=-0.7cm]e2_2.north east);
+    \draw[cond_arrow] (6.0, -0.2) -| ([xshift=0.7cm]d2_1.north west);
+    \draw[cond_arrow] (6.0, -0.2) -| ([xshift=0.7cm]d2_2.north west);
+
+    % --- Niveau 3 (Coudes horizontaux alignés à Y = -3.4) ---
+    \draw[cond_arrow] (6.0, -3.4) -| ([xshift=-0.7cm]e3_1.north east);
+    \draw[cond_arrow] (6.0, -3.4) -| ([xshift=-0.7cm]e3_2.north east);
+    \draw[cond_arrow] (6.0, -3.4) -| ([xshift=0.7cm]d3_1.north west);
+    \draw[cond_arrow] (6.0, -3.4) -| ([xshift=0.7cm]d3_2.north west);
+
+    % --- Niveau 4: Goulot (Alignés parfaitement sur l'extrémité basse à Y = -6.3) ---
+    \draw[cond_arrow] (bus4) -| ([xshift=-0.7cm]b1.north east);
+    \draw[cond_arrow] (bus4) -| ([xshift=0.7cm]b2.north west);
+
+\end{tikzpicture}%
+}
+\caption{Architecture du réseau de vitesse \texttt{ConditionalUnet1D} : encodeur-décodeur 1D à trois niveaux de résolution, connexions de saut et injection du conditionnement global dans chaque bloc résiduel. Chaque triplet indique la forme du tenseur transitant entre les blocs : taille de lot $B$, nombre de canaux, longueur temporelle ($H=16$).}
+\label{fig:attention_style_unet_perfect_final}
+\end{figure}
+
+\begin{figure}[tb]
+\centering
+\resizebox{!}{12cm}{%
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    % Style inspiré de "Attention Is All You Need"
+    layer_core/.style={draw, fill=gray!6, draw=black!80, minimum width=3.4cm, minimum height=0.6cm, align=center, thick},
+    layer_activation/.style={draw, fill=yellow!15, draw=black!80, minimum width=3.4cm, minimum height=0.5cm, align=center, thick},
+    layer_norm/.style={draw, fill=blue!10, draw=black!80, minimum width=3.4cm, minimum height=0.5cm, align=center, thick},
+    layer_cond/.style={draw, fill=green!12, draw=green!60!black, minimum width=3.0cm, minimum height=0.55cm, align=center, thick},
+    block_math/.style={draw, circle, fill=white, draw=black, minimum size=0.5cm, inner sep=0pt, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=black!80},
+    cond_arrow/.style={-{Stealth[scale=0.9]}, thick, draw=green!60!black, dashed}
+]
+
+    % ================= BRANCHE GAUCHE : FLUX PRINCIPAL (X) =================
+    \node (in_x) at (0, 11.2) {\textbf{Entrée} $x$ {\footnotesize $(B, C_{\text{in}}, H)$}};
+
+    % --- PREMIER BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
+    \node[layer_core] (conv1) at (0, 9.9) {Conv1D {\footnotesize (noyau 3)}};
+    \node[layer_norm] (gn1) at (0, 8.9) {GroupNorm};
+    \node[layer_activation] (mish1) at (0, 7.9) {Mish};
+    
+    % --- POINT DE MODULATION FILMAFFINE ---
+    \node[block_math] (mult) at (0, 6.0) {$\times$};
+    \node[block_math] (add) at (0, 4.5) {$+$};
+    
+    % --- SECOND BLOC DE CONVOLUTION (Espacement de 1.0cm) ---
+    \node[layer_core] (conv2) at (0, 2.6) {Conv1D {\footnotesize (noyau 3)}};
+    \node[layer_norm] (gn2) at (0, 1.6) {GroupNorm};
+    \node[layer_activation] (mish2) at (0, 0.6) {Mish};
+
+    % --- SOMME RÉSIDUELLE FINALE ---
+    \node[block_math] (res_sum) at (0, -0.9) {$+$};
+    \node (out) at (0, -2.0) {\textbf{Sortie} $\text{out}$ {\footnotesize $(B, C_{\text{out}}, H)$}};
+
+
+    % ================= BRANCHE DROITE : CONDITIONNEMENT (C) =================
+    \node (in_c) at (6.0, 11.2) {\textbf{Conditionnement global} $c_g$ {\footnotesize $(B, D_{\text{cond}})$}};
+    
+    % Stack de l'encodeur aligné verticalement
+    \node[layer_activation] (c_mish) at (6.0, 9.9) {Mish};
+    \node[layer_core] (c_linear) at (6.0, 8.9) {Linear};
+    \node[layer_core] (c_unflat) at (6.0, 7.9) {Unflatten};
+    
+    % Modulations affines (Scale et Bias)
+    \node[layer_cond] (scale) at (4.0, 6.0) {\textbf{Échelle} $\gamma$\\{\footnotesize $(B, C_{\text{out}}, 1)$}};
+    \node[layer_cond] (bias) at (4.0, 4.5) {\textbf{Biais} $\beta$\\{\footnotesize $(B, C_{\text{out}}, 1)$}};
+
+
+    % ================= BRANCHE GAUCHE : CONNEXION RÉSIDUELLE =================
+    \node[layer_core] (res_conv) at (-3.6, 5.25) {\textbf{residual\_conv}\\{\footnotesize Conv1D $1\times1$}\\{\footnotesize \textit{(si $C_{\text{in}} \neq C_{\text{out}}$)}}};
+
+
+    % ================= CONNEXIONS ET FLÈCHES =================
+    % Connexions Flux Principal X
+    \draw[arrow] (in_x) -- (conv1);
+    \draw[arrow] (conv1) -- (gn1);
+    \draw[arrow] (gn1) -- (mish1);
+    \draw[arrow] (mish1) -- (mult);
+    \draw[arrow] (mult) -- (add);
+    \draw[arrow] (add) -- (conv2);
+    \draw[arrow] (conv2) -- (gn2);
+    \draw[arrow] (gn2) -- (mish2);
+    \draw[arrow] (mish2) -- (res_sum);
+    \draw[arrow] (res_sum) -- (out);
+
+    % Connexions internes de l'encodeur C
+    \draw[arrow] (in_c) -- (c_mish);
+    \draw[arrow] (c_mish) -- (c_linear);
+    \draw[arrow] (c_linear) -- (c_unflat);
+    
+    % --- ROUTAGE DE CONDITIONNEMENT AVEC UN SEUL ANGLE DROIT STRICT (90°) ---
+    % On descend verticalement depuis le bas de Unflatten, puis on tourne à 90° à l'horizontale (|- )
+    \draw[cond_arrow] (c_unflat.south) |- (scale.east);
+    \draw[cond_arrow] (c_unflat.south) |- (bias.east);
+    
+    % Guidage de Scale et Bias vers les opérations de multiplication et d'addition
+    \draw[cond_arrow] (scale.west) -- (mult.east);
+    \draw[cond_arrow] (bias.west) -- (add.east);
+
+    % Liaison Résiduelle Externe
+    \draw[arrow] (in_x.south) ++(0,-0.1) -- ++(0,-0.3) -| (res_conv.north);
+    \draw[arrow] (res_conv.south) |- (res_sum.west);
+
+\end{tikzpicture}%
+}
+\caption{Architecture du bloc résiduel conditionnel (\texttt{ConditionalResidualBlock1D}) du réseau de vitesse, avec sa modulation affine par le conditionnement global. $B$ désigne la taille du lot, $C_{\text{in}}$ et $C_{\text{out}}$ les nombres de canaux à l'entrée et à la sortie du bloc, $H$ la longueur temporelle du niveau de résolution courant et $D_{\text{cond}}=384$ la dimension du conditionnement global $c_g$.}
+\label{fig:attention_style_residual_block_clean_90}
+\end{figure}
+
 \Annexe{Entraînement du champ de distance signée du robot}\label{annexe:sdf_training}
+% TODO (reproductibilité, revue Codex) : donner l'expression mathématique
+% complète de chaque terme de coût, la taille de lot, le taux d'apprentissage
+% et les hyperparamètres d'Adam, les bornes du cosine annealing, la graine, et
+% la DÉFINITION de \bar{\delta} (pondération de proximité). Préciser que le
+% terme eikonal est une pénalité échantillonnée, non une identité globale.
 
 Cette annexe rassemble le détail de l'apprentissage du modèle de distance de la Section~\ref{subsec:sdf_robot}. La génération des étiquettes et la régression récursive reproduisent le protocole \emph{Robot Distance Fields} de Li et al.~\cite{Li2024rdf} et son implémentation publique ; elles ne constituent pas une contribution de ce mémoire et sont reproduites ici pour rendre le document autonome. Seuls les hyperparamètres du raffinement géométrique, introduit à la Section~\ref{subsec:sdf_robot}, sont propres à ce travail.
 
@@ -174,3 +430,59 @@ $\omega$ & pondération de proximité & $1+4\,e^{-\bar{d}/\bar{\delta}}$ \\
 \hline
 \end{tabular}
 \end{table}
+
+\Annexe{Compléments du filtre de sécurité SDF-CBF}\label{annexe:cbf_details}
+
+Cette annexe rassemble les compléments d'implémentation du filtre de sécurité de la Section~\ref{sec:sdfcbf} : les formes closes du lissage et de la réparation qui transforment la vitesse projetée en commande publiée, ainsi que les garde-fous qui bornent cette réparation. La dérivation du gradient analytique de la contrainte et la forme close de la projection sur un demi-espace figurent au chapitre principal (Sections~\ref{subsec:gradient} et~\ref{subsec:projection}) ; les notations sont celles du chapitre.
+
+\section*{Formes closes du post-traitement de la commande}
+
+\paragraph{Saturation et lissage.} La vitesse projetée est saturée aux limites articulaires, $\dot{\mathbf{q}}_{\mathrm{proj,sat}} = \operatorname{sat}(\dot{\mathbf{q}}_{\mathrm{proj}})$, puis filtrée par un passe-bas exponentiel de constante de temps $\tau_{\mathrm{safe}}$ :
+\[
+\dot{\mathbf{q}}_{f,k}
+=
+(1-\gamma_{\mathrm{safe}})\,
+\dot{\mathbf{q}}_{f,k-1}
++
+\gamma_{\mathrm{safe}}\,
+\dot{\mathbf{q}}_{\mathrm{proj,sat},k},
+\qquad
+\gamma_{\mathrm{safe}}
+=
+\frac{\Delta t}{\Delta t+\tau_{\mathrm{safe}}}.
+\]
+L'ordre saturation puis filtrage évite que le filtre considère une vitesse physiquement irréalisable.
+
+\paragraph{Réparation finale.} La contrainte est réévaluée sur la vitesse filtrée, avec le même second membre saturé et resserré que la projection principale, $c_f = \nabla h^\top \dot{\mathbf{q}}_{f} - b(h) - \eta$. Si $c_f<0$ dans la bande d'activation, une réparation est appliquée :
+\[
+\Delta\dot{\mathbf{q}}_{\mathrm{rep}}
+=
+\frac{
+\max(0,-c_f)
+}{
+\nabla h^\top\mathbf{W}^{-1}\nabla h+\varepsilon
+}
+\,\mathbf{W}^{-1}\nabla h.
+\]
+Cette réparation est une projection corrective sur la même contrainte CBF linéarisée : elle réutilise la valeur de barrière $h$, le gradient $\nabla h$, la borne $b(h)+\eta$ et la métrique $\mathbf{W}$ de la projection principale, de sorte qu'elle répartit sa correction de la même manière que le solveur au lieu de défaire, par un pas euclidien, la préférence pour le noyau de tâche.
+
+Deux garde-fous bornent cette réparation. D'une part, sa norme est plafonnée : à $\Delta v_{\max}$ tant que la barrière est positive, et à un plafond distinct $\Delta v_{\max}^{\mathrm{rec}}$, plus permissif, lorsque $h<0$ et qu'une sortie rapide de la zone de violation devient prioritaire. Ce plafond couvre notamment le scénario où la carte persistante fait apparaître de nouveaux points obstacles déjà très proches du robot, voire déjà dans la zone de violation : la violation instantanée $-c_f$ peut alors être grande, et une réparation non bornée se traduirait par une commande de vitesse violente en un seul cycle. D'autre part, la réparation est modulée par un seuil de fiabilité du gradient : son amplitude croît linéairement de zéro, lorsque $\|\nabla h\| = g_{\min}$, jusqu'à sa pleine valeur à $3\,g_{\min}$. La direction $\nabla h/\|\nabla h\|$ n'est en effet fiable que si la norme du gradient est significative : face à un obstacle mince, les gradients des points situés de part et d'autre du lien se compensent dans l'agrégation soft-min et $\|\nabla h\|$ s'effondre ; une réparation de pleine amplitude pousserait alors le bras dans une direction dépourvue de sens géométrique. Le filtre s'en remet dans ce cas à la vitesse issue de la projection pour le cycle courant, la violation résiduelle étant résorbée aux cycles suivants, dès que la géométrie redevient non dégénérée. La même limite $\Delta v_{\max}$ s'applique enfin à chaque pas de projection de la boucle de balayage elle-même : lorsque cette borne est atteinte, la solution retournée n'est plus la projection exacte de~\eqref{eq:cbf_qp}, mais une solution dont la correction par cycle est bornée, le résidu étant repris par la réévaluation finale puis par les cycles suivants. Face à plusieurs contraintes simultanément actives, la réparation ne porte que sur la contrainte critique réévaluée (le lien de plus faible barrière, avec son second membre courant), les autres demi-espaces ayant été traités par les balayages ; le résidu de contrainte définitif est mesuré sur la commande effectivement publiée, après la saturation finale, et exporté à chaque cycle comme diagnostic (\texttt{constr\_final}), de sorte que l'effet conjoint de la troncature, des plafonds et de la saturation est observé plutôt que supposé nul.
+
+\Annexe{Résultats complémentaires}\label{annexe:resultats_complementaires}
+
+Cette annexe rassemble les résultats de support qui appuient les analyses du Chapitre~\ref{sec:Theme3} sans en constituer l'argument principal : elle est le réceptacle des figures et tableaux détaillés que le corps du chapitre ne cite que ponctuellement, afin d'en préserver la lisibilité. Le chapitre porte la démonstration ; l'annexe porte la preuve détaillée.
+
+% TODO : rassembler ici, à mesure que les campagnes sont dépouillées, les
+% résultats de second plan référencés depuis le Chapitre 5 :
+%   - scènes supplémentaires de génération nominale multimodale (renvoi
+%     depuis la Section~\ref{subsec:res_fm}) ;
+%   - duplicata pour la tâche de saisie-dépôt des tracés produits en détail
+%     pour la tâche d'alimentation (barrière, décomposition des vitesses) ;
+%   - galeries par essai des campagnes A/B et d'ablation (une planche par
+%     scénario et par banc) ;
+%   - cellules d'ablation secondaires non retenues dans le corps du chapitre
+%     (valeur de barrière soft contre hard, cible SAM contre vérité terrain,
+%     assembleur temporel activé ou non).
+% Chaque élément déplacé ici doit rester cité par une phrase du chapitre.
+
+À compléter.

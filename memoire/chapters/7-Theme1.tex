@@ -2,26 +2,66 @@
 \Chapter{MOTIVATION DE RECHERCHE ET OBJECTIFS}\label{sec:Metho}
 % =================================================================
 
-Ce chapitre a comme objectif de présenter les objectifs de ce mémoire et de définir la portée ainsi que les contraintes autour du développement du système.
+Ce chapitre présente la motivation de la recherche proposée, en dérive le but général et les objectifs spécifiques, puis délimite la portée et les exclusions qui ont encadré le développement du système.
+
 %------------------------------------------------------------------
 \section{Positionnement de recherche et motivation}
 %------------------------------------------------------------------
-L’intégration d’un filtre de sécurité SDF-CBF fondé sur un SDF local du robot permet de corriger en temps réel les vitesses nominales générées par un modèle Flow Matching, afin d’exécuter des trajectoires dans des environnements non vus tout en réduisant les risques de collision et en préservant l’intention de la trajectoire nominale.
+Les politiques génératives, portées par les modèles de diffusion puis par le Flow Matching, ont démontré ces dernières années leur capacité à apprendre des tâches de manipulation à partir d'un nombre restreint de démonstrations. Elles capturent la multimodalité des gestes experts et, dans le cas du Flow Matching, s'échantillonnent en quelques itérations d'intégration déterministes à échantillon initial fixé, compatibles avec une replanification en boucle fermée.
+
+Malgré ces progrès, ces politiques restent le reflet de leurs données : comme elles sont entraînées sur des démonstrations sans obstacle, elles n'offrent aucune garantie face à un environnement qui n'a pas été vu à l'entraînement. La revue de littérature montre que les réponses existantes à cette limite se répartissent en trois familles, dont les deux premières portent un coût rédhibitoire pour l'application visée. La première contraint le processus de génération lui-même, au prix d'une dérive distributionnelle et d'un surcoût de calcul à chaque pas d'échantillonnage. La deuxième enseigne l'évitement au modèle : entraîner une politique générative à éviter les collisions est possible, mais exige un effort considérable, qu'il s'agisse de collecter des démonstrations enrichies d'obstacles, à recommencer pour chaque famille de scènes, ou de faire corriger les trajectoires défaillantes par un opérateur au déploiement, comme le propose FlowCorrect~\cite{Welte2026Flowcorrect}. La troisième famille filtre l'exécution plutôt que la génération : les fonctions barrières de contrôle y apportent des garanties formelles d'invariance, mais leur emploi aux côtés de politiques génératives demeure le plus souvent restreint à l'effecteur seul ou à des obstacles décrits par des primitives géométriques connues, car leur déploiement bute en pratique sur une question préalable : disposer d'une représentation de distance du corps complet du robot, interrogeable avec son gradient à la fréquence de commande.
+
+Ce mémoire se positionne à cette intersection : découpler entièrement la génération de la sécurité, en plaçant celle-ci en aval du modèle plutôt qu'en son sein. Une politique de Flow Matching pré-entraînée, jamais réentraînée, fournit l'intention ; un filtre de sécurité réactif, fondé sur des fonctions barrières évaluées par un champ de distance signée appris du corps complet du robot et alimenté par une carte persistante de la scène, corrige à la fréquence de commande la composante de vitesse qui menace la sécurité. L'objectif est de conserver simultanément les deux propriétés que les approches existantes échangent l'une contre l'autre : l'intention de la trajectoire nominale et l'absence de collision dans des environnements non vus.
+
 %------------------------------------------------------------------
-\section{Objectifs de recherche}
+\section{Objectifs de recherche}\label{sec:objectifs}
 %------------------------------------------------------------------
+Le but général de cette recherche est de rendre exécutables, en toute sécurité et sans réentraînement, les trajectoires produites par une politique générative dans des environnements quasi statiques encombrés que celle-ci n'a jamais observés. La revue de littérature ayant montré qu'un filtre réactif mal conçu peut dégrader la réussite de la tâche en poussant l'exécution hors de la distribution d'entraînement~\cite{Rmer2026From}, l'évaluation porte sur le compromis complet entre sécurité, réussite de la tâche et budget de calcul, et non sur la seule réduction des collisions. Les objectifs suivants soutiennent ce but.
+
 \subsection{Objectif principal}
-Développer un système permettant de réaliser des trajectoires générées par intelligence artificielle générative sans collision dans un environnement quasi-statique non vue durant l'entraînement sans réentraîner le modèle en temps réel.
+Concevoir, implémenter et valider en simulation une architecture découplée qui exécute en temps réel et sans collision les trajectoires produites par une politique générative de \textit{Flow Matching} gelée, dans des environnements quasi statiques encombrés non vus à l'entraînement, sans réentraînement du modèle et sans dégradation rédhibitoire de la réussite de la tâche.
 
 \subsection{Objectifs spécifiques}
 \begin{itemize}
-    \item \textbf{SO1:} Implémenter un système de détection et de segmentation afin de séparer la cible de l'environnement.
-    \item \textbf{SO2:} Récolter des données 
-    \item \textbf{SO3:} 
-    \item \textbf{SO4:} Intégrer un bouclier basé sur des fonctions de contraintes barrières pour éviter les collisions du robot avec l'environnement
-    \item \textbf{SO5:} Valider le système complet en simulation sur un robot Franka dans différents environnements quasi-statiques en mesurant les temps de calculs de chaque sous système et le taux de succès des différentes tâches basé sur la complétion des tâches ainsi que l'évitement des collisions.
+    \item \textbf{SO1 :} Implémenter une chaîne de perception qui détecte, segmente et suit la cible dans le flux RGB-D, et qui maintient une carte persistante des obstacles robuste aux occlusions et aux pertes de détection.
+    \item \textbf{SO2 :} Constituer un jeu de démonstrations réelles et simulées pour deux tâches de manipulation, et le prétraiter en données d'entraînement conditionnées sur la perception.
+    \item \textbf{SO3 :} Entraîner par \textit{Flow Matching} un modèle de génération de trajectoires conditionné sur ces données, et convertir ses sorties en trajectoires articulaires exécutables par le robot.
+    \item \textbf{SO4 :} Intégrer un bouclier de sécurité fondé sur des fonctions barrières de contrôle et un champ de distance signée du corps complet du robot, corrigeant la commande en temps réel pour éviter les collisions avec l'environnement.
+    \item \textbf{SO5 :} Valider le système complet en simulation sur les deux tâches de manipulation retenues, dans différents environnements quasi statiques non vus à l'entraînement, en comparaison appariée avec et sans filtre de sécurité, selon les critères de validation du Tableau~\ref{tab:criteres_validation}.
+    \item \textbf{SO6 :} Évaluer le transfert de l'architecture à un second manipulateur à sept degrés de liberté, du Franka Emika Panda au UFactory xArm7, seuls la cinématique et les champs de distance par lien étant adaptés.
 \end{itemize}
+
+S'y ajoute une exigence transversale de temps réel : la chaîne complète doit tenir la fréquence de commande visée, le filtre de sécurité résolvant sa projection à la cadence de la boucle de commande, complété d'une couche de freinage à plus haute cadence qui re-certifie la commande maintenue entre deux résolutions, pendant que la génération se poursuit en parallèle. Le Tableau~\ref{tab:criteres_validation} rend ces objectifs mesurables en associant à l'évaluation de SO5 ses métriques, sa condition de comparaison et son critère d'acceptation ; les valeurs mesurées sont rapportées en regard de ces critères au Chapitre~\ref{sec:Theme3}.
+% TODO : geler les seuils numériques définitifs (marge de non-infériorité du
+% critère de tâche, seuil de rappel du critère de persistance) avant le dépôt,
+% en cohérence avec les campagnes finales du Chapitre 5.
+
+\begin{table}[htbp]
+\centering
+\caption{Critères de validation associés aux objectifs de recherche.}
+\label{tab:criteres_validation}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{4.6cm}}
+\hline
+\textbf{Critère} & \textbf{Métriques} & \textbf{Comparaison} & \textbf{Critère d'acceptation} \\ \hline
+Sécurité & Collisions (contact au maillage exact), distance minimale de séparation, durée cumulée des violations de marge & Filtre actif contre inactif, scénarios appariés & Aucune collision avec filtre dans les scénarios où le nominal en produit ; réduction de la durée de violation \\
+Préservation de la tâche & Taux de réussite ; norme des interventions ; déviation de la trajectoire exécutée vis-à-vis de la nominale & Filtre actif contre inactif, scénarios appariés & Dégradation du taux de réussite d'au plus 10 points de pourcentage en l'absence d'obstacle interférent ; intervention strictement nulle hors de la bande d'activation \\
+Persistance & Rappel des points d'obstacle sous occlusion ; issue de sécurité de l'épisode & Carte persistante contre perception instantanée & Contrainte d'évitement maintenue pendant toute l'occlusion, sans perte de l'obstacle \\
+Temps réel & Temps de calcul par sous-système (médiane, p95) ; fraction de cycles au-delà de la période & Budget de période par module & Médiane sous la période de commande ; dépassements de queue quantifiés et couverts par l'analyse de marge du Chapitre~\ref{sec:Theme2} \\ \hline
+\end{tabular}
+\end{table}
+
 %------------------------------------------------------------------
 \section{Portée et exclusions de la recherche}
 %------------------------------------------------------------------
-l'objectif n'est pas de déterminer le nombre de caméra nécessaire pour réaliser cette tâche, n'a pas été testé sur un robot réel, testé seulement sur deux scénarios, pas de déterminer le nombre de trajectoires nécessaires pour entraîner le modèle,4.5 
+Compte tenu des contraintes d'un mémoire de maîtrise, la portée du projet a été délibérément limitée. Les éléments suivants sont exclus de la conception et de l'évaluation du système :
+\begin{itemize}
+    \item \textbf{Déploiement sur robot réel :} le système complet est validé en simulation. Les démonstrations d'entraînement proviennent en partie du robot réel, mais l'exécution en boucle fermée sur le matériel n'est pas évaluée.
+    \item \textbf{Couverture des tâches :} la validation porte sur deux scénarios, une tâche d'alimentation assistée et une tâche de saisie et dépôt ; la généralisation à d'autres tâches n'est pas étudiée.
+    \item \textbf{Configuration des capteurs :} le nombre et le placement des caméras sont fixés a priori pour chaque tâche (une caméra RGB-D montée au poignet pour l'alimentation assistée, une caméra RGB-D statique pour la saisie et dépôt) ; déterminer la configuration de capteurs minimale pour la tâche n'est pas un objectif.
+    \item \textbf{Dimensionnement du jeu de données :} le nombre de démonstrations nécessaires à l'entraînement du modèle génératif n'est pas étudié ; le jeu collecté est celui jugé suffisant pour les tâches retenues.
+    \item \textbf{Obstacles dynamiques :} la garantie de sécurité visée est celle de l'environnement quasi statique, au sens suivant : les obstacles peuvent se déplacer, mais lentement devant le cycle de mise à jour de leur représentation, de sorte que la scène peut être traitée comme fixe entre deux mises à jour et que le déplacement d'un obstacle sur un cycle demeure petit devant la marge de sécurité ; les cadences et la marge qui quantifient ce régime sont établies au Chapitre~\ref{sec:Theme2}. Les mécanismes de robustification face à des obstacles lentement mobiles sont évalués empiriquement, mais aucune garantie formelle n'est revendiquée à leur égard.
+    \item \textbf{Interaction humaine :} bien que la tâche d'alimentation soit motivée par l'assistance à la personne, aucune étude utilisateur ni modélisation de l'humain (visage, bouche, préférences alimentaires) n'est réalisée.
+    \item \textbf{Type de robot traité :} l'étude porte sur les manipulateurs sériels à base fixe et à sept degrés de liberté, instanciés ici par le Franka Emika Panda et le UFactory xArm7, dont la redondance cinématique est exploitée par la cinématique inverse et par le filtre de sécurité. Les bases mobiles et les autres morphologies ne sont pas considérées.
+    \item \textbf{Propriétés des objets :} la cible et les obstacles sont supposés rigides et opaques. Les objets déformables, ainsi que les matériaux transparents ou fortement réfléchissants qui mettent en défaut le capteur de profondeur, sortent du cadre étudié.
+\end{itemize}
