@@ -367,11 +367,11 @@ pages = {15351--15357}
   organization={IEEE}
 }
 
-@inproceedings{Li2024Configuration,
-  author    = {Li, Yiming and Chi, Xuemin and Razmjoo, Amirreza and Calinon, Sylvain},
-  title     = {{Configuration space distance fields for manipulation planning}},
-  booktitle = {Proceedings of Robotics: Science and Systems (RSS)},
-  year      = {2024}
+@article{Li2024Configuration,
+  title={Configuration space distance fields for manipulation planning},
+  author={Li, Yiming and Chi, Xuemin and Razmjoo, Amirreza and Calinon, Sylvain},
+  journal={arXiv preprint arXiv:2406.01137},
+  year={2024}
 }
 
 @article{Govoni2026rdf,
@@ -451,11 +451,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Dalal2024Plan,
-  author    = {Dalal, Murtaza and Chiruvolu, Tarun and Chaplot, Devendra and Salakhutdinov, Ruslan},
-  title     = {{Plan-Seq-Learn: Language Model Guided RL for Solving Long Horizon Robotics Tasks}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2024}
+@article{Dalal2024Plan,
+  author = {Dalal, Murtaza and Chiruvolu, Tarun and Chaplot, Devendra and Salakhutdinov, Ruslan},
+  title = {{Plan-Seq-Learn: Language Model Guided RL for Solving Long Horizon Robotics Tasks}},
+  year = {2024},
+  doi = {10.48550/arXiv.2405.01534},
+  note = {arXiv preprint},
 }
 
 @article{Liu2024Imrl,
@@ -466,27 +467,27 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Roy2024Adaptive,
-  author    = {Roy, Soumo and Viju, Joel and Bhattacharyya, Budhaditya},
-  title     = {{Adaptive Robotic Manipulator Simulation for Enhanced Feeding and Drinking Assistance}},
-  booktitle = {Proceedings of the IEEE India Council International Conference (INDICON)},
-  year      = {2024}
+@article{Roy2024Adaptive,
+  author = {Roy, Soumo and Viju, Joel and Bhattacharyya, Budhaditya},
+  title = {{Adaptive Robotic Manipulator Simulation for Enhanced Feeding and Drinking Assistance}},
+  year = {2024},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Alexandru2024Computer,
-  author    = {Alexandru, Ianoși-Andreeva-Dimitrova and Mândru, Dan and Feneșan, Ana Cristina},
-  title     = {{Computer-vision based feeding robot for disabled people}},
-  booktitle = {Proceedings of the International Conference and Exposition on Electrical and Power Engineering (EPE)},
-  year      = {2024},
-  doi       = {10.1109/EPEi63510.2024.10758135}
+@article{Alexandru2024Computer,
+  author = {Alexandru, Ianoși-Andreeva-Dimitrova and Mândru, Dan and Feneșan, Ana Cristina},
+  title = {{Computer-vision based feeding robot for disabled people}},
+  year = {2024},
+  doi = {10.1109/EPEi63510.2024.10758135},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Trivedi2021From,
-  author    = {Trivedi, Urvish and Alqasemi, Redwan and Dubey, Rajiv},
-  title     = {{Robot Learning From Human Demonstration of Activities of Daily Living (ADL) Tasks}},
-  booktitle = {Proceedings of the ASME International Mechanical Engineering Congress and Exposition (IMECE)},
-  year      = {2021},
-  doi       = {10.1115/IMECE2021-71643}
+@article{Trivedi2021From,
+  author = {Trivedi, Urvish and Alqasemi, Redwan and Dubey, Rajiv},
+  title = {{Robot Learning From Human Demonstration of Activities of Daily Living (ADL) Tasks}},
+  year = {2021},
+  doi = {10.1115/IMECE2021-71643},
+  note = {arXiv preprint},
 }
 
 @article{Talha2021Reinforcement,
@@ -497,31 +498,28 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Nanavati2025Lessons,
-  author    = {Nanavati, Amal and Gordon, Ethan K. and Faulkner, TaYlor A. Kessler and Song, Yuxin and Ko, Jonathan and Schrenk, Tyler and Nguyen, Vy and Zhu, Bernie Hao and Bolotski, Haya and Kashyap, Atharva and Kutty, Sriram and Karim, Raida and Rainbolt, Liander and Scalise, Rosario and Song, Hanjun and Qu, Ramon and Cakmak, Maya and Srinivasa, Siddhartha S.},
-  title     = {{Lessons Learned from Designing and Evaluating a Robot-assisted Feeding System for Out-of-Lab Use}},
-  booktitle = {Proceedings of the ACM/IEEE International Conference on Human-Robot Interaction (HRI)},
-  year      = {2025},
-  doi       = {10.1145/3706598.3713837}
+@article{Nanavati2025Lessons,
+  author = {Nanavati, Amal and Gordon, Ethan K. and Faulkner, TaYlor A. Kessler and Song, Yuxin and Ko, Jonathan and Schrenk, Tyler and Nguyen, Vy and Zhu, Bernie Hao and Bolotski, Haya and Kashyap, Atharva and Kutty, Sriram and Karim, Raida and Rainbolt, Liander and Scalise, Rosario and Song, Hanjun and Qu, Ramon and Cakmak, Maya and Srinivasa, Siddhartha S.},
+  title = {{Lessons Learned from Designing and Evaluating a Robot-assisted Feeding System for Out-of-Lab Use}},
+  year = {2025},
+  doi = {10.1109/HRI61500.2025.10974182},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Gordon2024Adaptable,
-  author    = {Gordon, Ethan K. and Jenamani, Rajat Kumar and Nanavati, Amal and Liu, Ziang and Stabile, Daniel and Dai, Xilai and Bhattacharjee, Tapomayukh and Schrenk, Tyler and Ko, Jonathan and Bolotski, Haya and Karim, Raida and Kashyap, Atharva and Hao, Bernie and Taylor, Zhu and Faulkner, Kessler and Srinivasa, Siddhartha S.},
-  title     = {{An Adaptable, Safe, and Portable Robot-Assisted Feeding System}},
-  booktitle = {Companion of the ACM/IEEE International Conference on Human-Robot Interaction (HRI LBR/Demo)},
-  year      = {2024},
-  doi       = {10.1145/3610978.3641074}
+@article{Gordon2024Adaptable,
+  author = {Gordon, Ethan K. and Jenamani, Rajat Kumar and Nanavati, Amal and Liu, Ziang and Stabile, Daniel and Dai, Xilai and Bhattacharjee, Tapomayukh and Schrenk, Tyler and Ko, Jonathan and Bolotski, Haya and Karim, Raida and Kashyap, Atharva and Hao, Bernie and Taylor, Zhu and Faulkner, Kessler and Srinivasa, Siddhartha S.},
+  title = {{An Adaptable, Safe, and Portable Robot-Assisted Feeding System}},
+  year = {2024},
+  doi = {10.48550/arXiv.2403.04134},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Sundaresan2022Visuo,
-  author    = {Sundaresan, Priya and Belkhale, Suneel and Sadigh, Dorsa},
-  title     = {{Learning Visuo-Haptic Skewering Strategies for Robot-Assisted Feeding}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  series    = {Proceedings of Machine Learning Research},
-  volume    = {205},
-  pages     = {1410--1421},
-  year      = {2023},
-  publisher = {PMLR}
+@article{Sundaresan2022Visuo,
+  author = {Sundaresan, Priya and Belkhale, Suneel and Sadigh, Dorsa},
+  title = {{Learning Visuo-Haptic Skewering Strategies for Robot-Assisted Feeding}},
+  year = {2022},
+  doi = {10.48550/arXiv.2211.14648},
+  note = {arXiv preprint},
 }
 
 @inproceedings{ChiXXXXVisuomotor,
@@ -532,24 +530,19 @@ year = {2026}
   doi = {10.15607/RSS.2023.XIX.026},
 }
 
-@inproceedings{Ho2020Denoising,
-  author    = {Ho, Jonathan and Jain, Ajay and Abbeel, Pieter},
-  title     = {{Denoising Diffusion Probabilistic Models}},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  volume    = {33},
-  pages     = {6840--6851},
-  year      = {2020}
+@article{Ho2020Denoising,
+  author = {Ho, Jonathan and Jain, Ajay and Abbeel, Pieter},
+  title = {{Denoising Diffusion Probabilistic Models}},
+  year = {2020},
+  doi = {10.48550/arXiv.2006.11239},
+  note = {arXiv preprint},
 }
 
 @article{Argall2009Survey,
-  author    = {Argall, Brenna D. and Chernova, Sonia and Veloso, Manuela and Browning, Brett},
-  title     = {{A survey of robot learning from demonstration}},
-  journal   = {Robotics and Autonomous Systems},
-  volume    = {57},
-  number    = {5},
-  pages     = {469--483},
-  year      = {2009},
-  publisher = {Elsevier}
+  author = {Argall, Brenna D. and Chernova, Sonia and Veloso, Manuela and Browning, Brett},
+  title = {{A survey of robot learning from demonstration}},
+  year = {2009},
+  note = {arXiv preprint},
 }
 
 @article{Chen2023Importance,
@@ -560,61 +553,59 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Deng2009Imagenet,
-  author    = {Deng, Jia and Dong, Wei and Socher, Richard and Li, Li-Jia and Li, Kai and Fei-Fei, Li},
-  title     = {{ImageNet: A Large-Scale Hierarchical Image Database}},
-  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
-  pages     = {248--255},
-  year      = {2009}
+@article{Deng2009Imagenet,
+  author = {Deng, Jia and Dong, Wei and Socher, Richard and Li, Li-Jia and Li, Kai and Fei-Fei, Li},
+  title = {{ImageNet: A large-scale hierarchical image database}},
+  year = {2009},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Du2021Improved,
-  author    = {Du, Yilun and Li, Shuang and Tenenbaum, Joshua and Mordatch, Igor},
-  title     = {{Improved Contrastive Divergence Training of Energy Based Models}},
-  booktitle = {Proceedings of the International Conference on Machine Learning (ICML)},
-  year      = {2021}
+@article{Du2021Improved,
+  author = {Du, Yilun and Li, Shuang and Tenenbaum, Joshua and Mordatch, Igor},
+  title = {{Improved Contrastive Divergence Training of Energy Based Models}},
+  year = {2021},
+  doi = {10.48550/arXiv.2012.01316},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Florence2021Implicit,
-  author    = {Florence, Pete and Lynch, Corey and Zeng, Andy and Ramirez, Oscar and Wahid, Ayzaan and Downs, Laura and Wong, Adrian and Lee, Johnny and Mordatch, Igor and Tompson, Jonathan},
-  title     = {{Implicit Behavioral Cloning}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2021}
+@article{Florence2021Implicit,
+  author = {Florence, Pete and Lynch, Corey and Zeng, Andy and Ramirez, Oscar and Wahid, Ayzaan and Downs, Laura and Wong, Adrian and Lee, Johnny and Mordatch, Igor and Tompson, Jonathan},
+  title = {{Implicit Behavioral Cloning}},
+  year = {2021},
+  doi = {10.48550/arXiv.2109.00137},
+  note = {arXiv preprint},
 }
 
 @article{Florence2019Self,
-  author    = {Florence, Peter and Manuelli, Lucas and Tedrake, Russ},
-  title     = {{Self-Supervised Correspondence in Visuomotor Policy Learning}},
-  journal   = {IEEE Robotics and Automation Letters},
-  volume    = {5},
-  number    = {2},
-  pages     = {492--499},
-  year      = {2020},
-  doi       = {10.1109/LRA.2020.2965859}
+  author = {Florence, Peter and Manuelli, Lucas and Tedrake, Russ},
+  title = {{Self-Supervised Correspondence in Visuomotor Policy Learning}},
+  year = {2019},
+  doi = {10.48550/arXiv.1909.06933},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Gupta2019Relay,
-  author    = {Gupta, Abhishek and Kumar, Vikash and Lynch, Corey and Levine, Sergey and Hausman, Karol},
-  title     = {{Relay Policy Learning: Solving Long-Horizon Tasks via Imitation and Reinforcement Learning}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2019}
+@article{Gupta2019Relay,
+  author = {Gupta, Abhishek and Kumar, Vikash and Lynch, Corey and Levine, Sergey and Hausman, Karol},
+  title = {{Relay Policy Learning: Solving Long-Horizon Tasks via Imitation and Reinforcement Learning}},
+  year = {2019},
+  doi = {10.48550/arXiv.1910.11956},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Huang2023Diffusion,
-  author    = {Huang, Siyuan and Wang, Zan and Li, Puhao and Jia, Baoxiong and Liu, Tengyu and Zhu, Yixin and Liang, Wei and Zhu, Song-Chun},
-  title     = {{Diffusion-based Generation, Optimization, and Planning in 3D Scenes}},
-  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  year      = {2023},
-  pages     = {351--361}
+@article{Huang2023Diffusion,
+  author = {Huang, Siyuan and Wang, Zan and Li, Puhao and Jia, Baoxiong and Liu, Tengyu and Zhu, Yixin and Liang, Wei and Zhu, Song-Chun},
+  title = {{Diffusion-based Generation, Optimization, and Planning in 3D Scenes}},
+  year = {2023},
+  doi = {10.48550/arXiv.2301.06015},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Jarrett2021Strictly,
-  author    = {Jarrett, Daniel and Bica, Ioana and Schaar, Mihaela van der},
-  title     = {{Strictly Batch Imitation Learning by Energy-based Distribution Matching}},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  volume    = {33},
-  pages     = {7954--7965},
-  year      = {2020}
+@article{Jarrett2021Strictly,
+  author = {Jarrett, Daniel and Bica, Ioana and Schaar, Mihaela van der},
+  title = {{Strictly Batch Imitation Learning by Energy-based Distribution Matching}},
+  year = {2021},
+  doi = {10.48550/arXiv.2006.14154},
+  note = {arXiv preprint},
 }
 
 @article{Zhang2025Affordance,
@@ -625,18 +616,20 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Janner2022Planning,
-  author    = {Janner, Michael and Du, Yilun and Tenenbaum, Joshua B. and Levine, Sergey},
-  title     = {{Planning with Diffusion for Flexible Behavior Synthesis}},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  year      = {2022}
+@article{Janner2022Planning,
+  author = {Janner, Michael and Du, Yilun and Tenenbaum, Joshua B. and Levine, Sergey},
+  title = {{Planning with Diffusion for Flexible Behavior Synthesis}},
+  year = {2022},
+  doi = {10.48550/arXiv.2205.09991},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Perez2017Film,
-  author    = {Perez, Ethan and Strub, Florian and De Vries, Harm and Dumoulin, Vincent and Courville, Aaron},
-  title     = {{FiLM: Visual Reasoning with a General Conditioning Layer}},
-  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence (AAAI)},
-  year      = {2018}
+@article{Perez2017Film,
+  author = {Perez, Ethan and Strub, Florian and Vries, Harm de and Dumoulin, Vincent and Courville, Aaron},
+  title = {{FiLM: Visual Reasoning with a General Conditioning Layer}},
+  year = {2017},
+  doi = {10.48550/arXiv.1709.07871},
+  note = {arXiv preprint},
 }
 
 @article{Margolis2025Softmimic,
@@ -647,26 +640,28 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Ze2024Diffusion,
-  author    = {Ze, Yanjie and Zhang, Gu and Zhang, Kangning and Hu, Chenyuan and Wang, Muhan and Xu, Huazhe},
-  title     = {{3D Diffusion Policy: Generalizable Visuomotor Policy Learning via Simple 3D Representations}},
-  booktitle = {Proceedings of Robotics: Science and Systems (RSS)},
-  year      = {2024},
-  doi       = {10.15607/RSS.2024.XX.026}
+@article{Ze2024Diffusion,
+  author = {Ze, Yanjie and Zhang, Gu and Zhang, Kangning and Hu, Chenyuan and Wang, Muhan and Xu, Huazhe},
+  title = {{3D Diffusion Policy: Generalizable Visuomotor Policy Learning via Simple 3D Representations}},
+  year = {2024},
+  doi = {10.48550/arXiv.2403.03954},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Lu2025Triply,
-  author    = {Lu, Yiyang and Tian, Yufeng and Yuan, Zhecheng and Wang, Xianbang and Hua, Pu and Xue, Zhengrong and Xu, Huazhe},
-  title     = {{H$^3$DP: Triply-Hierarchical Diffusion Policy for Visuomotor Learning}},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2026}
+@article{Lu2025Triply,
+  author = {Lu, Yiyang and Tian, Yufeng and Yuan, Zhecheng and Wang, Xianbang and Hua, Pu and Xue, Zhengrong and Xu, Huazhe},
+  title = {{H$^3$DP: Triply-Hierarchical Diffusion Policy for Visuomotor Learning}},
+  year = {2025},
+  doi = {10.48550/arXiv.2505.07819},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Gong2025Carp,
-  author    = {Gong, Zhefei and Ding, Pengxiang and Lyu, Shangke and Huang, Siteng and Sun, Mingyang and Zhao, Wei and Fan, Zhaoxin and Wang, Donglin},
-  title     = {{CARP: Visuomotor Policy Learning via Coarse-to-Fine Autoregressive Prediction}},
-  booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
-  year      = {2025}
+@article{Gong2025Carp,
+  author = {Gong, Zhefei and Ding, Pengxiang and Lyu, Shangke and Huang, Siteng and Sun, Mingyang and Zhao, Wei and Fan, Zhaoxin and Wang, Donglin},
+  title = {{CARP: Visuomotor Policy Learning via Coarse-to-Fine Autoregressive Prediction}},
+  year = {2025},
+  doi = {10.48550/arXiv.2412.06782},
+  note = {arXiv preprint},
 }
 
 @article{Liu2025Spatial,
@@ -685,39 +680,35 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@article{Shukla2025Force,
-  author    = {Shukla, Rishabh and Moode, Samrudh and Talan, Raj and Gupta, Satyandra K.},
-  title     = {{Learning Force-Conditioned Visuomotor Diffusion Policy from Human Demonstrations for Complex Robotic Assembly Tasks}},
-  journal   = {Manufacturing Letters},
-  volume    = {44},
-  pages     = {1513--1524},
-  year      = {2025},
-  doi       = {10.1016/j.mfglet.2025.XXXXXXX}
+@article{ShuklaXXXXForce,
+  author = {Shukla, Rishabh and Moode, Samrudh and Talan, Raj and Gupta, Satyandra K},
+  title = {{Learning Force-Conditioned Visuomotor Diffusion Policy from Human Demonstrations for Complex Robotic Assembly Tasks}},
+  year = {XXXX},
+  note = {arXiv preprint},
 }
 
 @article{Zhou2024Admittance,
-  author    = {Zhou, Bo and Jiao, Ruixuan and Li, Yi and Yuan, Xiaogang and Fang, Fang and Li, Shihua},
-  title     = {{Admittance Visuomotor Policy Learning for General-Purpose Contact-Rich Manipulations}},
-  journal   = {IEEE Transactions on Industrial Electronics},
-  volume    = {72},
-  number    = {11},
-  pages     = {11234--11244},
-  year      = {2025},
-  doi       = {10.1109/TIE.2025.XXXXXXX}
+  author = {Zhou, Bo and Jiao, Ruixuan and Li, Yi and Yuan, Xiaogang and Fang, Fang and Li, Shihua},
+  title = {{Admittance Visuomotor Policy Learning for General-Purpose Contact-Rich Manipulations}},
+  year = {2024},
+  doi = {10.48550/arXiv.2409.14440},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Ingelhag2024Skill,
-  author    = {Ingelhag, Nils and Munkeby, Jesper and van Haastregt, Jonne and Varava, Anastasia and Welle, Michael C. and Kragic, Danica},
-  title     = {{A Robotic Skill Learning System Built Upon Diffusion Policies and Foundation Models}},
-  booktitle = {Proceedings of the IEEE International Conference on Robot and Human Interactive Communication (RO-MAN)},
-  year      = {2024}
+@article{Ingelhag2024Skill,
+  author = {Ingelhag, Nils and Munkeby, Jesper and Haastregt, Jonne van and Varava, Anastasia and Welle, Michael C. and Kragic, Danica},
+  title = {{A Robotic Skill Learning System Built Upon Diffusion Policies and Foundation Models}},
+  year = {2024},
+  doi = {10.48550/arXiv.2403.16730},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Liang2024Dreamitate,
-  author    = {Liang, Junbang and Liu, Ruoshi and Ozguroglu, Ege and Sudhakar, Sruthi and Dave, Achal and Tokmakov, Pavel and Song, Shuran and Vondrick, Carl},
-  title     = {{Dreamitate: Real-World Visuomotor Policy Learning via Video Generation}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2024}
+@article{Liang2024Dreamitate,
+  author = {Liang, Junbang and Liu, Ruoshi and Ozguroglu, Ege and Sudhakar, Sruthi and Dave, Achal and Tokmakov, Pavel and Song, Shuran and Vondrick, Carl},
+  title = {{Dreamitate: Real-World Visuomotor Policy Learning via Video Generation}},
+  year = {2024},
+  doi = {10.48550/arXiv.2406.16862},
+  note = {arXiv preprint},
 }
 
 @article{Wen2025Diffusion,
@@ -751,22 +742,20 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Kim2024Openvla,
-  author    = {Kim, Moo Jin and Pertsch, Karl and Karamcheti, Siddharth and Xiao, Ted and Balakrishna, Ashwin and Nair, Suraj and Rafailov, Rafael and Foster, Ethan and Lam, Grace and Sanketi, Pannag and Vuong, Quan and Kollar, Thomas and Burchfiel, Benjamin and Tedrake, Russ and Sadigh, Dorsa and Levine, Sergey and Liang, Percy and Finn, Chelsea},
-  title     = {{OpenVLA: An Open-Source Vision-Language-Action Model}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2024}
+@article{Kim2024Openvla,
+  author = {Kim, Moo Jin and Pertsch, Karl and Karamcheti, Siddharth and Xiao, Ted and Balakrishna, Ashwin and Nair, Suraj and Rafailov, Rafael and Foster, Ethan and Lam, Grace and Sanketi, Pannag and Vuong, Quan and Kollar, Thomas and Burchfiel, Benjamin and Tedrake, Russ and Sadigh, Dorsa and Levine, Sergey and Liang, Percy and Finn, Chelsea},
+  title = {{OpenVLA: An Open-Source Vision-Language-Action Model}},
+  year = {2024},
+  doi = {10.48550/arXiv.2406.09246},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Brohan2023Vision,
-  author    = {Brohan, Anthony and Brown, Noah and Carbajal, Justice and Chebotar, Yevgen and Chen, Xi and Choromanski, Krzysztof and Ding, Tianli and Driess, Danny and Dubey, Avinava and Finn, Chelsea and Florence, Pete and Fu, Chuyuan and Arenas, Montse Gonzalez and Gopalakrishnan, Keerthana and Han, Kehang and Hausman, Karol and Herzog, Alexander and Hsu, Jasmine and Ichter, Brian and Irpan, Alex and Joshi, Nikhil and Julian, Ryan and Kalashnikov, Dmitry and Kuang, Yuheng and Leal, Isabel and Lee, Lisa and Lee, Tsang-Wei Edward and Levine, Sergey and Lu, Yao and Michalewski, Henryk and Mordatch, Igor and Pertsch, Karl and Rao, Kanishka and Reymann, Krista and Ryoo, Michael and Salazar, Grecia and Sanketi, Pannag and Sermanet, Pierre and Singh, Jaspiar and Singh, Anikait and Soricut, Radu and Tran, Huong and Vanhoucke, Vincent and Vuong, Quan and Wahid, Ayzaan and Welker, Stefan and Wohlhart, Paul and Wu, Jialin and Xia, Fei and Xiao, Ted and Xu, Peng and Xu, Sichun and Yu, Tianhe and Zitkovich, Brianna},
-  title     = {{RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  series    = {Proceedings of Machine Learning Research},
-  volume    = {229},
-  pages     = {2165--2183},
-  year      = {2023},
-  publisher = {PMLR}
+@article{Brohan2023Vision,
+  author = {Brohan, Anthony and Brown, Noah and Carbajal, Justice and Chebotar, Yevgen and Chen, Xi and Choromanski, Krzysztof and Ding, Tianli and Driess, Danny and Dubey, Avinava and Finn, Chelsea and Florence, Pete and Fu, Chuyuan and Arenas, Montse Gonzalez and Gopalakrishnan, Keerthana and Han, Kehang and Hausman, Karol and Herzog, Alexander and Hsu, Jasmine and Ichter, Brian and Irpan, Alex and Joshi, Nikhil and Julian, Ryan and Kalashnikov, Dmitry and Kuang, Yuheng and Leal, Isabel and Lee, Lisa and Lee, Tsang-Wei Edward and Levine, Sergey and Lu, Yao and Michalewski, Henryk and Mordatch, Igor and Pertsch, Karl and Rao, Kanishka and Reymann, Krista and Ryoo, Michael and Salazar, Grecia and Sanketi, Pannag and Sermanet, Pierre and Singh, Jaspiar and Singh, Anikait and Soricut, Radu and Tran, Huong and Vanhoucke, Vincent and Vuong, Quan and Wahid, Ayzaan and Welker, Stefan and Wohlhart, Paul and Wu, Jialin and Xia, Fei and Xiao, Ted and Xu, Peng and Xu, Sichun and Yu, Tianhe and Zitkovich, Brianna},
+  title = {{RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control}},
+  year = {2023},
+  doi = {10.48550/arXiv.2307.15818},
+  note = {arXiv preprint},
 }
 
 @article{Liu2024Vision,
@@ -776,22 +765,20 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Li2024Vision,
-  author    = {Li, Xinghang and Liu, Minghuan and Zhang, Hanbo and Yu, Cunjun and Xu, Jie and Wu, Hongtao and Cheang, Chilam and Jing, Ya and Zhang, Weinan and Liu, Huaping and Li, Hang and Kong, Tao},
-  title     = {{Vision-Language Foundation Models as Effective Robot Imitators}},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2024}
+@article{Li2024Vision,
+  author = {Li, Xinghang and Liu, Minghuan and Zhang, Hanbo and Yu, Cunjun and Xu, Jie and Wu, Hongtao and Cheang, Chilam and Jing, Ya and Zhang, Weinan and Liu, Huaping and Li, Hang and Kong, Tao},
+  title = {{Vision-Language Foundation Models as Effective Robot Imitators}},
+  year = {2024},
+  doi = {10.48550/arXiv.2311.01378},
+  note = {arXiv preprint},
 }
 
 @article{Mees2022What,
-  author    = {Mees, Oier and Hermann, Lukas and Burgard, Wolfram},
-  title     = {{What Matters in Language Conditioned Robotic Imitation Learning over Unstructured Data}},
-  journal   = {IEEE Robotics and Automation Letters},
-  volume    = {7},
-  number    = {4},
-  pages     = {11205--11212},
-  year      = {2022},
-  doi       = {10.1109/LRA.2022.3196425}
+  author = {Mees, Oier and Hermann, Lukas and Burgard, Wolfram},
+  title = {{What Matters in Language Conditioned Robotic Imitation Learning over Unstructured Data}},
+  year = {2022},
+  doi = {10.48550/arXiv.2204.06252},
+  note = {arXiv preprint},
 }
 
 @article{Jones2025Beyond,
@@ -802,11 +789,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Black2023Zero,
-  author    = {Black, Kevin and Nakamoto, Mitsuhiko and Atreya, Pranav and Walke, Homer and Finn, Chelsea and Kumar, Aviral and Levine, Sergey},
-  title     = {{Zero-Shot Robotic Manipulation with Pretrained Image-Editing Diffusion Models}},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2024}
+@article{Black2023Zero,
+  author = {Black, Kevin and Nakamoto, Mitsuhiko and Atreya, Pranav and Walke, Homer and Finn, Chelsea and Kumar, Aviral and Levine, Sergey},
+  title = {{Zero-Shot Robotic Manipulation with Pretrained Image-Editing Diffusion Models}},
+  year = {2023},
+  doi = {10.48550/arXiv.2310.10639},
+  note = {arXiv preprint},
 }
 
 @article{Hu2025Tarad,
@@ -824,12 +812,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Li2025Language,
-  author    = {Li, Hang and Feng, Qian and Zheng, Zhi and Feng, Jianxiang and Chen, Zhaopeng and Knoll, Alois},
-  title     = {{Language-Guided Object-Centric Diffusion Policy for Generalizable and Collision-Aware Manipulation}},
-  booktitle = {Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)},
-  year      = {2025},
-  doi       = {10.1109/ICRA55743.2025.11127231}
+@article{Li2025Language,
+  author = {Li, Hang and Feng, Qian and Zheng, Zhi and Feng, Jianxiang and Chen, Zhaopeng and Knoll, Alois},
+  title = {{Language-Guided Object-Centric Diffusion Policy for Generalizable and Collision-Aware Manipulation}},
+  year = {2025},
+  doi = {10.1109/ICRA55743.2025.11127231},
+  note = {arXiv preprint},
 }
 
 @article{Carvalho2024Grasp,
@@ -840,11 +828,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Chisari2024Manipulation,
-  author    = {Chisari, Eugenio and Heppert, Nick and Argus, Max and Welschehold, Tim and Brox, Thomas and Valada, Abhinav},
-  title     = {{Learning Robotic Manipulation Policies from Point Clouds with Conditional Flow Matching}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2024}
+@article{Chisari2024Manipulation,
+  author = {Chisari, Eugenio and Heppert, Nick and Argus, Max and Welschehold, Tim and Brox, Thomas and Valada, Abhinav},
+  title = {{Learning Robotic Manipulation Policies from Point Clouds with Conditional Flow Matching}},
+  year = {2024},
+  doi = {10.48550/arXiv.2409.07343},
+  note = {arXiv preprint},
 }
 
 @article{Zhao2025Anchordp3,
@@ -855,11 +844,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Seita2022Toolflownet,
-  author    = {Seita, Daniel and Wang, Yufei and Shetty, Sarthak J. and Li, Edward Yao and Erickson, Zackory and Held, David},
-  title     = {{ToolFlowNet: Robotic Manipulation with Tools via Predicting Tool Flow from Point Clouds}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2022}
+@article{Seita2022Toolflownet,
+  author = {Seita, Daniel and Wang, Yufei and Shetty, Sarthak J. and Li, Edward Yao and Erickson, Zackory and Held, David},
+  title = {{ToolFlowNet: Robotic Manipulation with Tools via Predicting Tool Flow from Point Clouds}},
+  year = {2022},
+  doi = {10.48550/arXiv.2211.09006},
+  note = {arXiv preprint},
 }
 
 @article{Yu2025Need,
@@ -879,14 +869,11 @@ year = {2026}
 }
 
 @article{Weng2024Dexdiffuser,
-  author    = {Weng, Zehang and Lu, Haofei and Kragic, Danica and Lundell, Jens},
-  title     = {{DexDiffuser: Generating Dexterous Grasps with Diffusion Models}},
-  journal   = {IEEE Robotics and Automation Letters},
-  volume    = {9},
-  number    = {6},
-  pages     = {5314--5321},
-  year      = {2024},
-  doi       = {10.1109/LRA.2024.3387668}
+  author = {Weng, Zehang and Lu, Haofei and Kragic, Danica and Lundell, Jens},
+  title = {{DexDiffuser: Generating Dexterous Grasps with Diffusion Models}},
+  year = {2024},
+  doi = {10.48550/arXiv.2402.02989},
+  note = {arXiv preprint},
 }
 
 @article{Wu2025Afforddp,
@@ -930,10 +917,11 @@ year = {2026}
 }
 
 @article{Morris2025Dynosam,
-  author    = {Morris, Jesse and Wang, Yiduo and Kliniewski, Mikolaj and Ila, Viorela},
-  title     = {{DynoSAM: Open-Source Smoothing and Mapping Framework for Dynamic SLAM}},
-  journal   = {IEEE Transactions on Robotics},
-  year      = {2025}
+  author = {Morris, Jesse and Wang, Yiduo and Kliniewski, Mikolaj and Ila, Viorela},
+  title = {{DynoSAM: Open-Source Smoothing and Mapping Framework for Dynamic SLAM}},
+  year = {2025},
+  doi = {10.48550/arXiv.2501.11893},
+  note = {arXiv preprint},
 }
 
 @article{Song2026Omniguide,
@@ -1033,12 +1021,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Zhao2023Fine,
-  author    = {Zhao, Tony Z. and Kumar, Vikash and Levine, Sergey and Finn, Chelsea},
-  title     = {{Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware}},
-  booktitle = {Proceedings of Robotics: Science and Systems (RSS)},
-  year      = {2023},
-  doi       = {10.15607/RSS.2023.XIX.023}
+@article{Zhao2023Fine,
+  author = {Zhao, Tony Z. and Kumar, Vikash and Levine, Sergey and Finn, Chelsea},
+  title = {{Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware}},
+  year = {2023},
+  doi = {10.48550/arXiv.2304.13705},
+  note = {arXiv preprint},
 }
 
 @article{Jia2026Action,
@@ -1081,12 +1069,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Prasad2024Consistency,
-  author    = {Prasad, Aaditya and Lin, Kevin and Wu, Jimmy and Zhou, Linqi and Bohg, Jeannette},
-  title     = {{Consistency Policy: Accelerated Visuomotor Policies via Consistency Distillation}},
-  booktitle = {Proceedings of Robotics: Science and Systems (RSS)},
-  year      = {2024},
-  doi       = {10.15607/RSS.2024.XX.071}
+@article{Prasad2024Consistency,
+  author = {Prasad, Aaditya and Lin, Kevin and Wu, Jimmy and Zhou, Linqi and Bohg, Jeannette},
+  title = {{Consistency Policy: Accelerated Visuomotor Policies via Consistency Distillation}},
+  year = {2024},
+  doi = {10.15607/RSS.2024.XX.071},
+  note = {arXiv preprint},
 }
 
 @article{Long2026Constraining,
@@ -1097,11 +1085,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Bao2022Dpm,
-  author    = {Bao, Fan and Chen, Jianfei and Li, Chongxuan and Lu, Cheng and Zhou, Yuhao and Zhu, Jun},
-  title     = {{DPM-Solver: A Fast ODE Solver for Diffusion Probabilistic Model Sampling in Around 10 Steps}},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  year      = {2022}
+@article{Bao2022Dpm,
+  author = {Bao, Fan and Chen, Jianfei and Li, Chongxuan and Lu, Cheng and Zhou, Yuhao and Zhu, Jun},
+  title = {{DPM-Solver: A Fast ODE Solver for Diffusion Probabilistic Model Sampling in Around 10 Steps}},
+  year = {2022},
+  doi = {10.52202/068431-0418},
+  note = {arXiv preprint},
 }
 
 @article{Liao2025Delay,
@@ -1200,11 +1189,12 @@ year = {2026}
   doi = {10.1177/02783649251390579},
 }
 
-@inproceedings{Rmer2026From,
-  author    = {R{"o}mer, Ralf and Balletshofer, Julian and Thumm, Jakob and Pavone, Marco and Schoellig, Angela P. and Althoff, Matthias},
-  title     = {{From Demonstrations to Safe Deployment: Path-Consistent Safety Filtering for Diffusion Policies}},
-  booktitle = {Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)},
-  year      = {2026}
+@article{Rmer2026From,
+  author = {Römer, Ralf and Balletshofer, Julian and Thumm, Jakob and Pavone, Marco and Schoellig, Angela P. and Althoff, Matthias},
+  title = {{From Demonstrations to Safe Deployment: Path-Consistent Safety Filtering for Diffusion Policies}},
+  year = {2026},
+  doi = {10.48550/arXiv.2511.06385},
+  note = {arXiv preprint},
 }
 
 @article{Zhang2026Generative,
@@ -1214,18 +1204,20 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Zeng2026Gmt,
-  author    = {Zeng, Huajian and Saroha, Abhishek and Cremers, Daniel and Wang, Xi},
-  title     = {{GMT: Goal-Conditioned Multimodal Transformer for 6-DOF Object Trajectory Synthesis in 3D Scenes}},
-  booktitle = {Proceedings of the International Conference on 3D Vision (3DV)},
-  year      = {2026}
+@article{Zeng2026Gmt,
+  author = {Zeng, Huajian and Saroha, Abhishek and Cremers, Daniel and Wang, Xi},
+  title = {{GMT: Goal-Conditioned Multimodal Transformer for 6-DOF Object Trajectory Synthesis in 3D Scenes}},
+  year = {2026},
+  doi = {10.48550/arXiv.2603.17993},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Wang2024One,
-  author    = {Wang, Zhendong and Li, Zhaoshuo and Mandlekar, Ajay and Xu, Zhenjia and Fan, Jiaojiao and Narang, Yashraj and Fan, Linxi and Zhu, Yuke and Balaji, Yogesh and Zhou, Mingyuan and Liu, Ming-Yu and Zeng, Yu},
-  title     = {{One-Step Diffusion Policy: Fast Visuomotor Policies via Diffusion Distillation}},
-  booktitle = {Proceedings of the International Conference on Machine Learning (ICML)},
-  year      = {2025}
+@article{Wang2024One,
+  author = {Wang, Zhendong and Li, Zhaoshuo and Mandlekar, Ajay and Xu, Zhenjia and Fan, Jiaojiao and Narang, Yashraj and Fan, Linxi and Zhu, Yuke and Balaji, Yogesh and Zhou, Mingyuan and Liu, Ming-Yu and Zeng, Yu},
+  title = {{One-Step Diffusion Policy: Fast Visuomotor Policies via Diffusion Distillation}},
+  year = {2024},
+  doi = {10.48550/arXiv.2410.21257},
+  note = {arXiv preprint},
 }
 
 @article{Lee2025Fast,
@@ -1253,14 +1245,10 @@ year = {2026}
 }
 
 @article{KhansariZadeh2011Stable,
-  author    = {Khansari-Zadeh, S. Mohammad and Billard, Aude},
-  title     = {{Learning Stable Nonlinear Dynamical Systems With Gaussian Mixture Models}},
-  journal   = {IEEE Transactions on Robotics},
-  volume    = {27},
-  number    = {5},
-  pages     = {943--964},
-  year      = {2011},
-  doi       = {10.1109/TRO.2011.2159412}
+  author = {Khansari-Zadeh, S. Mohammad and Billard, Aude},
+  title = {{Learning Stable Nonlinear Dynamical Systems With Gaussian Mixture Models}},
+  year = {2011},
+  note = {arXiv preprint},
 }
 
 @article{Cai2026Msact,
@@ -1279,11 +1267,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Yan2025Maniflow,
-  author    = {Yan, Ge and Zhu, Jiyue and Deng, Yuquan and Yang, Shiqi and Qiu, Ri-Zhao and Cheng, Xuxin and Memmel, Marius and Krishna, Ranjay and Goyal, Ankit and Wang, Xiaolong and Fox, Dieter},
-  title     = {{ManiFlow: A General Robot Manipulation Policy via Consistency Flow Training}},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2025}
+@article{Yan2025Maniflow,
+  author = {Yan, Ge and Zhu, Jiyue and Deng, Yuquan and Yang, Shiqi and Qiu, Ri-Zhao and Cheng, Xuxin and Memmel, Marius and Krishna, Ranjay and Goyal, Ankit and Wang, Xiaolong and Fox, Dieter},
+  title = {{ManiFlow: A General Robot Manipulation Policy via Consistency Flow Training}},
+  year = {2025},
+  doi = {10.48550/arXiv.2509.01819},
+  note = {arXiv preprint},
 }
 
 @article{Geng2025Mean,
@@ -1358,11 +1347,12 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Braun2024Riemannian,
-  author    = {Braun, Max and Jaquier, No{'e}mie and Rozo, Leonel and Asfour, Tamim},
-  title     = {{Riemannian Flow Matching Policy for Robot Motion Learning}},
-  booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
-  year      = {2024}
+@article{Braun2024Riemannian,
+  author = {Braun, Max and Jaquier, Noémie and Rozo, Leonel and Asfour, Tamim},
+  title = {{Riemannian Flow Matching Policy for Robot Motion Learning}},
+  year = {2024},
+  doi = {10.48550/arXiv.2403.10672},
+  note = {arXiv preprint},
 }
 
 @article{Zaghen2025Riemannian,
@@ -1453,24 +1443,20 @@ year = {2026}
   note = {arXiv preprint},
 }
 
-@inproceedings{Ames2019Control,
-  author    = {Ames, Aaron D. and Coogan, Samuel and Egerstedt, Magnus and Notomista, Gennaro and Sreenath, Koushil and Tabuada, Paulo},
-  title     = {{Control Barrier Functions: Theory and Applications}},
-  booktitle = {Proceedings of the European Control Conference (ECC)},
-  pages     = {3420--3431},
-  year      = {2019},
-  doi       = {10.23919/ECC.2019.8796030}
+@article{Ames2019Control,
+  author = {Ames, Aaron D. and Coogan, Samuel and Egerstedt, Magnus and Notomista, Gennaro and Sreenath, Koushil and Tabuada, Paulo},
+  title = {{Control Barrier Functions: Theory and Applications}},
+  year = {2019},
+  doi = {10.23919/ECC.2019.8796030},
+  note = {arXiv preprint},
 }
 
 @article{Cortez2019Control,
-  author    = {Cortez, Wenceslao Shaw and Oetomo, Denny and Manzie, Chris and Choong, Peter},
-  title     = {{Control Barrier Functions for Mechanical Systems: Theory and Application to Robotic Grasping}},
-  journal   = {IEEE Transactions on Control Systems Technology},
-  volume    = {29},
-  number    = {2},
-  pages     = {530--545},
-  year      = {2021},
-  doi       = {10.1109/TCST.2019.2952317}
+  author = {Cortez, Wenceslao Shaw and Oetomo, Denny and Manzie, Chris and Choong, Peter},
+  title = {{Control Barrier Functions for Mechanical Systems: Theory and Application to Robotic Grasping}},
+  year = {2019},
+  doi = {10.48550/arXiv.1903.09816},
+  note = {arXiv preprint},
 }
 
 @article{Beaver2024Optimal,
@@ -1482,42 +1468,33 @@ year = {2026}
 }
 
 @article{Ames2017Control,
-  author    = {Ames, Aaron D. and Xu, Xiangru and Grizzle, Jessy W. and Tabuada, Paulo},
-  title     = {{Control Barrier Function Based Quadratic Programs for Safety Critical Systems}},
-  journal   = {IEEE Transactions on Automatic Control},
-  volume    = {62},
-  number    = {8},
-  pages     = {3861--3876},
-  year      = {2017},
-  doi       = {10.1109/TAC.2016.2638961}
+  author = {Ames, Aaron D. and Xu, Xiangru and Grizzle, Jessy W. and Tabuada, Paulo},
+  title = {{Control Barrier Function Based Quadratic Programs for Safety Critical Systems}},
+  year = {2017},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Wieland2007Constructive,
-  author    = {Wieland, Peter and Allg{"{o}}wer, Frank},
-  title     = {{Constructive Safety Using Control Barrier Functions}},
-  booktitle = {IFAC Proceedings Volumes},
-  volume    = {40},
-  number    = {12},
-  pages     = {513--518},
-  year      = {2007},
-  doi       = {10.3182/20070822-3-ZA-2920.00082}
+@article{Wieland2007Constructive,
+  author = {Wieland, Peter and Allgöwer, Frank},
+  title = {{CONSTRUCTIVE SAFETY USING CONTROL BARRIER FUNCTIONS}},
+  year = {2007},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Mizuta2024Cobl,
-  author    = {Mizuta, Kazuki and Leung, Karen},
-  title     = {{CoBL-Diffusion: Diffusion-Based Conditional Robot Planning in Dynamic Environments Using Control Barrier and Lyapunov Functions}},
-  booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
-  year      = {2024},
-  pages     = {8370--8377},
-  doi       = {10.1109/IROS58592.2024.10802318}
+@article{Mizuta2024Cobl,
+  author = {Mizuta, Kazuki and Leung, Karen},
+  title = {{CoBL-Diffusion: Diffusion-Based Conditional Robot Planning in Dynamic Environments Using Control Barrier and Lyapunov Functions}},
+  year = {2024},
+  doi = {10.48550/arXiv.2406.05309},
+  note = {arXiv preprint},
 }
 
-@inproceedings{Zhou2020Continuity,
-  author    = {Zhou, Yi and Barnes, Connelly and Lu, Jingwan and Yang, Jimei and Li, Hao},
-  title     = {{On the Continuity of Rotation Representations in Neural Networks}},
-  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  year      = {2019},
-  pages     = {5745--5753}
+@article{Zhou2020Continuity,
+  author = {Zhou, Yi and Barnes, Connelly and Lu, Jingwan and Yang, Jimei and Li, Hao},
+  title = {{On the Continuity of Rotation Representations in Neural Networks}},
+  year = {2020},
+  doi = {10.48550/arXiv.1812.07035},
+  note = {arXiv preprint},
 }
 
 % ===== Foundational references (manually added — verify before final deposit) =====
@@ -1532,19 +1509,20 @@ year = {2026}
   doi = {10.1109/ICCV51070.2023.00371},
 }
 
-@inproceedings{Ravi2024Sam2,
-  author    = {Ravi, Nikhila and Gabeur, Valentin and Hu, Yuan-Ting and Hu, Ronghang and Ryali, Chaitanya and Ma, Tengyu and Khedr, Haitham and R"adle, Roman and Rolland, Chloe and Gustafson, Laura and Mintun, Eric and Pan, Junting and Alwala, Kalyan Vasudev and Carion, Nicolas and Wu, Chao-Yuan and Girshick, Ross and Doll'ar, Piotr and Feichtenhofer, Christoph},
-  title     = {{SAM 2: Segment Anything in Images and Videos}},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2025}
+@article{Ravi2024Sam2,
+  author = {Ravi, Nikhila and Gabeur, Valentin and Hu, Yuan-Ting and Hu, Ronghang and Ryali, Chaitanya and Ma, Tengyu and Khedr, Haitham and R\"adle, Roman and Rolland, Chloe and Gustafson, Laura and Mintun, Eric and Pan, Junting and Alwala, Kalyan Vasudev and Carion, Nicolas and Wu, Chao-Yuan and Girshick, Ross and Doll\'ar, Piotr and Feichtenhofer, Christoph},
+  title = {{SAM 2: Segment Anything in Images and Videos}},
+  journal = {arXiv preprint arXiv:2408.00714},
+  year = {2024},
+  doi = {10.48550/arXiv.2408.00714},
 }
 
 % NOTE: SAM 3 is very recent (Meta AI, 2025) -- confirm authors/venue at deposit.
 @article{Meta2025Sam3,
-  author  = {Carion, Nicolas and Gustafson, Laura and Hu, Yuan-Ting and Debnath, Shoubhik and Hu, Ronghang and Suris, Didac and Ryali, Chaitanya and Alwala, Kalyan Vasudev and Khedr, Haitham and Huang, Andrew and Lei, Jie and Ma, Tengyu and Guo, Baishan and Kalla, Arpit and Marks, Markus and Greer, Joseph and Wang, Meng and Sun, Peize and R{\"a}dle, Roman and Afouras, Triantafyllos and Mavroudi, Effrosyni and Xu, Katherine and Wu, Tsung-Han and Zhou, Yu and Momeni, Liliane and Hazra, Rishi and Ding, Shuangrui and Vaze, Sagar and Porcher, Francois and Li, Feng and Li, Siyuan and Kamath, Aishwarya and Cheng, Ho Kei and Doll{\'a}r, Piotr and Ravi, Nikhila and Saenko, Kate and Zhang, Pengchuan and Feichtenhofer, Christoph},
-  title   = {{SAM 3: Segment Anything with Concepts}},
-  journal = {arXiv preprint arXiv:2511.16719},
-  year    = {2025}
+  author = {{Meta AI Research}},
+  title = {{SAM 3: Segment Anything with Concepts}},
+  journal = {arXiv preprint},
+  year = {2025},
 }
 
 
@@ -1634,6 +1612,16 @@ year = {2026}
   doi = {10.1177/0278364911406761},
 }
 
+@inproceedings{kuffner2000rrt,
+  title={RRT-connect: An efficient approach to single-query path planning},
+  author={Kuffner, James J. and LaValle, Steven M.},
+  booktitle={Proceedings 2000 ICRA. Millennium Conference. IEEE International Conference on Robotics and Automation},
+  volume={2},
+  pages={995--1001},
+  year={2000},
+  organization={IEEE}
+}
+
 @article{Zucker2013Chomp,
   author = {Zucker, Matt and Ratliff, Nathan and Dragan, Anca D. and Pivtoraiko, Mihail and Klingensmith, Matthew and Dellin, Christopher M. and Bagnell, J. Andrew and Srinivasa, Siddhartha S.},
   title = {{CHOMP: Covariant Hamiltonian Optimization for Motion Planning}},
@@ -1699,11 +1687,12 @@ year = {2026}
 }
 
 % --- Simulation: ManiSkill 3 / SAPIEN physics (training-data source) ---
-@inproceedings{Tao2024Maniskill3,
-  author    = {Tao, Stone and Xiang, Fanbo and Shukla, Arth and Qin, Yuzhe and Hinrichsen, Xander and Yuan, Xiaodi and Bao, Chen and Lin, Xinsong and Liu, Yulin and Chan, Tse-kai and Gao, Yuan and Li, Xuanlin and Mu, Tongzhou and Xiao, Nan and Gurha, Arnav and Huang, Zhiao and Calandra, Roberto and Chen, Rui and Luo, Shan and Su, Hao},
-  title     = {{ManiSkill3: GPU Parallelized Robotics Simulation and Rendering for Generalizable Embodied AI}},
-  booktitle = {Proceedings of Robotics: Science and Systems (RSS)},
-  year      = {2025}
+@article{Tao2024Maniskill3,
+  author = {Tao, Stone and Xiang, Fanbo and Shukla, Arth and Qin, Yuzhe and Hinrichsen, Xander and Yuan, Xiaodi and Bao, Chen and Lin, Xinsong and Liu, Yulin and Chan, Tse-kai and Gao, Yuan and Li, Xuanlin and Mu, Tongzhou and Xiao, Nan and Gurha, Arnav and Huang, Zhiao and Calandra, Roberto and Chen, Rui and Luo, Shan and Su, Hao},
+  title = {{ManiSkill3: GPU Parallelized Robotics Simulation and Rendering for Generalizable Embodied AI}},
+  journal = {arXiv preprint arXiv:2410.00425},
+  year = {2024},
+  doi = {10.48550/arXiv.2410.00425},
 }
 
 @inproceedings{Xiang2020Sapien,
@@ -2012,24 +2001,4 @@ year = {2026}
   pages = {637--672},
   year = {2020},
   doi = {10.1007/s12532-020-00179-2},
-}
-
-@inproceedings{DeLuca2006Collision,
-  author    = {De Luca, Alessandro and Albu-Sch{\"a}ffer, Alin and Haddadin, Sami and Hirzinger, Gerd},
-  title     = {{Collision detection and localization for joint torque-controlled robot manipulators}},
-  booktitle = {Proceedings of the IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
-  pages     = {3806--3812},
-  year      = {2006},
-  organization = {IEEE}
-}
-
-@article{Haddadin2017Robot,
-  author   = {Haddadin, Sami and De Luca, Alessandro and Albu-Sch{\"a}ffer, Alin},
-  title    = {{Robot Collisions: Detection, Isolation, and Reaction}},
-  journal  = {IEEE Transactions on Robotics},
-  volume   = {33},
-  number   = {6},
-  pages    = {1285--1300},
-  year     = {2017},
-  publisher= {IEEE}
 }

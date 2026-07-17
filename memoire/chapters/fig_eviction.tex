@@ -1,0 +1,62 @@
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    scale=1.2,
+    camera/.style={draw, fill=gray!20, thick, minimum width=0.8cm, minimum height=0.6cm},
+    voxel_kept/.style={draw=blue!80!black, fill=blue!15, thick, minimum size=0.4cm, inner sep=0pt},
+    voxel_evicted/.style={draw=red!80!black, fill=red!15, dashed, thick, minimum size=0.4cm, inner sep=0pt},
+    voxel_out/.style={draw=gray!60, fill=gray!15, thick, minimum size=0.4cm, inner sep=0pt},
+    ray/.style={draw=orange!80, thick, -{Stealth[scale=0.8]}},
+    fov/.style={draw=black!50, dashed, thick}
+]
+
+    % --- Grillage de fond (subtil) ---
+    \draw[step=0.5cm, gray!10, very thin] (-0.5,-1.5) grid (6.5,4.5);
+
+    % --- Champ de vision de la caméra (FOV) ---
+    \fill[yellow!5] (0,1.5) -- (6,4.0) -- (6,-1.0) -- cycle;
+    \draw[fov] (0,1.5) -- (6,4.0) node[above, pos=0.9, black!70] {Limite FOV};
+    \draw[fov] (0,1.5) -- (6,-1.0) node[below, pos=0.9, black!70] {Limite FOV};
+
+    % --- Caméra (origine) ---
+    \node[camera] (cam) at (0,1.5) {};
+    % Dessin de l'objectif
+    \draw[fill=black, thick] (cam.east) ++(0,0.15) -- ++(0.15,0.1) -- ++(0,-0.5) -- ++(-0.15,0.1) -- cycle;
+    \node[left=0.1cm of cam, align=center, font=\sffamily\scriptsize] {Caméra\\RGB-D};
+
+    % --- Surface mesurée (Obstacle) ---
+    \draw[draw=black!70, fill=black!5, thick] 
+        plot[smooth, tension=0.6] coordinates {(4.0,3.5) (4.2,2.0) (3.8,0.5) (4.5,-0.8)} 
+        -- (6.5,-0.8) -- (6.5,3.5) -- cycle;
+    \node[black!70, font=\sffamily\bfseries, rotate=-80] at (3.7,1.8) {Surface mesurée $Z$};
+
+    % --- Rayons de mesure ---
+    % Rayon 1 (vers l'obstacle)
+    \draw[ray] (0.2,1.5) -- (3.95,1.9) node[above, pos=0.5, orange!90!black, font=\sffamily\scriptsize] {Rayon de mesure};
+    
+    % Rayon 2 (vers l'espace libre)
+    \draw[ray] (0.2,1.5) -- (4.15,0.9);
+
+    % --- Voxels ---
+    % 1) Voxel évincé (espace libre détecté)
+    \node[voxel_evicted] (v_evict) at (2.2, 1.2) {};
+    \draw[red!80!black, thick] (v_evict.north west) -- (v_evict.south east);
+    \draw[red!80!black, thick] (v_evict.south west) -- (v_evict.north east);
+    \node[above=0.2cm of v_evict, red!90!black, align=center, font=\sffamily\scriptsize\bfseries] 
+        {Voxel évincé\\(Espace libre : $Z_{\text{voxel}} < Z - \delta_{\text{libre}}$)};
+
+    % 2) Voxel conservé car occulté (derrière la surface)
+    \node[voxel_kept] (v_kept_occ) at (5.2, 2.2) {};
+    \node[right=0.15cm of v_kept_occ, blue!90!black, align=left, font=\sffamily\scriptsize\bfseries] 
+        {Voxel conservé\\(Occulté : $Z_{\text{voxel}} > Z$)};
+
+    % 3) Voxel conservé car hors champ de vision
+    \node[voxel_out] (v_out) at (2.0, 3.2) {};
+    \node[above=0.15cm of v_out, black!60, align=center, font=\sffamily\scriptsize\bfseries] 
+        {Voxel conservé\\(Hors champ)};
+
+    % --- Légende / Annotations de distance ---
+    % Accolade de distance pour Z
+    \draw[decoration={brace, mirror, raise=4pt}, decorate, thick, black!60] 
+        (0.2, 1.4) -- (4.1, 1.4) node[pos=0.5, below=8pt, black!70, font=\sffamily\scriptsize] {Profondeur mesurée $Z$};
+
+\end{tikzpicture}

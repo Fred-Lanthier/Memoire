@@ -16,14 +16,14 @@
 % l'Annexe~\ref{annexe:resultats_complementaires}, pas ici.
 % =================================================================
 
-Ce chapitre présente la validation expérimentale du système, phase d'évaluation de SO5 et SO6. Plutôt que de dérouler les résultats tâche par tâche, il est organisé par question : chaque section apporte la réponse expérimentale à l'un des critères de validation du Chapitre~\ref{sec:Metho}, en s'appuyant sur le banc d'essai qui isole le mieux le mécanisme évalué. La Section~\ref{sec:res_protocole} définit une seule fois les bancs d'essai, les scénarios et les métriques. La Section~\ref{sec:res_validation} valide les composants pris isolément : le modèle géométrique de sécurité, puis le planificateur nominal. La Section~\ref{sec:res_securite} répond à la question centrale, l'apport du filtre SDF-CBF, par une comparaison avec et sans filtre puis par deux études détaillées. La Section~\ref{sec:res_ablations} isole la contribution de chaque mécanisme de conception par des ablations dédiées, et la Section~\ref{sec:res_xarm} évalue le transfert de l'architecture à un bras différent. Les Sections~\ref{sec:res_temps} à~\ref{sec:res_discussion} closent le chapitre par le budget temporel, les cas d'échec et la discussion.
+Ce chapitre présente la vérification et la validation expérimentales du système, phases d'évaluation de \acs{SO}4 et \acs{SO}5. Plutôt que de dérouler les résultats tâche par tâche, il est organisé par question : chaque section apporte la réponse expérimentale à l'un des critères de validation du Chapitre~\ref{sec:Metho}, en s'appuyant sur le banc d'essai qui isole le mieux le mécanisme évalué. La Section~\ref{sec:res_protocole} définit une seule fois les bancs d'essai, les scénarios et les métriques. La Section~\ref{sec:res_validation} valide les composants pris isolément : le modèle géométrique de sécurité, puis le planificateur nominal. La Section~\ref{sec:res_securite} répond à la question centrale, l'apport du filtre \ac{SDF}-\ac{CBF}, par une comparaison avec et sans filtre puis par deux études détaillées. La Section~\ref{sec:res_ablations} isole la contribution de chaque mécanisme de conception par des ablations dédiées, et la Section~\ref{sec:res_xarm} évalue le transfert de l'architecture à un bras différent. Les Sections~\ref{sec:res_temps} à~\ref{sec:res_discussion} closent le chapitre par le budget temporel, les cas d'échec et la discussion.
 
 % =================================================================
 \section{Protocole expérimental}\label{sec:res_protocole}
 % =================================================================
 
 \subsection{Bancs d'essai}\label{subsec:res_bancs}
-Trois bancs d'essai partagent la même instance du système : la chaîne de perception, le planificateur \textit{Flow Matching}, l'exécuteur et le bouclier \ac{CBF} du Chapitre~\ref{sec:Theme2} y sont déployés sans modification, seuls la tâche, le robot et la source du nuage d'obstacles changent (Tableau~\ref{tab:res_bancs}). Le banc d'alimentation exerce le système dans sa configuration complète : la caméra au poignet alimente la chaîne SAM~3/SAM~2 et la carte persistante, qui fournit au filtre ses points obstacles. Les deux bancs de saisie et dépôt remplacent cette perception embarquée par un nuage d'obstacles synthétique publié directement au filtre : la géométrie des obstacles y est contrôlée exactement, ce qui permet de composer les scénarios géométriques (prisme, croissant, sphère mobile) et d'attribuer chaque comportement au mécanisme évalué plutôt qu'au bruit de perception. Le troisième banc reprend la tâche de saisie et dépôt sur un bras xArm7 afin d'évaluer le transfert d'embodiment (Section~\ref{sec:res_xarm}). Conformément à la portée établie au Chapitre~\ref{sec:Metho}, tous les essais sont conduits en simulation Gazebo.
+Trois bancs d'essai partagent la même instance du système : la chaîne de perception, le planificateur \ac{FM}, l'exécuteur et le bouclier \ac{CBF} du Chapitre~\ref{sec:Theme2} y sont déployés sans modification, seuls la tâche, le robot et la source du nuage d'obstacles changent (Tableau~\ref{tab:res_bancs}). Le banc d'alimentation exerce le système dans sa configuration complète : la caméra au poignet alimente la chaîne \ac{SAM}3/\ac{SAM}2 et la carte persistante, qui fournit au filtre ses points obstacles. Les deux bancs de saisie et dépôt remplacent cette perception embarquée par un nuage d'obstacles synthétique publié directement au filtre : la géométrie des obstacles y est contrôlée exactement, ce qui permet de composer les scénarios géométriques (prisme, croissant, sphère mobile) et d'attribuer chaque comportement au mécanisme évalué plutôt qu'au bruit de perception. Le troisième banc reprend la tâche de saisie et dépôt sur un bras xArm7 afin d'évaluer le transfert d'embodiment (Section~\ref{sec:res_xarm}). Conformément à la portée établie au Chapitre~\ref{sec:Metho}, tous les essais sont conduits en simulation Gazebo.
 % TODO: vérifier la ligne « Caméra » du tableau pour les bancs saisie-dépôt
 % (statique ?) et sa cohérence avec la portée du ch. 3 (« une caméra RGB-D
 % montée au poignet ») ; préciser d'où vient le conditionnement (SAM vs
@@ -37,11 +37,11 @@ Trois bancs d'essai partagent la même instance du système : la chaîne de perc
 \toprule
  & \textbf{Alimentation} & \textbf{Saisie et dépôt} & \textbf{Saisie et dépôt} \\
 \midrule
-Robot & Panda 7 DDL & Panda 7 DDL & xArm7 \\
+Robot & Panda 7 \acs{DDL} & Panda 7 \acs{DDL} & xArm7 \\
 Outil / effecteur & fourchette & pince Franka & pince Franka \\
 Caméra (D415) & poignet & statique & statique \\
 Source d'obstacles & carte persistante & nuage synthétique & nuage synthétique \\
-Politique FM & alimentation & saisie-dépôt & saisie-dépôt (identique) \\
+Politique \ac{FM} & alimentation & saisie-dépôt & saisie-dépôt (identique) \\
 % TODO: compléter/ajuster les lignes (liens protégés, d_safe, cadences si
 % elles diffèrent d'un banc à l'autre).
 \bottomrule
@@ -93,7 +93,7 @@ Sauf mention contraire, les taux de succès et les collisions sont rapportés en
 % =================================================================
 \section{Validation des composants}\label{sec:res_validation}
 % =================================================================
-Cette section valide isolément les deux composants appris du système avant leur évaluation conjointe : le modèle géométrique au c\oe ur du filtre de sécurité, la \ac{SDF} du robot approximée par polynômes de Bernstein (Section~\ref{subsec:sdf_robot}), puis le planificateur nominal par \textit{Flow Matching} (Section~\ref{sec:CFM}).
+Cette section valide isolément les deux composants appris du système avant leur évaluation conjointe : le modèle géométrique au c\oe ur du filtre de sécurité, la \ac{SDF} du robot approximée par polynômes de Bernstein (Section~\ref{subsec:sdf_robot}), puis le planificateur nominal par \ac{FM} (Section~\ref{sec:CFM}).
 
 \subsection{Précision du SDF du robot}\label{subsec:res_sdf_precision}
 Trois propriétés de la \ac{SDF} sont évaluées par rapport à la vérité terrain calculée sur les maillages du robot : la précision de la distance, la qualité de la direction du gradient et le temps de calcul.
@@ -134,6 +134,28 @@ La figure~\ref{fig:temps_SDF} compare le temps d'évaluation conjointe de la dis
     \includesvg[inkscapelatex=false]{images/Results/fig3_speed.svg}
     \caption{Temps de calcul de la distance et du gradient : modèle de Bernstein (\ac{GPU}) contre vérité terrain sur maillages (\ac{CPU}), en fonction du nombre de points de requête.}\label{fig:temps_SDF}
 \end{figure}
+
+Le Tableau~\ref{tab:gradient_comparison} complète cette mesure en comparant la forme close du gradient (Section~\ref{subsec:gradient}) à la différentiation automatique (\texttt{torch.autograd} de \texttt{PyTorch}) pour l'évaluation conjointe des barrières et de la Jacobienne de contrainte complète. La forme analytique est systématiquement plus rapide, d'un écart qui croît avec le nombre de liens protégés, et l'erreur maximale entre les deux Jacobiennes reste au niveau de la précision machine en simple précision, ce qui confirme l'exactitude de la dérivation.
+
+\begin{table}[htbp]
+\centering
+\caption{Temps d'évaluation conjointe des barrières $h_l$ et de la Jacobienne de contrainte complète ($L\times 7$) pour $100$ points obstacles, en fonction du nombre $L$ de liens protégés inclus : gradient analytique en forme close contre différentiation automatique (moyenne $\pm$ écart-type en ms, $100$ répétitions), avec l'erreur absolue maximale entre les deux Jacobiennes.}
+\label{tab:gradient_comparison}
+\begin{tabular}{cccc}
+\toprule
+\textbf{Liens $L$} & \textbf{Analytique [ms]} & \textbf{Diff. automatique [ms]} & \textbf{Erreur max. gradient} \\
+\midrule
+1 & $5.596 \pm 0.413$ & $7.180 \pm 0.113$ & $5.960 \times 10^{-8}$ \\
+2 & $5.549 \pm 0.345$ & $8.010 \pm 0.389$ & $2.235 \times 10^{-7}$ \\
+3 & $5.432 \pm 0.149$ & $8.836 \pm 0.457$ & $2.373 \times 10^{-7}$ \\
+4 & $5.444 \pm 0.106$ & $9.789 \pm 0.127$ & $2.373 \times 10^{-7}$ \\
+5 & $5.538 \pm 0.398$ & $10.349 \pm 0.321$ & $2.980 \times 10^{-7}$ \\
+6 & $7.644 \pm 0.156$ & $12.257 \pm 0.517$ & $2.980 \times 10^{-7}$ \\
+7 & $7.792 \pm 0.315$ & $12.899 \pm 0.288$ & $2.980 \times 10^{-7}$ \\
+8 & $7.698 \pm 0.172$ & $13.479 \pm 0.233$ & $2.980 \times 10^{-7}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Sélection des points critiques}\label{subsec:res_points_critiques}
 La Figure~\ref{fig:Red_point} illustre en situation le mécanisme de sélection de la Section~\ref{subsec:selection} : parmi les voxels de la carte persistante, le préfiltre sphérique autour des liens protégés puis la conservation des $K=100$ points de plus faible \ac{SDF} corps-complet retiennent les points rouges, seuls transmis au filtre comme contraintes potentielles. La sélection épouse la géométrie du bras plutôt qu'une simple boule autour de l'outil : des points sont retenus le long des liens intermédiaires dès qu'un obstacle s'en approche, conformément à la protection corps-complet du Chapitre~\ref{sec:Theme2}. L'isosurface $d_{\mathrm{robot}}=1{,}5$~cm tracée autour de l'outil matérialise la frontière certifiée $h=0$ que le filtre défend.
@@ -188,7 +210,7 @@ La Figure~\ref{fig:fm_trajectoire_multimodale} superpose plusieurs générations
 % =================================================================
 \section{Sécurité et évitement d'obstacles}\label{sec:res_securite}
 % =================================================================
-Cette section répond à la question centrale de ce mémoire : le filtre SDF-CBF permet-il d'exécuter sans collision, dans des environnements non vus à l'entraînement, les trajectoires produites par le planificateur génératif, sans réentraînement de celui-ci ? La comparaison principale oppose le système complet au même système en mode observation (\textit{monitor only}), où la barrière et les diagnostics sont calculés mais aucune correction n'est appliquée.
+Cette section répond à la question centrale de ce mémoire : le filtre \ac{SDF}-\ac{CBF} permet-il d'exécuter sans collision, dans des environnements non vus à l'entraînement, les trajectoires produites par le planificateur génératif, sans réentraînement de celui-ci ? La comparaison principale oppose le système complet au même système en mode observation (\textit{monitor only}), où la barrière et les diagnostics sont calculés mais aucune correction n'est appliquée.
 
 \subsection{Résultats agrégés avec et sans filtre}\label{subsec:res_ab}
 % C'EST LE TABLEAU MAÎTRE : toutes les sections suivantes y renvoient.
@@ -203,7 +225,7 @@ Cette section répond à la question centrale de ce mémoire : le filtre SDF-CBF
 
 \begin{table}[htbp]
 \centering
-\caption{Comparaison avec et sans filtre SDF-CBF, agrégée sur $N$ essais par cellule : taux de succès, collisions, marge minimale $h_{\min}$ et déviation de trajectoire (métriques de la Section~\ref{subsec:res_metriques}).}
+\caption{Comparaison avec et sans filtre \ac{SDF}-\ac{CBF}, agrégée sur $N$ essais par cellule : taux de succès, collisions, marge minimale $h_{\min}$ et déviation de trajectoire (métriques de la Section~\ref{subsec:res_metriques}).}
 \label{tab:res_master}
 \begin{tabular}{llcccc}
 \toprule
@@ -226,7 +248,7 @@ La Figure~\ref{fig:comparaison_avec_sans} illustre la comparaison sur un essai r
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/comparison_avec_sans.svg}
-    \caption{Trajectoire de la pointe de l'outil avec et sans filtre SDF-CBF pour un essai représentatif, superposée au nuage d'obstacles de la carte persistante et à la cible.}\label{fig:comparaison_avec_sans}
+    \caption{Trajectoire de la pointe de l'outil avec et sans filtre \ac{SDF}-\ac{CBF} pour un essai représentatif, superposée au nuage d'obstacles de la carte persistante et à la cible.}\label{fig:comparaison_avec_sans}
     % TODO: vérifier le contenu exact de la figure et ajuster la légende.
 \end{figure}
 
@@ -415,7 +437,7 @@ L'étude détaillée de la Section~\ref{subsec:res_feeding_deep} montre que la r
 % NOTE : pas de sous-section xArm7 au Chapitre 4 (décision) ; le paragraphe de
 % mise en place dit simplement que la méthodologie est agnostique à
 % l'embodiment et que seuls cinématique + SDF par lien sont réentraînés.
-Le transfert vers le xArm7 n'introduit aucune méthodologie nouvelle : la chaîne du Chapitre~\ref{sec:Theme2} est agnostique à l'embodiment. La politique de \textit{Flow Matching} génère des poses de l'outil dans l'espace de la tâche et son conditionnement perceptif est inchangé ; seuls les éléments propres au bras sont substitués, à savoir le modèle cinématique (URDF et cinématique inverse) et les \ac{SDF} de Bernstein par lien, réentraînés sur les maillages du xArm7 par le protocole de la Section~\ref{subsec:sdf_robot}. Le filtre de sécurité, ses barrières et ses réglages sont identiques. Le Tableau~\ref{tab:res_xarm} compare les deux bras sur les scénarios communs de la tâche de saisie et dépôt.
+Le transfert vers le xArm7 n'introduit aucune méthodologie nouvelle : la chaîne du Chapitre~\ref{sec:Theme2} est agnostique à l'embodiment. La politique de \ac{FM} génère des poses de l'outil dans l'espace de la tâche et son conditionnement perceptif est inchangé ; seuls les éléments propres au bras sont substitués, à savoir le modèle cinématique (URDF et cinématique inverse) et les \ac{SDF} de Bernstein par lien, réentraînés sur les maillages du xArm7 par le protocole de la Section~\ref{subsec:sdf_robot}. Le filtre de sécurité, ses barrières et ses réglages sont identiques. Le Tableau~\ref{tab:res_xarm} compare les deux bras sur les scénarios communs de la tâche de saisie et dépôt.
 % TODO: vérifier que les réglages sont réellement identiques (d_safe, K,
 % nombre de liens protégés du xArm7, politique FM strictement inchangée ou
 % adaptée) ; ajouter UNE figure côte à côte (même scénario, deux bras).
@@ -454,7 +476,7 @@ Ensuite, la sélection des points critiques (médiane à $39{,}62$~ms) s'exécut
 % TODO: confirmer la cadence effective mesurée et l'obsolescence réelle.
 Enfin, la replanification tient largement sa cadence : la génération ($62{,}07$~ms en moyenne) et l'encodage s'inscrivent dans la période de $100$~ms à $10$~Hz, et la cinématique inverse est négligeable ($0{,}27$~ms).
 
-La ligne \texttt{sam3\_detect} ne compte que deux occurrences, et c'est là un comportement nominal plutôt qu'un déficit statistique : SAM~3 n'est invoqué qu'à l'acquisition initiale de la cible puis à chaque réacquisition après une perte de suivi, le suivi continu étant assuré par SAM~2 (\texttt{sam2\_track}). Le nombre d'occurrences compte donc les (ré)acquisitions de l'essai, et le coût de chacune (jusqu'à $335$~ms) est absorbé hors du chemin critique par l'architecture asynchrone, la carte persistante continuant d'alimenter le filtre pendant la détection.
+La ligne \texttt{sam3\_detect} ne compte que deux occurrences, et c'est là un comportement nominal plutôt qu'un déficit statistique : \ac{SAM}3 n'est invoqué qu'à l'acquisition initiale de la cible puis à chaque réacquisition après une perte de suivi, le suivi continu étant assuré par \ac{SAM}2 (\texttt{sam2\_track}). Le nombre d'occurrences compte donc les (ré)acquisitions de l'essai, et le coût de chacune (jusqu'à $335$~ms) est absorbé hors du chemin critique par l'architecture asynchrone, la carte persistante continuant d'alimenter le filtre pendant la détection.
 
 \begin{table}[htbp]
 \centering

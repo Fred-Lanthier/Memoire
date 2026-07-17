@@ -1,0 +1,58 @@
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    scale=1.3,
+    axis/.style={-{Stealth[scale=0.95]}, thick, draw=black!60},
+    vec/.style={-{Stealth[scale=1.15]}, very thick},
+    constraint_line/.style={draw=orange!90!black, very thick},
+    projection_line/.style={draw=red!80, dashed, thick, -{Stealth[scale=1.0]}},
+    safe_region/.style={draw=blue!60!black, fill=blue!8, thick}
+]
+
+    % --- Grillage de fond (subtil) ---
+    \draw[step=0.5cm, gray!10, very thin] (-0.5,-0.5) grid (5.5,5.0);
+
+    % --- Axes de vitesse ---
+    \draw[axis] (-0.2,0) -- (5.2,0) node[right, black] {$\dot{q}_1$};
+    \draw[axis] (0,-0.2) -- (0,4.8) node[above, black] {$\dot{q}_2$};
+
+    % --- Espace admissible (Polytope convexe) ---
+    % Sommets du polyèdre : (0.5, 0.5) -> (3.0, 0.5) -> (3.75, 2.75) -> (2.0, 4.5) -> (0.5, 3.0) -> cycle
+    \fill[blue!5] (0.5,0.5) -- (3.0,0.5) -- (4.0,2.5) -- (2.0,4.5) -- (0.5,3.0) -- cycle;
+    \draw[safe_region] (0.5,0.5) -- (3.0,0.5) -- (4.0,2.5) -- (2.0,4.5) -- (0.5,3.0) -- cycle;
+    \node[blue!90!black, font=\sffamily\bfseries\scriptsize, align=center] at (1.8,2.0) {Espace de vitesse\\admissible\\$\mathcal{C} \cap \text{saturations}$};
+
+    % --- Droites des contraintes actives ---
+    % Contrainte principale : x + y = 6.5 (passe par (4.0, 2.5) et (2.0, 4.5))
+    \draw[constraint_line] (1.2, 5.3) -- (4.7, 1.8) node[right, pos=0.8, orange!90!black, font=\sffamily\scriptsize\bfseries, rotate=-45] {$\nabla h_l^\top \dot{\mathbf{q}} = b(h_l) + \eta_l$};
+
+    % --- Points et Vecteurs ---
+    % Origine
+    \coordinate (O) at (0,0);
+    
+    % Vitesse nominale (hors de la zone sûre)
+    \coordinate (Qbase) at (4.75, 3.75);
+    
+    % Vitesse projetée (sur la contrainte critique)
+    \coordinate (Qproj) at (3.75, 2.75);
+
+    % Vecteur q_base
+    \draw[vec, draw=black!80] (O) -- (Qbase) node[right, pos=0.9, black] {$\dot{\mathbf{q}}_{\text{base}}$};
+    \fill[black] (Qbase) circle (1.5pt) node[above right, font=\sffamily\scriptsize\bfseries] {Nominale brute};
+
+    % Vecteur q_proj
+    \draw[vec, draw=blue!80!black] (O) -- (Qproj) node[left, pos=0.8, blue!90!black] {$\dot{\mathbf{q}}_{\text{proj}}$};
+    \fill[blue!80!black] (Qproj) circle (1.5pt) node[below left, font=\sffamily\scriptsize\bfseries] {Sécurisée};
+
+    % Vecteur de correction (Projection orthogonale)
+    \draw[projection_line] (Qbase) -- (Qproj) node[right, pos=0.5, red!80!black, font=\sffamily\scriptsize\bfseries] {$\Delta\dot{\mathbf{q}}_{\text{CBF}}$};
+
+    % --- Symbole d'angle droit pour la projection orthogonale ---
+    % A = Qproj (3.75, 2.75)
+    % Vecteur directionnel unitaire de la droite : (-1/sqrt(2), 1/sqrt(2)) ~ (-0.15, 0.15)
+    % Vecteur normal unitaire : (1/sqrt(2), 1/sqrt(2)) ~ (0.15, 0.15)
+    \draw[thick, black!60] (3.55, 2.95) -- (3.75, 3.15) -- (3.95, 2.95);
+
+    % --- Annotations explicatives ---
+    \node[red!80!black, font=\sffamily\scriptsize, align=left] at (4.2, 4.4) {Correction\\de sécurité};
+
+\end{tikzpicture}
