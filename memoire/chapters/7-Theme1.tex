@@ -9,7 +9,7 @@ Ce chapitre présente la motivation de la recherche proposée, en dérive le but
 %------------------------------------------------------------------
 Les politiques génératives, portées par les modèles de diffusion puis par le \ac{FM}, ont démontré ces dernières années leur capacité à apprendre des tâches de manipulation à partir d'un nombre restreint de démonstrations. Elles capturent la multimodalité des gestes experts et, dans le cas du \ac{FM}, s'échantillonnent en quelques itérations d'intégration déterministes à échantillon initial fixé, compatibles avec une replanification en boucle fermée.
 
-Malgré ces progrès, ces politiques restent le reflet de leurs données : comme elles sont entraînées sur des démonstrations sans obstacle, elles n'offrent aucune garantie face à un environnement qui n'a pas été vu à l'entraînement. La revue de littérature montre que les réponses existantes à cette limite se répartissent en trois familles, dont les deux premières portent un coût rédhibitoire pour l'application visée.
+Malgré ces progrès, ces politiques restent le reflet de leurs données : lorsqu'elles sont entraînées sur des démonstrations sans obstacle, elles n'offrent aucune garantie face à un environnement qui n'a pas été vu à l'entraînement. La revue de littérature montre que les réponses existantes à cette limite se répartissent en trois familles, dont les deux premières portent un coût rédhibitoire pour l'application visée.
 
 La première contraint le processus de génération lui-même, au prix d'une dérive distributionnelle et d'un surcoût de calcul à chaque pas d'échantillonnage. La deuxième enseigne l'évitement au modèle : entraîner une politique générative à éviter les collisions est possible, mais exige un effort considérable, qu'il s'agisse de collecter des démonstrations enrichies d'obstacles, à recommencer pour chaque famille de scènes, ou de faire corriger les trajectoires défaillantes par un opérateur au déploiement, comme le propose FlowCorrect~\cite{Welte2026Flowcorrect}.
 
@@ -37,9 +37,6 @@ Concevoir, implémenter et valider en simulation une architecture découplée qu
 S'y ajoute une exigence transversale de temps réel : la chaîne complète doit tenir la fréquence de commande visée, le filtre de sécurité résolvant sa projection à la cadence de la boucle de commande, complété d'une couche de freinage à plus haute cadence qui re-certifie la commande maintenue entre deux résolutions, pendant que la génération se poursuit en parallèle.
 
 Le Tableau~\ref{tab:criteres_validation} rend ces objectifs mesurables en associant à l'évaluation de \acs{SO}4 ses métriques, sa condition de comparaison et son critère d'acceptation ; les valeurs mesurées sont rapportées en regard de ces critères au Chapitre~\ref{sec:Theme3}.
-% TODO : geler les seuils numériques définitifs (marge de non-infériorité du
-% critère de tâche, seuil de rappel du critère de persistance) avant le dépôt,
-% en cohérence avec les campagnes finales du Chapitre 5.
 
 \begin{table}[htbp]
 \centering

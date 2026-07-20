@@ -48,13 +48,13 @@ La calibration de la caméra statique par rapport au robot est réalisée par d�
 Chaque démonstration réelle suit la séquence suivante :
 \begin{enumerate}
   \item montage de la caméra RGB-D sur le support officiel Franka à l'effecteur ;
-  \item positionnement du robot dans la configuration articulaire initiale $\mathbf{q}_0$ donnée à la Section~\ref{subsec:Protocol} ;
+  \item positionnement du robot dans la configuration articulaire initiale $\mathbf{q}_0=[0,\,-0{,}126,\,0,\,-2{,}193,\,0,\,2{,}065,\,0{,}786]$~rad ;
   \item passage du robot en mode de guidage manuel, permettant à l'opérateur de le déplacer librement ;
   \item exécution par guidage kinesthésique de la trajectoire à apprendre, depuis la posture initiale jusqu'à la cible, selon le schéma d'approche de la Section~\ref{subsec:Protocol} ;
   \item arrêt de l'enregistrement et écriture des données de la trajectoire dans un fichier JSON.
 \end{enumerate}
 
-La Figure~\ref{fig:protocole_echantillonnage} illustre la grille d'échantillonnage des configurations définie à la Section~\ref{subsec:Protocol}.
+La grille d'échantillonnage de la Section~\ref{subsec:Protocol} (Figure~\ref{fig:protocole_echantillonnage}) est définie numériquement comme suit : l'assiette occupe successivement les $9$ positions d'une grille $3\times3$ exprimée dans $\mathcal{F}_b$, centrée à $(0{,}40,\;0)$~m, de pas $0{,}08$~m selon $x_b$ et $0{,}20$~m selon $y_b$ ; pour chacune, la cible occupe $5$ positions disposées en quinconce dans le repère assiette (demi-écart de $0{,}06$~m), chacune assortie d'une orientation aléatoire, soit $45$ configurations réalisées une fois chacune.
 
 \section*{Architecture d'acquisition}
 L'enregistrement repose sur deux nœuds ROS distincts. Le premier, écrit en C++ pour minimiser la latence de lecture, lit l'état du robot et publie :
@@ -164,7 +164,7 @@ Pour la tâche d'alimentation, le robot est le Panda muni de la fourchette, obte
 Pour la tâche de saisie et dépôt, le robot est le Panda standard et la saisie est physique : la politique ne commande que la position et la pince, l'orientation verticale de la pince étant fixée par la configuration initiale et maintenue par le contrôleur. Le cube (dynamique, $4$~cm, lacet aléatoire) apparaît dans un rectangle de $10\times10$~cm sous l'empreinte initiale de la caméra de poignet, ce qui garantit sa visibilité dans la première image ; la boîte de dépôt ($16\times16\times1$~cm) apparaît dans une zone aléatoire à la droite du robot couvrant les positions utilisées au déploiement. La machine à états à huit phases (survol, descente, saisie, dégagement, transport, dépôt, relâchement, retrait) suit ses segments de chemin par jalon : le paramètre d'avancement ne progresse que lorsque le TCP a rejoint le point courant du chemin, de sorte que les portions raides de l'arc de transport sont effectivement parcourues plutôt que coupées. Comme pour la tâche d'alimentation, le cube et la boîte sont segmentés par SAM~3 dans la première image et leurs nuages de points sont reconstruits par la chaîne de rétroprojection de la Section~\ref{subsec:pretraitement}. Quatre environnements parallèles sur dix épisodes produisent les $40$ trajectoires (Figure~\ref{fig:sim_pickplace_phases}).
 
 \section*{Reconstruction géométrique du nuage conditionnel}
-Le nuage de la cible est d'abord reconstruit dans le repère de la caméra : le masque de la première image est superposé à la carte de profondeur initiale afin de ne conserver que les pixels de la cible dotés d'une profondeur valide, chaque pixel étant rétroprojeté par le modèle sténopé détaillé en fin d'annexe. Le nuage résultant est exprimé dans le repère de la base du robot par la relation
+La détection initiale est réalisée par SAM~3 sur la première image, avec une requête textuelle décrivant la cible : \textit{Pink block}, \textit{Broccoli}, \textit{Carrot slice}, \textit{Chicken breast}, \textit{Sushi}, \textit{Nigiri}, \textit{Sausage} ou \textit{Potato} pour la tâche d'alimentation, \textit{Red Cube} et \textit{Brown box} pour la tâche de saisie et dépôt ; le masque au score de confiance le plus élevé est retenu. Le nuage de la cible est ensuite reconstruit dans le repère de la caméra : le masque de la première image est superposé à la carte de profondeur initiale afin de ne conserver que les pixels de la cible dotés d'une profondeur valide, chaque pixel étant rétroprojeté par le modèle sténopé détaillé en fin d'annexe. Le nuage résultant est exprimé dans le repère de la base du robot par la relation
 \begin{equation}\label{eq:pose_cam}
   \mathbf{T}_{cible}^{b} = \mathbf{T}_{e}^{b} \mathbf{T}_{c}^{e} \mathbf{T}_{cible}^{c},
 \end{equation}
@@ -507,17 +507,42 @@ Pas d'intégration à l'inférence $N$ & $10$ \\
 
 \Annexe{Compléments de la chaîne nominale}\label{annexe:chaine_nominale}
 
-Cette annexe rassemble les détails numériques du solveur de cinématique inverse de la Section~\ref{subsec:ik} ; les notations sont celles du chapitre.
+Cette annexe rassemble les détails numériques du solveur de cinématique inverse et du réajustement temporel de la Section~\ref{sec:Conversion} ; les notations sont celles du chapitre.
+
+\section*{Incrément de Gauss--Newton amorti}
+Chaque itération du solveur applique l'incrément
+\begin{equation}
+\Delta\mathbf{q} =
+\underbrace{-\,\mathbf{J}^{+}\mathbf{e}}_{\text{suivi de pose}}
+\;+\;
+\underbrace{\big(\mathbf{I}-\mathbf{J}^{+}\mathbf{J}\big)\big(-k_0(\mathbf{q}-\mathbf{q}_{\mathrm{ref}})\big)}_{\text{résolution de la redondance}},
+\qquad
+\mathbf{J}^{+}=\mathbf{J}^{\top}\big(\mathbf{J}\mathbf{J}^{\top}+\lambda\mathbf{I}\big)^{-1},
+\end{equation}
+où $\mathbf{J}(\mathbf{q})\in\mathbb{R}^{6\times7}$ est la Jacobienne géométrique du TCP : pseudo-inverse amortie~\cite{Nakamura1986Singularity, Wampler1986Damped} pour le suivi, l'amortissement $\lambda$ régularisant le voisinage des singularités, et rappel vers la posture de référence $\mathbf{q}_{\mathrm{ref}}$ dans le noyau de $\mathbf{J}$~\cite{Liegeois1977Redundancy}.
 
 \section*{Erreur de pose et linéarisation}
 À l'itération courante, l'écart entre la pose atteinte $\mathbf{T}_{e}^{b}(\mathbf{q})$ et la pose désirée $\mathbf{T}_{e,k}^{b\star}$ est mesuré dans l'algèbre de Lie de $SE(3)$, via le logarithme du groupe,
-\[
+\begin{equation}
 \mathbf{e}(\mathbf{q}) = \log\!\big( (\mathbf{T}_{e,k}^{b\star})^{-1}\,\mathbf{T}_{e}^{b}(\mathbf{q}) \big) \in \mathbb{R}^6.
-\]
+\end{equation}
 Le solveur utilise la linéarisation $\mathbf{e}(\mathbf{q}+\Delta\mathbf{q})\approx\mathbf{e}(\mathbf{q})+\mathbf{J}(\mathbf{q})\,\Delta\mathbf{q}$ : l'omission de la Jacobienne du logarithme de $SE(3)$, qui tend vers l'identité à la convergence, est l'approximation de Gauss--Newton standard, n'altère que la direction des premiers pas, loin de la convergence, et ne change pas le point fixe $\mathbf{e}=\mathbf{0}$. Le projecteur $\mathbf{I}-\mathbf{J}^{+}\mathbf{J}$ n'est par ailleurs qu'un projecteur approché lorsque $\lambda>0$ : la tâche secondaire n'influence la tâche principale qu'au premier ordre et à l'amortissement près.
 
 \section*{Bornes d'itération et garde-fous numériques}
 L'incrément est borné en norme ($\|\Delta\mathbf{q}\|\le\delta_{\max}=0{,}2$~rad), puis intégré sur la variété des configurations, $\mathbf{q}\leftarrow\mathbf{q}\oplus\Delta\mathbf{q}$, jusqu'à ce que $\|\mathbf{e}\|<\varepsilon=10^{-5}$ ou que $50$ itérations soient atteintes. Des garde-fous numériques complètent la robustesse du solveur : déroulement des écarts successifs dans $[-\pi,\pi]$, projection de la rotation cible sur $SO(3)$, et rejet des configurations dégénérées au profit de la configuration d'amorçage.
+
+\section*{Réajustement temporel}
+La longueur d'un segment est mesurée par la norme articulaire pondérée $\ell_i = \| \mathbf{U}\,(\mathbf{q}_{i+1}-\mathbf{q}_i)\|$, $\mathbf{U} = \mathrm{diag}(\mathbf{u})$, dont les poids, tous égaux à l'unité dans la configuration retenue, la réduisent à la norme euclidienne. Les durées et instants de passage valent
+\begin{equation}
+\Delta t_i = \frac{\max(\ell_i,\,\ell_{\min})}{v^{\star}},
+\qquad
+t_1 = 0,\quad t_{i+1} = t_i + \Delta t_i,
+\end{equation}
+avec le plancher $\ell_{\min} = f_{\min}\,L/(H-1)$, fraction $f_{\min}=0{,}02$ de la longueur totale $L=\sum_i \ell_i$ rapportée au nombre de segments : un segment quasi stationnaire ne peut recevoir une durée nulle, qui ferait diverger la vitesse feedforward ; les segments plus courts que ce plancher sont en contrepartie parcourus à une vitesse inférieure à $v^{\star}$. La vitesse feedforward publiée par l'exécuteur est la différence finie
+\begin{equation}\label{eq:diff_num}
+\dot{\mathbf{q}}_{\mathrm{ff}}(t) = \frac{\mathbf{q}_{i+1}-\mathbf{q}_i}{t_{i+1}-t_i},
+\qquad t \in [t_i, t_{i+1}[.
+\end{equation}
 
 \Annexe{Entraînement du champ de distance signée du robot}\label{annexe:sdf_training}
 
@@ -598,48 +623,48 @@ $\omega$ & pondération de proximité & $1+4\,e^{-\bar{d}/\bar{\delta}}$ \\
 Cette annexe dérive les trois différentielles dont la composition, énoncée à la Section~\ref{subsec:gradient}, fournit le gradient articulaire exact de la barrière.
 
 \paragraph{Différentielle cinématique.} L'obstacle est fixe dans le repère de base $\mathcal{F}_b$ ($\dot{\mathbf{p}}_i=\mathbf{0}$), mais paraît mobile dans le repère $\mathcal{F}_l$ que les articulations déplacent. Sa position locale $\mathbf{x}_{l,i}=(\mathbf{R}_{l}^{b})^{\top}(\mathbf{p}_i-\mathbf{d}_{l}^{b})$ vérifie la relation de fermeture $\mathbf{p}_i = \mathbf{d}_{l}^{b} + \mathbf{R}_{l}^{b}\,\mathbf{x}_{l,i}$, où $\mathbf{R}_{l}^{b}(\mathbf{q})$ et $\mathbf{d}_{l}^{b}(\mathbf{q})$ sont la rotation et la translation de $\mathbf{T}_{l}^{b}(\mathbf{q})$. En dérivant cette relation par rapport au temps et en annulant $\dot{\mathbf{p}}_i$ :
-\[
+\begin{equation}
 \mathbf{0} = \dot{\mathbf{d}}_{l}^{b} + \dot{\mathbf{R}}_{l}^{b}\,\mathbf{x}_{l,i} + \mathbf{R}_{l}^{b}\,\dot{\mathbf{x}}_{l,i}.
-\]
+\end{equation}
 Les blocs linéaire et angulaire de la Jacobienne géométrique du lien, $\mathbf{J}_{L,l}^{b}$ et $\mathbf{J}_{A,l}^{b}$, relient ces dérivées à la vitesse articulaire par $\dot{\mathbf{d}}_{l}^{b} = \mathbf{J}_{L,l}^{b}\dot{\mathbf{q}}$ et $\dot{\mathbf{R}}_{l}^{b} = \big[\mathbf{J}_{A,l}^{b}\dot{\mathbf{q}}\big]_\times\,\mathbf{R}_{l}^{b}$. En les substituant et en isolant le terme de vitesse locale :
-\[
+\begin{equation}
 \mathbf{R}_{l}^{b}\,\dot{\mathbf{x}}_{l,i}
 = -\,\mathbf{J}_{L,l}^{b}\dot{\mathbf{q}}
 - \big[\mathbf{J}_{A,l}^{b}\dot{\mathbf{q}}\big]_\times\,\mathbf{R}_{l}^{b}\,\mathbf{x}_{l,i}.
-\]
+\end{equation}
 Une multiplication à gauche par $(\mathbf{R}_{l}^{b})^{\top}$, suivie des identités du produit vectoriel $\mathbf{R}^{\top}[\mathbf{a}]_\times\mathbf{R}=[\mathbf{R}^{\top}\mathbf{a}]_\times$ et $[\mathbf{a}]_\times\mathbf{b}=-[\mathbf{b}]_\times\mathbf{a}$, isole la Jacobienne recherchée $\mathbf{J}_{x_{l,i}}=\partial\mathbf{x}_{l,i}/\partial\mathbf{q}$, telle que $\dot{\mathbf{x}}_{l,i}=\mathbf{J}_{x_{l,i}}\dot{\mathbf{q}}$ :
-\[
+\begin{equation}
 \mathbf{J}_{x_{l,i}}(\mathbf{q}) =
 -\,(\mathbf{R}_{l}^{b})^{\top}\,\mathbf{J}_{L,l}^{b}
 + \big[\mathbf{x}_{l,i}\big]_\times\,(\mathbf{R}_{l}^{b})^{\top}\,\mathbf{J}_{A,l}^{b},
-\]
+\end{equation}
 le premier terme traduisant la translation du repère du lien, le second sa rotation ; $[\mathbf{x}_{l,i}]_\times$ est la matrice antisymétrique associée au produit vectoriel.
 
 \paragraph{Jacobienne de la normalisation.} La normalisation qui ramène l'obstacle dans le cube d'apprentissage, $\mathbf{u}=(\mathbf{x}_{l,i}-\mathbf{o}_l)/(2 s_l)+\tfrac{1}{2}\mathbf{1}$, est affine ; sa Jacobienne est la matrice diagonale constante
-\[
+\begin{equation}
 \frac{\partial\mathbf{u}}{\partial\mathbf{x}_{l,i}} = \frac{1}{2 s_l}\,\mathbf{I}_3.
-\]
+\end{equation}
 
 \paragraph{Gradient du SDF de Bernstein.} La dérivée d'un polynôme de Bernstein de degré $n-1$ se ramène à la base de degré immédiatement inférieur par la règle d'abaissement
-\[
+\begin{equation}
 \frac{dB_a(u)}{du} = (n-1)\big(B_{a-1}^{(n-2)}(u) - B_a^{(n-2)}(u)\big),
-\]
+\end{equation}
 d'où, en dérivant le produit tensoriel selon chacun des trois axes, le gradient $\nabla_{\mathbf{u}}\bar{d}_l\in\mathbb{R}^3$ :
-\[
+\begin{equation}
 \nabla_{\mathbf{u}}\bar{d}_l =
 \begin{bmatrix}
 \sum_{a,b,c} w^{(l)}_{abc}\, B_a'(u_x)\, B_b(u_y)\, B_c(u_z) \\[2pt]
 \sum_{a,b,c} w^{(l)}_{abc}\, B_a(u_x)\, B_b'(u_y)\, B_c(u_z) \\[2pt]
 \sum_{a,b,c} w^{(l)}_{abc}\, B_a(u_x)\, B_b(u_y)\, B_c'(u_z)
 \end{bmatrix}.
-\]
+\end{equation}
 
 \paragraph{Minorant hors domaine.} La garantie du prolongement $\hat{d}(\mathbf{p})=\sqrt{d(\mathbf{c})^2+\|\mathbf{p}-\mathbf{c}\|^2}$ (Section~\ref{subsec:barriere}) tient à la géométrie du bornage par axes : tout point de surface $\mathbf{s}$ du lien appartient au cube et, sur chaque axe borné, $|p_j - s_j| = |c_j - s_j| + |p_j - c_j|$, d'où $\|\mathbf{p}-\mathbf{s}\|^2 \geq \|\mathbf{c}-\mathbf{s}\|^2 + \|\mathbf{p}-\mathbf{c}\|^2$ pour tout $\mathbf{s}$, et donc $d(\mathbf{p})^2 \geq d(\mathbf{c})^2 + \|\mathbf{p}-\mathbf{c}\|^2$ ; l'inégalité vaut pour la distance vraie évaluée au point borné. Un minorant décroissant avec l'excursion, telle la borne lipschitzienne $d(\mathbf{c})-\|\mathbf{p}-\mathbf{c}\|$, inverserait la direction de correction du filtre. Au raccord de la frontière du domaine, les composantes du gradient portées par les axes intérieurs se raccordent à celles du polynôme, tandis que la composante normale aux faces bornées s'annule à la frontière là où celle du polynôme ne s'annule pas : le prolongement est continu et différentiable par morceaux, non continûment différentiable.
 
 \paragraph{Composition.} La mise à l'échelle métrique $d_{l,i}=s_l\,\bar{d}_l$ se simplifie avec le facteur $1/(2s_l)$ de la normalisation, de sorte que le gradient spatial métrique se réduit à $\nabla_{\mathbf{x}}d_{l,i}=\tfrac{1}{2}\,\nabla_{\mathbf{u}}\bar{d}_l$. Cette expression vaut pour les points dont la coordonnée normalisée reste dans le cube $[-1,1]^3$ ; pour le prolongement minorant $\hat{d}$ appliqué hors de ce domaine, la dérivation directe de la composition donne
-\[
+\begin{equation}
 \nabla \hat{d} \;=\; \frac{d(\mathbf{c})\,\nabla d(\mathbf{c})\big|_{\mathrm{int}} + (\mathbf{x}_{l,i}-\mathbf{c})}{\hat{d}},
-\]
+\end{equation}
 soit la combinaison, pondérée par $1/\hat{d}$, de la composante polynomiale restreinte aux axes intérieurs au cube et du vecteur d'excursion, dont toutes les composantes sont orientées vers l'extérieur. Plutôt que d'assembler explicitement $\mathbf{J}_{x_{l,i}}$ pour chacun des points, ce qui matérialiserait un tenseur coûteux, les mêmes identités du produit vectoriel réécrivent $\nabla_{\mathbf{q}}d_{l,i}=\mathbf{J}_{x_{l,i}}^{\top}\nabla_{\mathbf{x}}d_{l,i}$ directement dans le repère de base, ce qui conduit à la forme encadrée de la Section~\ref{subsec:gradient}.
 
 \Annexe{Compléments du filtre de sécurité SDF-CBF}\label{annexe:cbf_details}
@@ -647,42 +672,118 @@ soit la combinaison, pondérée par $1/\hat{d}$, de la composante polynomiale re
 Cette annexe rassemble les compléments du filtre de sécurité de la Section~\ref{sec:sdfcbf} : la forme close de la projection élémentaire sur un demi-espace, les formes closes du lissage et de la réparation qui transforment la vitesse projetée en commande publiée et les garde-fous qui bornent cette réparation, le statut de classe $\mathcal{K}$ du second membre saturé, le certificat de la variante à valeur exacte, ainsi que le choix et les conditions d'implémentation des projections de Dykstra. Les notations sont celles du chapitre ; la dérivation du gradient analytique de la contrainte figure à l'Annexe~\ref{annexe:gradient_details}.
 
 \section*{Forme close de la projection élémentaire}
-Pour le lien $l$, la projection sur le demi-espace $\{\dot{\mathbf{q}} \mid \nabla h_l^\top\dot{\mathbf{q}} \geq b(h_l)+\eta_l\}$ au sens de la métrique $\mathbf{W}$ s'écrit
-\[
+Pour le lien $l$, la projection sur le demi-espace $\{\dot{\mathbf{q}} \mid \nabla h_l^\top\dot{\mathbf{q}} \geq r_l\}$ au sens de la métrique $\mathbf{W}$, où $r_l = b(h_l)+\eta_l+\varepsilon_{\mathrm{p}}\|\nabla h_l\|+m_l$ est le second membre resserré complet de la Section~\ref{subsec:contrainte}, s'écrit
+\begin{equation}
 \dot{\mathbf{q}}
 \leftarrow
 \dot{\mathbf{q}}
 +
 \omega\,
 \frac{
-\max\!\left(0,\; b(h_l)+\eta_l-\nabla h_l^\top\dot{\mathbf{q}}\right)
+\max\!\left(0,\; r_l-\nabla h_l^\top\dot{\mathbf{q}}\right)
 }{
 \max\!\left(\nabla h_l^\top\mathbf{W}^{-1}\nabla h_l,\;\varepsilon_0\right)
 }
 \,\mathbf{W}^{-1}\nabla h_l.
-\]
+\end{equation}
 Si la contrainte du lien est déjà respectée, le terme $\max(0,\cdot)$ s'annule et la vitesse reste inchangée ; sinon, elle est déplacée le long de $\mathbf{W}^{-1}\nabla h_l$ pour ramener le produit $\nabla h_l^\top\dot{\mathbf{q}}$ sur sa borne, le facteur de relaxation $\omega$ pondérant ce pas. Quelle que soit la métrique, le demi-espace est satisfait exactement dès que $\nabla h_l^\top\mathbf{W}^{-1}\nabla h_l>\varepsilon_0$ : le plancher numérique $\varepsilon_0=10^{-8}$ ne mord que pour des gradients dégénérés, par ailleurs écartés par le seuil de fiabilité $g_{\min}$ de la réparation. Lorsqu'un seul lien est actif, une application de cette mise à jour avec $\omega=1$ résout exactement le problème~\eqref{eq:cbf_qp}.
+
+\begin{figure}[htbp!]
+    \centering
+    \begin{tikzpicture}[
+        font=\sffamily\small,
+        scale=1.3,
+        axis/.style={-{Stealth[scale=0.95]}, thick, draw=black!60},
+        vec/.style={-{Stealth[scale=1.15]}, very thick},
+        constraint_line/.style={draw=orange!90!black, very thick},
+        projection_line/.style={draw=red!80, dashed, thick, -{Stealth[scale=1.0]}},
+        normal_vec/.style={-{Stealth[scale=1.1]}, thick, draw=green!55!black},
+        lab/.style={font=\sffamily\scriptsize\bfseries, align=center}
+    ]
+        % --- Axes de vitesse ---
+        \draw[axis] (-0.2,0) -- (6.4,0) node[right, black] {$\dot{q}_1$};
+        \draw[axis] (0,-0.2) -- (0,5.2) node[above, black] {$\dot{q}_2$};
+
+        % --- Ensemble admissible : intersection de demi-espaces (non borné) ---
+        \fill[blue!6] (0,0) -- (4.26,0) -- (4.81,1.69) -- (1.7,4.8) -- (0,4.8) -- cycle;
+        \node[lab, blue!80!black] at (1.2,2.6) {Vitesses admissibles\\(intersection des\\demi-espaces actifs)};
+
+        % --- Contrainte active liante : lien l ---
+        \draw[constraint_line] (1.7,4.8) -- (5.4,1.1);
+        \node[lab, orange!90!black, anchor=south west] at (0.35,4.9)
+            {Contrainte du lien $l$ : $\nabla h_l^\top \dot{\mathbf{q}} = b(h_l) + \eta_l$};
+
+        % --- Seconde contrainte active, non liante : lien l' ---
+        \draw[draw=orange!60, thick] (4.26,0) -- (4.81,1.69);
+        \draw[draw=orange!60, thin, dashed] (4.81,1.69) -- (5.08,2.6);
+        \node[lab, orange!75!black, anchor=west, inner sep=2pt] at (4.95,0.55) {contrainte\\du lien $l'$};
+
+        % --- Zone non admissible ---
+        \node[lab, red!75!black] at (5.35,4.9) {Vitesses non admissibles};
+
+        % --- Normale de la contrainte liante (pointe vers l'intérieur) ---
+        \draw[normal_vec] (2.7,3.8) -- (2.2,3.3);
+        \node[lab, green!45!black, anchor=east, inner sep=2pt] at (2.18,3.68) {$\nabla h_l$};
+
+        % --- Ellipse de niveau de la métrique W, tangente à la frontière en q_proj ---
+        \draw[dashed, black!45, thin] (4.6,3.4) ellipse [x radius=0.912, y radius=1.401, rotate=75.6];
+        \node[lab, black!55, anchor=west] at (5.62,4.25)
+            {$\|\dot{\mathbf{q}}-\dot{\mathbf{q}}_{\mathrm{base}}\|_{\mathbf{W}} = \text{cste}$};
+
+        % --- Vecteurs ---
+        \coordinate (O) at (0,0);
+        \coordinate (Qbase) at (4.6,3.4);
+        \coordinate (Qproj) at (3.52,2.98);
+        \coordinate (Qeucl) at (3.85,2.65);
+
+        % vitesse nominale filtrée
+        \draw[vec, draw=black!80] (O) -- (Qbase);
+        \fill[black] (Qbase) circle (1.6pt);
+        \node[lab, black, anchor=west, inner sep=2pt] at (4.72,3.32)
+            {$\dot{\mathbf{q}}_{\mathrm{base}}$};
+
+        % vitesse sécurisée
+        \draw[vec, draw=blue!80!black] (O) -- (Qproj);
+        \fill[blue!80!black] (Qproj) circle (1.6pt);
+        \node[lab, blue!90!black, anchor=east, inner sep=2pt] at (3.28,3.02)
+            {$\dot{\mathbf{q}}_{\mathrm{proj}}$};
+
+        % correction dans la métrique W
+        \draw[projection_line] (Qbase) -- (Qproj);
+        \node[lab, red!80!black, anchor=south west, inner sep=2pt] at (3.82,3.62)
+            {$\Delta\dot{\mathbf{q}}_{\mathrm{CBF}} \parallel \mathbf{W}^{-1}\nabla h_l$} ;
+
+        % projection euclidienne, pour comparaison
+        \draw[black!45, dotted, thick] (Qbase) -- (Qeucl);
+        \draw[black!55, fill=white] (Qeucl) circle (1.5pt);
+        \draw[thin, black!50] ($(Qeucl)+(-0.085,0.085)$) -- ($(Qeucl)+(0.034,0.204)$) -- ($(Qeucl)+(0.153,0.085)$);
+        \node[lab, black!55, anchor=west] (eucl_lab) at (4.5,2.25) {projection euclidienne\\($\mathbf{W}=\mathbf{I}$)};
+        \draw[thin, black!40] (eucl_lab.west) -- ($(Qeucl)+(0.08,-0.08)$);
+    \end{tikzpicture}
+    \caption{Interprétation géométrique, dans un plan de l'espace des vitesses articulaires, de la projection de sécurité~\eqref{eq:cbf_qp} : la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ est projetée sur l'intersection des demi-espaces actifs $\nabla h_l^\top\dot{\mathbf{q}} \geq b(h_l)+\eta_l$, dont les normales $\nabla h_l$ pointent vers l'intérieur. La solution $\dot{\mathbf{q}}_{\mathrm{proj}}$ est le point où le plus petit ellipsoïde de niveau de la métrique de tâche $\mathbf{W}$ centré sur $\dot{\mathbf{q}}_{\mathrm{base}}$ touche la frontière : la correction $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ suit la direction $\mathbf{W}^{-1}\nabla h_l$ et non la normale, et s'écarte ainsi de la projection euclidienne ($\mathbf{W}=\mathbf{I}$, point creux), en déplaçant le moins possible le lien contrôlé.}
+    \label{fig:projection_cbf}
+\end{figure}
 
 \section*{Formes closes du post-traitement de la commande}
 
-\paragraph{Saturation et lissage.} La vitesse projetée est saturée aux limites articulaires, $\dot{\mathbf{q}}_{\mathrm{proj,sat}} = \operatorname{sat}(\dot{\mathbf{q}}_{\mathrm{proj}})$, puis filtrée par un passe-bas exponentiel de constante de temps $\tau_{\mathrm{safe}}$ :
-\[
-\dot{\mathbf{q}}_{f,k}
+\paragraph{Lissage intégré à la projection et saturation.} Le lissage temporel de la commande est appliqué dans l'objectif de la projection, et non en aval : le centre du problème~\eqref{eq:cbf_qp} est le mélange exponentiel
+\begin{equation}
+\dot{\mathbf{q}}_{\mathrm{c},k}
 =
 (1-\gamma_{\mathrm{safe}})\,
-\dot{\mathbf{q}}_{f,k-1}
+\dot{\mathbf{q}}_{\mathrm{final},k-1}
 +
 \gamma_{\mathrm{safe}}\,
-\dot{\mathbf{q}}_{\mathrm{proj,sat},k},
+\dot{\mathbf{q}}_{\mathrm{base},k},
 \qquad
 \gamma_{\mathrm{safe}}
 =
-\frac{\Delta t}{\Delta t+\tau_{\mathrm{safe}}}.
-\]
-L'ordre saturation puis filtrage évite que le filtre considère une vitesse physiquement irréalisable.
+\frac{\Delta t}{\Delta t+\tau_{\mathrm{safe}}},
+\end{equation}
+de la commande certifiée précédente et de la vitesse nominale filtrée courante. Projeter ce centre livre une sortie admissible par construction sur les lignes actives, ce qui supprime la couture d'un filtrage post-projection à re-certifier : hors de toute contrainte active, cette formulation coïncide exactement avec le passe-bas post-projection de constante $\tau_{\mathrm{safe}}$ ; sous contrainte active, elle en diffère en produisant une vitesse déjà faisable plutôt qu'une vitesse lissée à re-projeter (équivalence et absence de couture vérifiées hors ligne). La vitesse projetée est ensuite saturée aux limites articulaires, $\dot{\mathbf{q}}_{f} = \operatorname{sat}(\dot{\mathbf{q}}_{\mathrm{proj}})$, la saturation venant après la projection afin qu'aucune vitesse physiquement irréalisable ne subsiste.
 
-\paragraph{Réparation finale.} La contrainte est réévaluée sur la vitesse filtrée, avec le même second membre saturé et resserré que la projection principale, $c_f = \nabla h^\top \dot{\mathbf{q}}_{f} - b(h) - \eta$. Si $c_f<0$ dans la bande d'activation, une réparation est appliquée :
-\[
+\paragraph{Réparation finale.} La contrainte est réévaluée sur la vitesse projetée puis saturée, avec le même second membre resserré complet $r$ que la projection principale, $c_f = \nabla h^\top \dot{\mathbf{q}}_{f} - r$. Si $c_f<0$ dans la bande d'activation, une réparation est appliquée :
+\begin{equation}
 \Delta\dot{\mathbf{q}}_{\mathrm{rep}}
 =
 \frac{
@@ -691,25 +792,33 @@ L'ordre saturation puis filtrage évite que le filtre considère une vitesse phy
 \nabla h^\top\mathbf{W}^{-1}\nabla h+\varepsilon
 }
 \,\mathbf{W}^{-1}\nabla h.
-\]
-Cette réparation est une projection corrective sur la même contrainte CBF linéarisée : elle réutilise la valeur de barrière $h$, le gradient $\nabla h$, la borne $b(h)+\eta$ et la métrique $\mathbf{W}$ de la projection principale, de sorte qu'elle répartit sa correction de la même manière que le solveur au lieu de défaire, par un pas euclidien, la préférence pour le noyau de tâche.
+\end{equation}
+Cette réparation est une projection corrective sur la même contrainte CBF linéarisée : elle réutilise la valeur de barrière $h$, le gradient $\nabla h$, la borne resserrée $r$ et la métrique $\mathbf{W}$ de la projection principale, de sorte qu'elle répartit sa correction de la même manière que le solveur au lieu de défaire, par un pas euclidien, la préférence pour le noyau de tâche.
 
-Deux garde-fous bornent cette réparation. D'une part, sa norme est plafonnée : à $\Delta v_{\max}$ tant que la barrière est positive, et à un plafond distinct $\Delta v_{\max}^{\mathrm{rec}}$, plus permissif, lorsque $h<0$ et qu'une sortie rapide de la zone de violation devient prioritaire. Ce plafond couvre notamment le scénario où la carte persistante fait apparaître de nouveaux points obstacles déjà très proches du robot, voire déjà dans la zone de violation : la violation instantanée $-c_f$ peut alors être grande, et une réparation non bornée se traduirait par une commande de vitesse violente en un seul cycle. D'autre part, la réparation est modulée par un seuil de fiabilité du gradient : son amplitude croît linéairement de zéro, lorsque $\|\nabla h\| = g_{\min}$, jusqu'à sa pleine valeur à $3\,g_{\min}$. La direction $\nabla h/\|\nabla h\|$ n'est en effet fiable que si la norme du gradient est significative : face à un obstacle mince, les gradients des points situés de part et d'autre du lien se compensent dans l'agrégation soft-min et $\|\nabla h\|$ s'effondre ; une réparation de pleine amplitude pousserait alors le bras dans une direction dépourvue de sens géométrique. Le filtre s'en remet dans ce cas à la vitesse issue de la projection pour le cycle courant, la violation résiduelle étant résorbée aux cycles suivants, dès que la géométrie redevient non dégénérée. La même limite $\Delta v_{\max}$ s'applique enfin à chaque pas de projection de la boucle de balayage elle-même : lorsque cette borne est atteinte, la solution retournée n'est plus la projection exacte de~\eqref{eq:cbf_qp}, mais une solution dont la correction par cycle est bornée, le résidu étant repris par la réévaluation finale puis par les cycles suivants. Face à plusieurs contraintes simultanément actives, la réparation ne porte que sur la contrainte critique réévaluée (le lien de plus faible barrière, avec son second membre courant), les autres demi-espaces ayant été traités par les balayages ; le résidu de contrainte définitif est mesuré sur la commande effectivement publiée, après la saturation finale, et exporté à chaque cycle comme diagnostic (\texttt{constr\_final}), de sorte que l'effet conjoint de la troncature, des plafonds et de la saturation est observé plutôt que supposé nul.
+Deux garde-fous bornent cette réparation. D'une part, sa norme est plafonnée : à $\Delta v_{\max}$ tant que la barrière est positive, et à un plafond distinct $\Delta v_{\max}^{\mathrm{rec}}$, plus permissif, lorsque $h<0$ et qu'une sortie rapide de la zone de violation devient prioritaire. Ce plafond couvre notamment le scénario où la carte persistante fait apparaître de nouveaux points obstacles déjà très proches du robot, voire déjà dans la zone de violation : la violation instantanée $-c_f$ peut alors être grande, et une réparation non bornée se traduirait par une commande de vitesse violente en un seul cycle. D'autre part, la réparation est modulée par un seuil de fiabilité du gradient : son amplitude croît linéairement de zéro, lorsque $\|\nabla h\| = g_{\min}$, jusqu'à sa pleine valeur à $3\,g_{\min}$. La direction $\nabla h/\|\nabla h\|$ n'est en effet fiable que si la norme du gradient est significative : face à un obstacle mince, les gradients des points situés de part et d'autre du lien se compensent dans l'agrégation soft-min et $\|\nabla h\|$ s'effondre ; une réparation de pleine amplitude pousserait alors le bras dans une direction dépourvue de sens géométrique. Le filtre s'en remet dans ce cas à la vitesse issue de la projection pour le cycle courant, la violation résiduelle étant résorbée aux cycles suivants, dès que la géométrie redevient non dégénérée. La même limite $\Delta v_{\max}$ s'applique enfin à chaque pas de projection de la boucle de balayage elle-même : lorsque cette borne est atteinte, la solution retournée n'est plus la projection exacte de~\eqref{eq:cbf_qp}, mais une solution dont la correction par cycle est bornée, le résidu étant repris par la réévaluation finale puis par les cycles suivants. Face à plusieurs contraintes simultanément actives, la réparation reprend les balayages de Dykstra sur l'ensemble des lignes exportées par la résolution (gradients figés au cycle courant), et non sur la seule ligne critique : lorsque deux gradients s'opposent, la projection corrective sur la ligne critique seule peut rouvrir la seconde ligne, et seule la re-projection conjointe restitue l'intersection certifiée. Le résidu de contrainte définitif est mesuré sur la commande effectivement publiée, après la saturation finale et l'écrêtage aux limites articulaires, comme le \emph{pire} résidu sur toutes les lignes actives, et exporté à chaque cycle comme diagnostic (\texttt{constr\_final}), de sorte que l'effet conjoint de la troncature, des plafonds et de la saturation est observé plutôt que supposé nul.
 
 \section*{Statut de classe $\mathcal{K}$ du second membre saturé}
-Le second membre $b(h)$ de la Section~\ref{subsec:contrainte} appartient à la famille $\nabla h^\top\dot{\mathbf{q}} \geq -\gamma(h)$, où le statut de $\gamma$ mérite d'être énoncé avec précision : les saturations font que $\gamma$ n'est \emph{pas} globalement une fonction de classe $\mathcal{K}$ étendue (la croissance stricte y est perdue sur les plateaux), mais restreinte à la bande d'exploitation $[-d_{\mathrm{rec}},\,h_{\mathrm{act}}]$, elle en est exactement une : continue, strictement croissante, nulle en zéro, linéaire par morceaux de pentes $v_{\mathrm{in}}/h_{\mathrm{act}}$ et $v_{\mathrm{rec}}/d_{\mathrm{rec}}$. Cela suffit au certificat : le théorème d'invariance~\cite{Ames2019Control} ne requiert la condition que sur un voisinage de la frontière, dont la bande d'activation est un ; au-dessus de $h_{\mathrm{act}}$ la contrainte n'est simplement pas évaluée, et sous $-d_{\mathrm{rec}}$ l'exigence constante $v_{\mathrm{rec}}$ substitue à la récupération de classe $\mathcal{K}$, non bornée et donc incompatible tant avec les limites articulaires qu'avec le bruit de $h$ en profondeur, un retour \emph{en temps fini} dans la bande à vitesse de sortie garantie.
+Le second membre de la Section~\ref{subsec:contrainte} se sépare en $b(h) = -\gamma(h) + m_{\mathrm{CBF}}$, la part saturée $\gamma(h) = -\big(b(h)-m_{\mathrm{CBF}}\big)$ et le resserrement constant $m_{\mathrm{CBF}}>0$ ; c'est $\gamma$, et non $b$, qui doit être de classe $\mathcal{K}$ étendue, car $b(0)=m_{\mathrm{CBF}}\neq 0$. Le statut de $\gamma$ mérite alors d'être énoncé avec précision : les saturations font que $\gamma$ n'est \emph{pas} globalement une fonction de classe $\mathcal{K}$ étendue (la croissance stricte y est perdue sur les plateaux), mais restreinte à la bande d'exploitation $[-d_{\mathrm{rec}},\,h_{\mathrm{act}}]$, elle en est exactement une : continue, strictement croissante, nulle en zéro, linéaire par morceaux de pentes $v_{\mathrm{in}}/h_{\mathrm{act}}$ et $v_{\mathrm{rec}}/d_{\mathrm{rec}}$. Cela suffit au certificat : le théorème d'invariance~\cite{Ames2019Control} ne requiert la condition que sur un voisinage de la frontière, dont la bande d'activation est un ; au-dessus de $h_{\mathrm{act}}$ la contrainte n'est simplement pas évaluée, et sous $-d_{\mathrm{rec}}$ l'exigence constante $v_{\mathrm{rec}}$ substitue à la récupération de classe $\mathcal{K}$, non bornée et donc incompatible tant avec les limites articulaires qu'avec le bruit de $h$ en profondeur, un retour \emph{en temps fini} dans la bande à vitesse de sortie garantie.
 
-\section*{Certificat de la variante à valeur exacte}
-La variante à valeur exacte (Section~\ref{subsec:barriere}) pourrait sembler sacrifier le certificat d'invariance : le vecteur employé comme gradient n'y est pas la dérivée du minimum exact transmis au second membre. Le certificat s'obtient en l'attribuant à la barrière compensée $h_{\mathrm{corr}} = h_{\mathrm{soft}} + \alpha\log N$. D'une part, le terme de compensation étant indépendant de $\mathbf{q}$, $\nabla h_{\mathrm{corr}} = \nabla h_{\mathrm{soft}}$ : le gradient implémenté est exactement celui de $h_{\mathrm{corr}}$, qui est lisse. D'autre part, la valeur décisionnelle vérifie $h_{\min,l} = \min_i d_{l,i} - d_{\mathrm{safe}} \leq h_{\mathrm{corr}}$ et le second membre $b(\cdot)$ est monotone non croissant, de sorte que la condition appliquée,
-\[
+\section*{Certificat du mode à valeur exacte}
+Le mode à valeur exacte (Section~\ref{subsec:barriere}, mode déployé) pourrait sembler sacrifier le certificat d'invariance : le vecteur employé comme gradient n'y est pas la dérivée du minimum exact transmis au second membre. Le certificat s'obtient en l'attribuant à la barrière compensée $h_{\mathrm{corr}} = h_{\mathrm{soft}} + \alpha\log N$. D'une part, le terme de compensation étant indépendant de $\mathbf{q}$, $\nabla h_{\mathrm{corr}} = \nabla h_{\mathrm{soft}}$ : le gradient implémenté est exactement celui de $h_{\mathrm{corr}}$, qui est lisse. D'autre part, la valeur décisionnelle vérifie $h_{\min,l} = \min_i d_{l,i} - d_{\mathrm{safe}} \leq h_{\mathrm{corr}}$ et le second membre $b(\cdot)$ est monotone non croissant, de sorte que la condition appliquée,
+\begin{equation}
 \nabla h_{\mathrm{soft}}^{\top}\dot{\mathbf{q}} \;\geq\; b(h_{\min,l})
 \;\;\Longrightarrow\;\;
 \nabla h_{\mathrm{corr}}^{\top}\dot{\mathbf{q}} \;\geq\; b(h_{\mathrm{corr}}),
-\]
+\end{equation}
 implique la condition CBF standard, cohérente en valeur et en gradient, de la barrière $h_{\mathrm{corr}}$ ; la bande d'activation est couverte de même, puisque $h_{\min,l} \leq h_{\mathrm{corr}}$ garantit que la contrainte est évaluée dès que $h_{\mathrm{corr}} \leq h_{\mathrm{act}}$.
 
 \section*{Choix et conditions d'implémentation des projections de Dykstra}
-Le problème~\eqref{eq:cbf_qp} demeure un programme quadratique qu'un solveur générique résoudrait exactement~\cite{Stellato2020Osqp}, mais au prix d'une structure de calcul à itérations et branchements variables, incompatible avec la capture en graphe CUDA. La méthode des projections cycliques (POCS, Section~\ref{subsec:revue_cbf_qp}) offre cette forme fixe : la projection sur le demi-espace d'un lien pouvant re-violer celui d'un lien déjà traité, l'ensemble $\mathcal{A}$ est balayé à plusieurs reprises à la manière de Gauss--Seidel et, les gradients étant figés à la configuration courante, la suite des projections converge vers un point de l'intersection~\cite{Bauschke1996Projection}. Ce point n'est cependant pas, en général, la projection de $\dot{\mathbf{q}}_{\mathrm{base}}$ au sens de $\mathbf{W}$ : l'excès de correction déposé par une projection précoce n'est jamais restitué lorsque les contraintes suivantes le rendent superflu, et le point atteint dépend de l'ordre de balayage. Une vérification numérique hors ligne, sur des instances aléatoires à contraintes multiples simultanément actives (solution exacte par énumération des ensembles actifs des conditions KKT), chiffre cet excès à $6{,}2$~\% du coût de déviation en médiane et $23$~\% au 90\textsuperscript{e} centile, écart permanent qu'aucun balayage supplémentaire ne résorbe ; d'où la variante de Dykstra retenue à la Section~\ref{subsec:projection}.
+Le problème~\eqref{eq:cbf_qp} demeure un programme quadratique qu'un solveur générique résoudrait exactement~\cite{Stellato2020Osqp}, mais au prix d'une structure de calcul à itérations et branchements variables, incompatible avec la capture en graphe CUDA. La méthode des projections cycliques (POCS, Section~\ref{subsec:revue_cbf_qp}) offre cette forme fixe : la projection sur le demi-espace d'un lien pouvant re-violer celui d'un lien déjà traité, l'ensemble $\mathcal{A}$ est balayé à plusieurs reprises à la manière de Gauss--Seidel et, les gradients étant figés à la configuration courante, la suite des projections converge vers un point de l'intersection~\cite{Bauschke1996Projection}. Ce point n'est cependant pas, en général, la projection de $\dot{\mathbf{q}}_{\mathrm{base}}$ au sens de $\mathbf{W}$ : l'excès de correction déposé par une projection précoce n'est jamais restitué lorsque les contraintes suivantes le rendent superflu, et le point atteint dépend de l'ordre de balayage. Une vérification numérique hors ligne, sur $2\,000$ instances aléatoires à contraintes multiples simultanément actives (solution exacte par énumération des ensembles actifs des conditions KKT), chiffre cet excès à $7{,}3$~\% du coût de déviation en médiane et $34$~\% au 90\textsuperscript{e} centile, écart permanent qu'aucun balayage supplémentaire ne résorbe ; d'où la variante de Dykstra retenue à la Section~\ref{subsec:projection}, dont l'écart résiduel à l'optimum exact tombe à $0{,}04$~\% en médiane dès $N_{\mathrm{it}}=6$ balayages sur les mêmes instances. La mise à jour par contrainte s'écrit, avec $P_l$ la projection élémentaire ci-dessus,
+\begin{equation}
+\dot{\mathbf{q}}' = \dot{\mathbf{q}} + \mathbf{z}_l,
+\qquad
+\dot{\mathbf{q}} \leftarrow P_l\big(\dot{\mathbf{q}}'\big),
+\qquad
+\mathbf{z}_l \leftarrow \dot{\mathbf{q}}' - P_l\big(\dot{\mathbf{q}}'\big),
+\end{equation}
+les vecteurs mémoire $\mathbf{z}_l$ demeurant nuls tant qu'au plus une contrainte est active, cas où la variante coïncide avec les projections cycliques simples.
 
 Deux conditions d'implémentation, non stylistiques, s'y attachent. D'une part, les projections élémentaires doivent être exactes :
   avec le dénominateur régularisé additivement, chaque projection sous-corrige d'une fraction fixe que les balayages cycliques résorbent
@@ -724,7 +833,7 @@ Deux conditions d'implémentation, non stylistiques, s'y attachent. D'une part, 
 
 \Annexe{Détermination des constantes de Lipschitz du frein réflexe}\label{annexe:lipschitz}
 
-Cette annexe détaille l'obtention des constantes $L_l$ du certificat échantillonné du frein réflexe (Section~\ref{subsubsec:reflexe}). Elle précise d'abord la quantité que le certificat exige réellement, qui est unilatérale ; elle construit ensuite un majorant analytique exact par l'arithmétique des coefficients de Bernstein, dont le verdict est de valider la démarche mais d'être trop conservateur pour être exploité tel quel ; elle décrit enfin la campagne d'échantillonnage exhaustif du gradient déployé qui fournit les constantes retenues, leur vérification de cohérence contre le majorant analytique, et leur surveillance en ligne. Les notations sont celles de l'Annexe~\ref{annexe:gradient_details} : $\mathbf{u}$ désigne les coordonnées normalisées du cube d'apprentissage, $\bar{d}_l$ le polynôme de Bernstein du lien $l$ de coefficients $w^{(l)}_{abc}$ et de $n$ fonctions de base par axe (degré $n-1$), $s_l$ son facteur d'échelle et $\mathbf{J}_{x_{l,i}}$ la Jacobienne du point d'obstacle exprimé dans le repère du lien.
+Cette annexe détaille l'obtention des constantes $L_l$ du certificat échantillonné du frein réflexe (Section~\ref{subsubsec:reflexe}). Elle précise d'abord la quantité que le certificat exige réellement, qui est unilatérale ; elle construit ensuite un majorant analytique exact par l'arithmétique des coefficients de Bernstein, dont le verdict est de valider la démarche mais d'être trop conservateur pour être exploité tel quel ; elle décrit enfin la campagne d'échantillonnage à grande échelle du gradient déployé qui fournit les constantes retenues, leur vérification de cohérence contre le majorant analytique, et leur surveillance en ligne. Les notations sont celles de l'Annexe~\ref{annexe:gradient_details} : $\mathbf{u}$ désigne les coordonnées normalisées du cube d'apprentissage, $\bar{d}_l$ le polynôme de Bernstein du lien $l$ de coefficients $w^{(l)}_{abc}$ et de $n$ fonctions de base par axe (degré $n-1$), $s_l$ son facteur d'échelle et $\mathbf{J}_{x_{l,i}}$ la Jacobienne du point d'obstacle exprimé dans le repère du lien.
 
 \section*{Architecture d'exécution et engagement du frein}
 
@@ -735,46 +844,51 @@ Le frein s'engage instantanément ($\alpha$ adopte sans délai toute valeur inf�
 \section*{La quantité requise est la courbure négative, non la norme}
 
 La borne de Taylor du certificat,
-\[
+\begin{equation}
 h(\mathbf{q}_0+\mathbf{d}) \;\geq\; h(\mathbf{q}_0) + \nabla h^\top\mathbf{d} - \tfrac{L_l}{2}\|\mathbf{d}\|^2,
-\]
+\end{equation}
 découle du développement exact avec reste de Lagrange $h(\mathbf{q}_0+\mathbf{d}) = h + \nabla h^\top\mathbf{d} + \tfrac{1}{2}\,\mathbf{d}^\top\nabla^2 h(\boldsymbol{\xi})\,\mathbf{d}$ pour un $\boldsymbol{\xi}$ du segment : elle vaut dès que $\mathbf{d}^\top\nabla^2 h\,\mathbf{d} \geq -L_l\|\mathbf{d}\|^2$ le long du segment parcouru, c'est-à-dire dès que
-\[
+\begin{equation}
 L_l \;\geq\; \sup_{\boldsymbol{\xi}}\ \big({-}\lambda_{\min}\!\big(\nabla^2_{\mathbf{q}} h_l(\boldsymbol{\xi})\big)\big)_+ .
-\]
+\end{equation}
 La condition lipschitzienne bilatérale usuelle, $\|\nabla h(\mathbf{q})-\nabla h(\mathbf{q}')\| \leq L_l\|\mathbf{q}-\mathbf{q}'\|$, implique cette inégalité mais est inutilement forte : seule la courbure \emph{négative} menace la borne inférieure, tandis que la courbure positive la resserre gratuitement. La distinction n'est pas académique pour une barrière de distance : à l'extérieur d'un lien convexe, la distance exacte est convexe, et sa courbure, grande près des arêtes, est précisément du côté inoffensif. Retenir la norme spectrale surestimerait les constantes des liens distaux.
 
-Les constantes sont déterminées pour le champ par point $d_{l,i}(\mathbf{q})$, régime où un point domine les poids du soft-min et où le gradient de ligne transmis coïncide avec le gradient de ce point. Les commutations de point dominant, qui changent la fonction elle-même et non sa courbure, sortent de ce cadre : elles sont exclues de l'estimateur de surveillance décrit en fin d'annexe et relèvent de l'hypothèse de sélection constante déjà énoncée à la Section~\ref{subsec:garanties}.
+Les constantes sont déterminées pour le champ par point $d_{l,i}(\mathbf{q})$, régime où un point domine les poids du soft-min et où le gradient de ligne transmis coïncide avec le gradient de ce point. Deux situations échappent à ce cadre. Les commutations de point dominant changent la fonction elle-même et non sa courbure : elles sont exclues de l'estimateur de surveillance décrit en fin d'annexe et relèvent de l'hypothèse de sélection constante déjà énoncée à la Section~\ref{subsec:garanties}. Plus finement, lorsque plusieurs points portent un poids comparable (traits concaves, arêtes vues de près), la barrière agrégée $h_l = -\alpha\log\sum_i e^{-d_{l,i}/\alpha}$ acquiert un terme de courbure propre au soft-min,
+\begin{equation}\label{eq:softmin_hessian}
+\nabla^2_{\mathbf{q}} h_l = \sum_i \omega_i\,\nabla^2_{\mathbf{q}} d_{l,i} \;-\; \tfrac{1}{\alpha}\Big(\textstyle\sum_i \omega_i\,\mathbf{g}_i\mathbf{g}_i^\top - \bar{\mathbf{g}}\,\bar{\mathbf{g}}^\top\Big),
+\qquad \mathbf{g}_i = \nabla_{\mathbf{q}} d_{l,i},\ \ \bar{\mathbf{g}} = \textstyle\sum_i \omega_i\,\mathbf{g}_i,
+\end{equation}
+dont le second terme, l'opposé d'une covariance pondérée des gradients par point divisée par $\alpha$, est semi-défini négatif et croît lorsque $\alpha$ est petit. Ce terme n'est pas mesuré par la campagne à un point ci-dessous : les constantes retenues ne majorent donc pas, au sens strict, la courbure négative du soft-min multipoint déployé. Il est en revanche visible pour l'estimateur en ligne, qui différencie le gradient \emph{déployé} entre états consécutifs d'une même génération de sélection ; un dépassement de $L_l$ imputable à ce terme déclenche l'atténuation ou le veto du frein. Ce mécanisme est une assurance à l'exécution : il peut détecter ou atténuer une telle courbure, sans garantir de la capter avant chaque extrapolation. Un majorant analytique incluant ce terme de covariance, ou une certification multipoint complète par méthode de bornage, demeure une extension possible.
 
 \section*{Majorant analytique par l'arithmétique des coefficients}
 
 Le polynôme $\bar{d}_l$ étant un produit tensoriel de bases de Bernstein, ses dérivées partielles sont elles-mêmes des polynômes de Bernstein dont les coefficients sont des différences finies des $w^{(l)}_{abc}$ : la règle d'abaissement de l'Annexe~\ref{annexe:gradient_details} donne, par axe,
-\[
+\begin{equation}
 \frac{\partial^2 \bar{d}_l}{\partial u_a^2}:\ (n-1)(n-2)\,\Delta^2_a w^{(l)},
 \qquad
 \frac{\partial^2 \bar{d}_l}{\partial u_a \partial u_b}:\ (n-1)^2\,\Delta_a\Delta_b w^{(l)},
-\]
+\end{equation}
 où $\Delta_a$ dénote la différence première le long de l'axe $a$. La base de Bernstein étant positive et de somme unité, tout polynôme est borné sur le cube par le plus grand coefficient en valeur absolue (propriété d'enveloppe convexe) ; le supremum de chaque entrée du hessien s'obtient donc par un simple maximum sur les tenseurs de différences, et
-\[
+\begin{equation}
 \sup_{\mathbf{u}}\big\|\nabla^2_{\mathbf{u}}\bar{d}_l\big\|_2 \;\leq\; H_{u,l} \;=\; \Big(\textstyle\sum_{a,b}\big(\max\big|\text{coeff}_{ab}\big|\big)^2\Big)^{1/2},
-\]
+\end{equation}
 la norme de Frobenius majorant la norme spectrale. La normalisation affine et la mise à l'échelle métrique (Annexe~\ref{annexe:gradient_details}) convertissent ce majorant en unités physiques : $\nabla^2_{\mathbf{x}} d_{l,i} = \nabla^2_{\mathbf{u}}\bar{d}_l/(4 s_l)$, d'où $H_{x,l} = H_{u,l}/(4 s_l)$, et de même $G_{x,l} = \tfrac{1}{2}\sup\|\nabla_{\mathbf{u}}\bar{d}_l\|$ par les différences premières.
 
 Le passage à l'espace articulaire suit la règle de composition appliquée deux fois :
-\[
+\begin{equation}
 \nabla^2_{\mathbf{q}} d_{l,i}
 = \mathbf{J}_{x_{l,i}}^{\top}\,\nabla^2_{\mathbf{x}} d_{l,i}\,\mathbf{J}_{x_{l,i}}
 + \sum_{k=1}^{3} \big(\nabla_{\mathbf{x}} d_{l,i}\big)_k\,\nabla^2_{\mathbf{q}}\big(\mathbf{x}_{l,i}\big)_k,
-\]
+\end{equation}
 et se majore par $L_l^{\mathrm{ana}} = A_l^2\,H_{x,l} + G_{x,l}\,B_l$, où $A_l = \sup\|\mathbf{J}_{x_{l,i}}\|_2$ et $B_l$ borne le tenseur des dérivées secondes du point local. Ces deux facteurs cinématiques sont bornés par la géométrie du bras, chaque entrée des différentielles de $\mathbf{x}_{l,i}$ étant majorée par la distance de l'axe articulaire concerné au point considéré ; leurs suprema sont relevés par balayage échantillonné de l'espace articulaire et des domaines, et valent $A_l \in [0{,}7,\ 1{,}8]$ et $B_l \in [1{,}1,\ 4{,}7]$ selon le lien.
 
 Le verdict de ce majorant, entièrement calculable hors ligne, est double. Il est \emph{valide} : aucun échantillon de la campagne ci-dessous ne le dépasse. Il est \emph{inexploitable} comme constante de certificat : de $1{,}7\times10^{3}$ à $2{,}2\times10^{4}$~m/rad$^2$ selon le lien (Tableau~\ref{tab:lipschitz_links}), soit environ quarante fois le pire cas observé. Deux causes structurelles s'y conjuguent : le supremum porte sur le cube entier, y compris les coins que le fonctionnement ne visite jamais et où le polynôme oscille librement, et l'arithmétique des coefficients est intrinsèquement bilatérale, incapable d'isoler la seule courbure négative que le certificat pénalise. Il est conservé comme borne de cohérence dominant l'échantillonnage.
 
-\section*{Échantillonnage exhaustif du gradient déployé}
+\section*{Échantillonnage à grande échelle du gradient déployé}
 
 Les constantes retenues proviennent d'une campagne hors ligne portant sur l'implémentation \emph{déployée} du gradient, celle-là même que le filtre exécute en ligne, et non sur une réimplémentation : $8\,192$ configurations tirées uniformément dans les limites articulaires ; pour chaque configuration et chaque lien protégé, un point de requête tiré dans le domaine normalisé du lien (un tiers des tirages sort délibérément du domaine pour exercer la branche de prolongement) ; le gradient articulaire analytique évalué en double précision sur un unique point par lien, ce qui rend le soft-min exact et livre le champ par point sans biais d'agrégation. Le hessien $\nabla^2_{\mathbf{q}} d_{l,i}$ est obtenu par différences centrées du gradient analytique, de pas $10^{-4}$~rad par articulation, puis symétrisé ; sa plus petite valeur propre fournit la statistique $({-}\lambda_{\min})_+$ de chaque échantillon.
 
-Trois observations structurent les résultats. D'abord, la hiérarchie est fortement inhomogène : les liens du corps du bras culminent entre $4$ et $33$~m/rad$^2$, les liens distaux entre $44$ et $79$, et les doigts dominent tout le reste d'un ordre de grandeur. Ensuite, la courbure négative des doigts n'est pas la géométrie mais l'approximation : la distance exacte d'un doigt, corps convexe, est convexe à l'extérieur, et la contribution cinématique est bornée par $G_{x,l}B_l \approx 5$ ; l'excès mesuré est l'oscillation du polynôme autour des arêtes vives, concentrée dans la coquille de dégagement de $10$ à $40$~mm. Ce diagnostic a motivé le réentraînement des deux modèles de doigts à $n=12$ (protocole de l'Annexe~\ref{annexe:sdf_training}), qui a divisé leur pire cas par deux (de $840$ à $508$~m/rad$^2$) en améliorant simultanément leur exactitude en valeur et en direction ; les chiffres du Tableau~\ref{tab:lipschitz_links} correspondent aux modèles réentraînés. Enfin, près de la surface, là où le frein agit, la courbure des liens du corps reste inférieure à $4$~m/rad$^2$ : les constantes par lien évitent d'imposer au bras entier le pire cas des doigts, ce qui est la raison d'être du vecteur $L_l$.
+Trois observations structurent les résultats. D'abord, la hiérarchie est fortement inhomogène : les liens du corps du bras culminent entre $4$ et $33$~m/rad$^2$, les liens distaux entre $44$ et $79$, et les doigts dominent tout le reste d'un ordre de grandeur. Ensuite, la courbure négative des doigts n'est pas la géométrie mais l'approximation : la distance exacte d'un doigt, corps convexe, est convexe à l'extérieur, et la contribution cinématique est bornée par $G_{x,l}B_l \approx 5$ ; l'excès mesuré est l'oscillation du polynôme autour des arêtes vives, concentrée dans la coquille de dégagement de $10$ à $40$~mm. Ce diagnostic a motivé le réentraînement des deux modèles de doigts à $n=12$ (protocole de l'Annexe~\ref{annexe:sdf_training}), qui a divisé leur pire cas par deux (de $840$ à $508$~m/rad$^2$) en améliorant simultanément leur exactitude en valeur et en direction ; les liens 2 et 3, derniers à $n=8$, ont ensuite été réentraînés au même degré, leur supremum passant respectivement de $4{,}0$ à $2{,}2$ et de $30{,}8$ à $15{,}3$~m/rad$^2$. Les chiffres du Tableau~\ref{tab:lipschitz_links} correspondent aux neuf modèles réentraînés, tous à $n=12$. Enfin, près de la surface, là où le frein agit, la courbure des liens du corps reste inférieure à $4$~m/rad$^2$ : les constantes par lien évitent d'imposer au bras entier le pire cas des doigts, ce qui est la raison d'être du vecteur $L_l$.
 
 \begin{table}[htbp]
 \centering
@@ -783,8 +897,8 @@ Trois observations structurent les résultats. D'abord, la hiérarchie est forte
 \begin{tabular}{lccccc}
 \hline
 \textbf{Lien} & $n$ & $L_l^{\mathrm{ana}}$ [m/rad$^2$] & sup éch. & p99 éch. & $L_l$ \textbf{retenu} \\ \hline
-lien 2        & $8$  & $1{,}66\times10^{3}$ & $4{,}0$   & $1{,}4$   & $5$ \\
-lien 3        & $8$  & $3{,}98\times10^{3}$ & $30{,}8$  & $8{,}7$   & $35$ \\
+lien 2        & $12$ & $1{,}38\times10^{3}$ & $2{,}2$   & $1{,}0$   & $5$ \\
+lien 3        & $12$ & $2{,}14\times10^{3}$ & $15{,}3$  & $4{,}3$   & $35$ \\
 lien 4        & $12$ & $3{,}07\times10^{3}$ & $20{,}0$  & $4{,}7$   & $25$ \\
 lien 5        & $12$ & $4{,}69\times10^{3}$ & $25{,}9$  & $9{,}6$   & $30$ \\
 lien 6        & $12$ & $6{,}18\times10^{3}$ & $79{,}3$  & $21{,}8$  & $85$ \\
@@ -801,6 +915,33 @@ doigt gauche  & $12$ & $2{,}05\times10^{4}$ & $508{,}1$ & $110{,}7$ & $600$ \\
 Chaque constante retenue arrondit par excès le supremum échantillonné de son lien. La validité de l'hypothèse est surveillée en ligne par un estimateur empirique publié à chaque mise à jour du filtre, $\hat{L} = \|\Delta\nabla h_l\|/\|\Delta\mathbf{q}_0\|$ différencié entre états consécutifs du solveur ; les paires d'états chevauchant une mise à jour de la sélection de points critiques en sont exclues, une commutation de sélection changeant la fonction barrière et non sa courbure, ce que signale un compteur de génération publié avec l'état. Un dépassement persistant sur des paires d'une même génération signalerait donc une courbure réelle excédant la constante, et non un artefact de commutation.
 
 Deux limites délimitent le domaine de validité. La branche de prolongement hors domaine est continue et différentiable par morceaux, non continûment différentiable (Annexe~\ref{annexe:gradient_details}) : aucune constante finie ne borne la variation du gradient à travers ses raccords, et les échantillons qui les chevauchent produisent des valeurs de plusieurs milliers. Ces raccords ne sont toutefois observés qu'à plus de $40$~mm de dégagement, où le certificat dispose d'une réserve largement supérieure au reste quadratique ; ils constituent la frontière d'hypothèse documentée du certificat, au même titre que la commutation de sélection. Enfin, les constantes valent pour les modèles de distance déployés : tout réentraînement d'un lien invalide sa ligne du Tableau~\ref{tab:lipschitz_links} et exige de relancer la campagne, entièrement automatisée et d'un coût de quelques minutes.
+
+\Annexe{Surveillance en ligne des hypothèses du certificat}\label{annexe:surveillance}
+
+Cette annexe précise l'implémentation des mécanismes de surveillance introduits au Chapitre~\ref{sec:Theme2} : le moniteur de la borne de poursuite $\varepsilon_{\mathrm{p}}$ et son veto (Sections~\ref{subsec:contrainte} et~\ref{subsubsec:reflexe}), puis les chiens de garde de fraîcheur des données (Section~\ref{subsec:garanties}). Aucun de ces mécanismes ne constitue une contribution en soi ; ils sont documentés ici pour la reproductibilité et parce qu'ils délimitent le périmètre exact du certificat déployé.
+
+\section*{Moniteur de la borne de poursuite}
+
+À chaque cycle de résolution $k$, la perturbation réalisée du modèle $\dot{\mathbf{q}} = \dot{\mathbf{q}}_{\mathrm{cmd}} + \mathbf{d}$ est estimée comme $\mathbf{d}_k = \dot{\mathbf{q}}_k^{\mathrm{mes}} - \alpha_{k}\,\dot{\mathbf{q}}_{\mathrm{cmd},k-1}$, où $\dot{\mathbf{q}}^{\mathrm{mes}}$ est la vitesse articulaire mesurée (différenciation filtrée des positions) et $\alpha_k$ le facteur de freinage le plus récent publié par le frein réflexe : l'atténuation du frein est une modification certifiée de la commande, non une perturbation, et la commande de référence du moniteur en tient compte. La statistique publiée est la projection au pire cas sur les lignes actives,
+\begin{equation*}
+\hat{\varepsilon}_k \;=\; \max_{l\,:\,h_l < h_{\mathrm{act}},\,\|\nabla h_l\|>0}\;
+\frac{-\nabla h_l^{\top}\mathbf{d}_k}{\|\nabla h_l\|},
+\end{equation*}
+soit exactement la quantité que le resserrement $\varepsilon_{\mathrm{p}}\|\nabla h_l\|$ de la contrainte~\eqref{eq:issf_tightening} majore : seule la composante de la perturbation qui rapproche un lien actif de sa frontière consomme la marge. La norme $\|\mathbf{d}_k\|$ et le maximum courant de $\hat{\varepsilon}_k$ sont publiés avec elle à des fins de caractérisation.
+
+Le critère de dépassement $\hat{\varepsilon}_k > \varepsilon_{\mathrm{p}}$ n'est évalué que sur les cycles où la commande s'exécute effectivement ($\alpha_k > 0{,}9$). Pendant un freinage, le retard d'asservissement garantit un écart transitoire entre la vitesse mesurée, encore en décélération, et la commande atténuée : un critère aveugle à ce régime s'auto-entretiendrait, chaque veto prolongeant l'écart qui l'a déclenché. Les cycles de freinage sont couverts par le certificat propre du frein réflexe (Annexe~\ref{annexe:lipschitz}) et leur statistique demeure enregistrée.
+
+Sur dépassement, le frein réflexe applique un veto : $\alpha = 0$ pendant une fenêtre de retenue $t_{\mathrm{veto}} = 50$~ms, renouvelée tant que le dépassement persiste. L'exemption des lignes en récupération s'applique au veto comme au frein : si toutes les lignes en violation ($h_l<0$) reçoivent une commande sortante ($\nabla h_l^{\top}\dot{\mathbf{q}}\geq 0$), le veto est suspendu, un arrêt ne devant jamais immobiliser le bras à l'intérieur de la marge qu'il est chargé de protéger.
+
+\section*{Identification de la borne : campagne et estimateur}
+
+La valeur de $\varepsilon_{\mathrm{p}}$ est positionnée dans la distribution mesurée par la campagne rapportée à la Section~\ref{subsec:res_issf_monitor}, conçue pour éviter deux écueils statistiques. Le premier est la pseudo-réplication : les tiques successives d'une même trajectoire sont fortement corrélées et ne comptent jamais comme observations indépendantes ; l'unité statistique est la trajectoire, résumée par le maximum de $\hat{\varepsilon}_k$ sur sa durée. Le second est le biais de sélection : chaque lancement du système complet (graine du planificateur variée, plafond de $45$~s compté à partir de la première commande certifiée non nulle) produit une trajectoire de calibration valide, qu'il complète la tâche ou non --- conditionner l'échantillon au succès de la tâche biaiserait la borne --- et l'estimation n'est conduite qu'une fois les $N$ essais immuables sur disque, sans sélection a posteriori.
+
+L'estimateur est la statistique d'ordre : si les maxima $M_1,\dots,M_N$ des trajectoires de calibration et le maximum $M_{N+1}$ d'une trajectoire future sont échangeables, alors $\Pr\{M_{N+1}\leq M_{(k)}\}\geq k/(N+1)$ pour la $k$\textsuperscript{e} valeur ordonnée, sans aucune hypothèse sur la distribution (bornes de tolérance non paramétriques~\cite{Wilks1941Tolerance} ; prédiction conforme~\cite{Vovk2005Algorithmic}). Une couverture cible $c$ exige $N\geq\lceil c/(1-c)\rceil$ essais, soit $19$ pour $c=0{,}95$ ; la campagne en compte $N=26$ et retient $k=N$, d'où la couverture $26/27\approx 0{,}963$ pour le maximum observé. Les bornes résultantes, par régime du frein, figurent à la Figure~\ref{fig:res_epsilon_calibration}(b).
+
+\section*{Chiens de garde et disponibilité}
+
+Le nœud du filtre horodate la réception de ses deux entrées de sécurité et vérifie leur fraîcheur à chaque cycle : états articulaires (péremption à $0{,}3$~s, cadence nominale ${\sim}1$~kHz) et nuage d'obstacles (péremption à $1{,}0$~s, cadence nominale $30$~Hz). Toute péremption interrompt la résolution et commande une vitesse nulle, le contrôleur bas niveau maintenant alors sa référence de position contre la gravité ; une barrière évaluée sur un monde figé certifierait l'état du passé, non celui du robot. Le signal de disponibilité consommé par les nœuds amont n'est émis qu'après la première réception vérifiée conjointe de ces deux flux, et non à la fin de l'initialisation du nœud ; les scénarios d'ablation sans obstacle lèvent explicitement l'exigence du nuage. En dernier recours, le contrôleur bas niveau applique sa propre péremption de commande ($0{,}1$~s) : si le filtre lui-même cesse de publier, la référence de position est gelée à sa dernière valeur.
 
 \Annexe{Résultats complémentaires}\label{annexe:resultats_complementaires}
 

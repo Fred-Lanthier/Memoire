@@ -189,7 +189,7 @@ où $\mathbf{x} \in \mathbb{R}^d$ désigne l'état et $\mathbf{u} \in \mathbb{R}
 \begin{equation}
 \mathcal{C} = \{ \mathbf{x} \in \mathbb{R}^d : h(\mathbf{x}) \geq 0 \},
 \end{equation}
-la frontière $h(\mathbf{x})=0$ marquant le contact ou la limite de sécurité avec l'obstacle. L'ensemble $\mathcal{C}$ est dit invariant vers l'avant si toute trajectoire débutant dans $\mathcal{C}$ y demeure indéfiniment. En exploitant les dérivées de Lie $L_f h(\mathbf{x}) = \nabla h(\mathbf{x})^\top f(\mathbf{x})$ et $L_g h(\mathbf{x}) = \nabla h(\mathbf{x})^\top g(\mathbf{x})$, la fonction $h$ est une \ac{CBF} s'il existe une fonction $\alpha$ de classe $\mathcal{K}$, c'est-à-dire strictement croissante et nulle à l'origine, telle que, dans le cas général :
+la frontière $h(\mathbf{x})=0$ marquant le contact ou la limite de sécurité avec l'obstacle. L'ensemble $\mathcal{C}$ est dit invariant vers l'avant si toute trajectoire débutant dans $\mathcal{C}$ y demeure indéfiniment. En exploitant les dérivées de Lie $L_f h(\mathbf{x}) = \nabla h(\mathbf{x})^\top f(\mathbf{x})$ et $L_g h(\mathbf{x}) = \nabla h(\mathbf{x})^\top g(\mathbf{x})$, la fonction $h$ est une \ac{CBF} s'il existe une fonction $\alpha$ de classe $\mathcal{K}$ étendue, c'est-à-dire strictement croissante, nulle à l'origine et définie aussi pour des arguments négatifs (afin de couvrir $h<0$), telle que, dans le cas général :
 \begin{equation}
 \label{eq:cbf_condition_general}
 \sup_{\mathbf{u} \in \mathbb{R}^m} \left[ L_f h(\mathbf{x}) + L_g h(\mathbf{x})\mathbf{u} \right] \geq -\alpha\big(h(\mathbf{x})\big).
