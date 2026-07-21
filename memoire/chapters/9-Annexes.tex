@@ -13,56 +13,52 @@
 %%  All annexes must be included in this document one after the other.
 \Annexe{Protocole détaillé d'acquisition des démonstrations}\label{annexe:data_protocol}
 
-Cette annexe détaille la mise en œuvre du protocole de collecte de la Section~\ref{subsec:Protocol} : la procédure opératoire, l'architecture logicielle d'acquisition et le format de stockage des enregistrements. Ce format, défini en début de projet, est autoporteur : les données sont lisibles sans dépendance à ROS (JSON, PNG, NumPy), ce qui permet au pipeline d'entraînement de les consommer directement, là où un conteneur standard de type \texttt{rosbag} aurait exigé une étape d'extraction préalable.
+Cette annexe détaille la mise en œuvre du protocole de collecte de la Section~\ref{subsec:Protocol} : la procédure opératoire, l'architecture logicielle d'acquisition et le format de stockage des enregistrements. Ce format, défini en début de projet, est autoporteur : les données sont lisibles sans dépendance à \ac{ROS} (\ac{JSON}, PNG, NumPy), ce qui permet au pipeline d'entraînement de les consommer directement, là où un conteneur standard de type \texttt{rosbag} aurait exigé une étape d'extraction préalable.
 
 \section*{Synchronisation et horodatage des flux}
-La synchronisation entre l'état proprioceptif du robot et le flux d'images de la caméra à l'effecteur (\texttt{camera\_ee}) s'effectue au niveau du nœud de collecte en Python (\texttt{record.py}) à la cadence de $10$~Hz. Pour éliminer toute latence d'écriture I/O durant le mouvement du robot (ce qui provoquerait des pertes de trames), le nœud implémente une mise en mémoire tampon en RAM (\emph{RAM buffering}) : à chaque tique de la boucle de collecte, l'état articulaire courant et les images (couleur et profondeur alignée de type \texttt{16UC1}) sont mis en cache dans une liste en RAM. L'écriture physique des fichiers (images couleur au format PNG, cartes de profondeur au format de tableau NumPy \texttt{.npy} pour éviter toute perte de précision de la mesure) et la mise à jour du fichier de métadonnées JSON ne sont réalisées qu'à la toute fin de la trajectoire, après réception du signal sur le topic \texttt{/trajectory\_complete}.
+La synchronisation entre l'état proprioceptif du robot et le flux d'images de la caméra à l'effecteur (\texttt{camera\_ee}) s'effectue au niveau du nœud de collecte en Python (\texttt{record.py}) à la cadence de $10$~Hz. Pour éliminer toute latence d'écriture I/O durant le mouvement du robot (ce qui provoquerait des pertes de trames), le nœud implémente une mise en mémoire tampon en RAM (\emph{RAM buffering}) : à chaque tique de la boucle de collecte, l'état articulaire courant et les images (couleur et profondeur alignée de type \texttt{16UC1}) sont mis en cache dans une liste en RAM. L'écriture physique des fichiers (images couleur au format PNG, cartes de profondeur au format de tableau NumPy \texttt{.npy} pour éviter toute perte de précision de la mesure) et la mise à jour du fichier de métadonnées \ac{JSON} ne sont réalisées qu'à la toute fin de la trajectoire, après réception du signal sur le topic \texttt{/trajectory\_complete}. La graine aléatoire globale est fixée à $42$ pour assurer la reproductibilité complète.
 
-Le découpage entraînement/validation (80/20) est effectué au niveau des trajectoires (par dossiers) avant tout fenêtrage temporel pour éviter toute fuite d'informations (\emph{data leakage}) entre les fenêtres glissantes superposées. La graine aléatoire globale est fixée à $42$ pour assurer la reproductibilité complète.
-
-\section*{Topics ROS et types de messages}
-Le nœud d'acquisition s'abonne aux topics ROS suivants :
+\section*{Topics \ac{ROS} et types de messages}
+Le nœud d'acquisition s'abonne aux topics \ac{ROS} suivants :
 \begin{itemize}
   \item \texttt{/joint\_states} (de type \texttt{sensor\_msgs/JointState}) : fournit les positions et vitesses des sept articulations du bras robotique Panda ;
-  \item \texttt{/franka/end\_effector\_pose} (de type \texttt{geometry\_msgs/PoseStamped}) : fournit la pose cartésienne instantanée du TCP dans le repère de base $\mathcal{F}_b$, calculée en C++ par le nœud \texttt{franka\_state\_reader} ;
-  \item \texttt{/franka/end\_effector\_velocity} (de type \texttt{geometry\_msgs/TwistStamped}) : fournit la vitesse linéaire et angulaire instantanée du TCP, calculée par le nœud C++ ;
+  \item \texttt{/franka/end\_effector\_pose} (de type \texttt{geometry\_msgs/PoseStamped}) : fournit la pose cartésienne instantanée du \ac{TCP} dans le repère de base $\mathcal{F}_b$, calculée en C++ par le nœud \texttt{franka\_state\_reader} ;
+  \item \texttt{/franka/end\_effector\_velocity} (de type \texttt{geometry\_msgs/TwistStamped}) : fournit la vitesse linéaire et angulaire instantanée du \ac{TCP}, calculée par le nœud C++ ;
   \item \texttt{/camera\_ee/color/image\_raw} (de type \texttt{sensor\_msgs/Image}) : fournit les images RGB de la caméra montée au poignet (Intel RealSense D415, résolution $640\times480$ pixels à $30$~Hz) ;
   \item \texttt{/camera\_ee/aligned\_depth\_to\_color/image\_raw} (de type \texttt{sensor\_msgs/Image}) : fournit la carte de profondeur alignée sur l'image RGB.
 \end{itemize}
-Bien que la plateforme intègre également une caméra statique (\texttt{camera\_static}, Intel RealSense D435i), seule la caméra montée à l'effecteur (\texttt{camera\_ee}) offre des mesures exploitables pour la reconstruction de la cible et des obstacles en raison des occlusions provoquées par le bras pendant le mouvement. Par conséquent, seules les données de cette caméra sont conservées pour le conditionnement et la sécurité.
 
-\section*{Procédure de calibration caméra-TCP}
-La transformation extrinsèque de la caméra à l'effecteur relative à la base du robot ($\mathbf{T}_{c2}^{b}$) est déterminée par une chaîne cinématique œil-en-main (\emph{eye-in-hand}) rigide à partir des spécifications géométriques de la CAO :
+\section*{Procédure de calibration caméra-\ac{TCP}}
+La transformation extrinsèque de la caméra à l'effecteur relative à la base du robot ($\mathbf{T}_{c}^{b}$) est déterminée par une chaîne cinématique œil-en-main (\emph{eye-in-hand}) rigide à partir des spécifications géométriques de la \ac{CAO} :
 \begin{equation}\label{eq:calib_ee}
-  \mathbf{T}_{c2}^{b} = \mathbf{T}_{e}^{b} \, \mathbf{T}_{g}^{e} \, \mathbf{T}_{c2}^{g}
+  \mathbf{T}_{c}^{b} = \mathbf{T}_{e}^{b} \, \mathbf{T}_{c}^{e}
 \end{equation}
 où :
 \begin{itemize}
-  \item $\mathbf{T}_{e}^{b}$ est la pose de l'effecteur (TCP) lue directement de la centrale d'état du contrôleur Franka Control ;
-  \item $\mathbf{T}_{g}^{e}$ est la transformation constante reliant l'outil de préhension à l'effecteur (incluant une rotation nominale de $45^{\circ}$ autour de l'axe $z_e$ et une translation de $-0{,}1034$~m sur $z_e$) ;
-  \item $\mathbf{T}_{c2}^{g}$ est la transformation constante du support de caméra fixé sur la pince (translation $x = -0{,}052$~m, $y = 0{,}035$~m, $z = -0{,}045$~m, et rotation de $90^{\circ}$).
+  \item $\mathbf{T}_{e}^{b}$ est la pose de l'effecteur (\ac{TCP}) lue directement de la centrale d'état du contrôleur Franka Control ;
+  \item $\mathbf{T}_{c}^{g}$ est la transformation constante du support de caméra fixé sur la pince (translation $x = -0{,}052$~m, $y = 0{,}035$~m, $z = -0{,}045$~m, et rotation de $90^{\circ}$).
 \end{itemize}
-La calibration de la caméra statique par rapport au robot est réalisée par détection d'une mire ArUco posée sur le plan de travail, visible par les deux caméras. La mire ArUco sert de repère de référence intermédiaire pour calculer la pose de la caméra statique par rapport au robot, $\mathbf{T}_{c1}^{b} = \mathbf{T}_{ArUco}^{b} (\mathbf{T}_{ArUco}^{c1})^{-1}$, où $\mathbf{T}_{ArUco}^{b} = \mathbf{T}_{c2}^{b} \mathbf{T}_{ArUco}^{c2}$.
 
 \section*{Procédure opératoire}
 Chaque démonstration réelle suit la séquence suivante :
 \begin{enumerate}
-  \item montage de la caméra RGB-D sur le support officiel Franka à l'effecteur ;
-  \item positionnement du robot dans la configuration articulaire initiale $\mathbf{q}_0=[0,\,-0{,}126,\,0,\,-2{,}193,\,0,\,2{,}065,\,0{,}786]$~rad ;
+  \item montage de la caméra \ac{RGB-D} sur le support officiel Franka à l'effecteur ;
+  \item positionnement du robot dans la configuration articulaire initiale \\ $\mathbf{q}_0=[0,\,-0{,}126,\,0,\,-2{,}193,\,0,\,2{,}065,\,0{,}786]$~rad ;
   \item passage du robot en mode de guidage manuel, permettant à l'opérateur de le déplacer librement ;
-  \item exécution par guidage kinesthésique de la trajectoire à apprendre, depuis la posture initiale jusqu'à la cible, selon le schéma d'approche de la Section~\ref{subsec:Protocol} ;
-  \item arrêt de l'enregistrement et écriture des données de la trajectoire dans un fichier JSON.
+  \item exécution par guidage kinesthésique de la trajectoire à apprendre, depuis la posture initiale jusqu'à la cible, rotation de la fourchette pour amener les dents à l'horizontal, transport vers l'utilisateur ;
+  \item arrêt de l'enregistrement et écriture des données de la trajectoire dans un fichier \ac{JSON}.
 \end{enumerate}
 
 La grille d'échantillonnage de la Section~\ref{subsec:Protocol} (Figure~\ref{fig:protocole_echantillonnage}) est définie numériquement comme suit : l'assiette occupe successivement les $9$ positions d'une grille $3\times3$ exprimée dans $\mathcal{F}_b$, centrée à $(0{,}40,\;0)$~m, de pas $0{,}08$~m selon $x_b$ et $0{,}20$~m selon $y_b$ ; pour chacune, la cible occupe $5$ positions disposées en quinconce dans le repère assiette (demi-écart de $0{,}06$~m), chacune assortie d'une orientation aléatoire, soit $45$ configurations réalisées une fois chacune.
 
 \section*{Architecture d'acquisition}
-L'enregistrement repose sur deux nœuds ROS distincts. Le premier, écrit en C++ pour minimiser la latence de lecture, lit l'état du robot et publie :
+L'enregistrement repose sur deux nœuds \ac{ROS} distincts. Le premier, écrit en C++ pour minimiser la latence de lecture, lit l'état du robot et publie :
 \begin{itemize}
-  \item la pose du TCP dans le repère de base ($1\times7$) : position cartésienne (trois premières composantes) et orientation en quaternion (quatre dernières) ;
-  \item la vitesse du TCP dans le repère de base ($1\times6$) : vitesses linéaires (trois premières composantes) puis angulaires (trois dernières).
+  \item la pose du \ac{TCP} dans le repère de base ($1\times7$) : position cartésienne (trois premières composantes) et orientation en quaternion (quatre dernières) ;
+  \item la vitesse du \ac{TCP} dans le repère de base ($1\times6$) : vitesses linéaires (trois premières composantes) puis angulaires (trois dernières) ;
+  \item les angles et les vitesses des joints ($1\times14$).
 \end{itemize}
-Le second nœud, écrit en Python, s'abonne à ces messages ainsi qu'au flux RGB-D de la caméra à l'effecteur, et écrit l'ensemble sur disque à la cadence de $10$~Hz. La Figure~\ref{fig:architecture_acquisition} illustre cette architecture.
+Le second nœud, écrit en Python, s'abonne à ces messages ainsi qu'au flux \ac{RGB-D} de la caméra à l'effecteur, et écrit l'ensemble sur disque à la cadence de $10$~Hz. La Figure~\ref{fig:architecture_acquisition} illustre cette architecture.
 
 \begin{figure}[H]
     \centering
@@ -84,7 +80,7 @@ Le second nœud, écrit en Python, s'abonne à ces messages ainsi qu'au flux RGB
         % Robot -> Noeud 1
         \draw[->] (4.2,4.15) -- node[above,align=center]{Données du\\ robot} (8,4.15);
         % Caméras -> Noeud 2
-        \draw[->] (4.2,0.75) -- node[above,align=center]{Données RGB-D} (8,0.75);
+        \draw[->] (4.2,0.75) -- node[above,align=center]{Données \ac{RGB-D}} (8,0.75);
         % Noeud 1 -> Noeud 2
         \draw[->] (10.2,3.4) -- (10.2,1.5);
     \end{tikzpicture}
@@ -92,17 +88,17 @@ Le second nœud, écrit en Python, s'abonne à ces messages ainsi qu'au flux RGB
 \end{figure}
 
 \section*{Format d'enregistrement}
-À chaque pas d'échantillonnage, le second nœud consigne dans le fichier JSON, en plus de la pose et de la vitesse du TCP, les champs structurels suivants :
+À chaque pas d'échantillonnage, le second nœud consigne dans le fichier \ac{JSON}, en plus de la pose et de la vitesse du \ac{TCP}, les champs structurels suivants :
 \begin{itemize}
   \item \texttt{step\_number} : l'indice de l'échantillon dans la trajectoire ;
   \item \texttt{time\_step} : l'instant de la prise de données depuis le début de la trajectoire ;
   \item \texttt{rgb} : le nom du fichier de l'image couleur, nommé par convention \\ \texttt{ee\_rgb\_step\_\{step\_number\}.png} ;
   \item \texttt{depth\_npy} : le nom du fichier de la carte de profondeur, nommé par convention \texttt{ee\_depth\_step\_\{step\_number\}.npy}.
 \end{itemize}
-Les images et cartes de profondeur sont écrites dans un sous-dossier dédié ; le fichier JSON n'en contient que les noms.
+Les images et cartes de profondeur sont écrites dans un sous-dossier dédié ; le fichier \ac{JSON} n'en contient que les noms.
 
 \section*{Organisation des fichiers}
-Chaque trajectoire enregistrée occupe un dossier \texttt{Trajectory\_X}, où \texttt{X} est le numéro de la trajectoire, regroupant le fichier JSON des données numériques et le sous-dossier des images et cartes de profondeur (Figure~\ref{fig:dir_tree}).
+Chaque trajectoire enregistrée occupe un dossier \texttt{Trajectory\_X}, où \texttt{X} est le numéro de la trajectoire, regroupant le fichier \ac{JSON} des données numériques et le sous-dossier des images et cartes de profondeur (Figure~\ref{fig:dir_tree}).
 
 \begin{figure}[H]
 \centering
@@ -131,7 +127,7 @@ Chaque trajectoire enregistrée occupe un dossier \texttt{Trajectory\_X}, où \t
 \label{fig:dir_tree}
 \end{figure}
 
-Le prétraitement décrit à la Section~\ref{subsec:pretraitement} produit un second dossier racine, miroir du premier : les nuages de points conditionnels fusionnés y sont enregistrés sous le nom \texttt{Merged\_\{step\_number\}.npy} dans un sous-dossier \texttt{Merged\_Trajectory\_X}, et le fichier JSON de la trajectoire y est copié, augmenté de la pose de l'outil dans le repère de base (Figure~\ref{fig:preprocess_dir_tree}).
+Le prétraitement décrit à la Section~\ref{subsec:pretraitement} produit un second dossier racine, miroir du premier : les nuages de points conditionnels fusionnés y sont enregistrés sous le nom \texttt{Merged\_\{step\_number\}.npy} dans un sous-dossier \texttt{Merged\_Trajectory\_X}, et le fichier \ac{JSON} de la trajectoire y est copié, augmenté de la pose de l'outil dans le repère de base (Figure~\ref{fig:preprocess_dir_tree}).
 
 \begin{figure}[H]
 \centering
@@ -157,18 +153,18 @@ Le prétraitement décrit à la Section~\ref{subsec:pretraitement} produit un se
 \end{figure}
 
 \section*{Collecte en simulation}
-Les collectes simulées reprennent l'infrastructure d'enregistrement ci-dessus à l'identique (cadence de $10$~Hz en temps simulé, nomenclature et organisation des fichiers identiques), en l'enrichissant : les environnements \textit{ManiSkill~3} sont vectorisés (plusieurs environnements simulés en parallèle sur GPU, commande en mode \texttt{pd\_ee\_delta\_pose}), $25$ pas de stabilisation physique précèdent l'enregistrement, et le fichier JSON contient en plus les positions et vitesses articulaires, le flux d'une seconde caméra statique, les matrices extrinsèques des deux caméras (converties de la convention SAPIEN vers la convention OpenCV) ainsi que des métadonnées de scène (tâche, type de cible, type de support).
+Les collectes simulées reprennent l'infrastructure d'enregistrement ci-dessus à l'identique (cadence de $10$~Hz en temps simulé, nomenclature et organisation des fichiers identiques), en l'enrichissant : les environnements \textit{ManiSkill~3} sont vectorisés (plusieurs environnements simulés en parallèle sur \ac{GPU}, commande en mode \texttt{pd\_ee\_delta\_pose}), $25$ pas de stabilisation physique précèdent l'enregistrement, et le fichier \ac{JSON} contient en plus les positions et vitesses articulaires, le flux d'une seconde caméra statique, les matrices extrinsèques des deux caméras (converties de la convention SAPIEN vers la convention OpenCV) ainsi que des métadonnées de scène (tâche, type de cible, type de support).
 
-Pour la tâche d'alimentation, le robot est le Panda muni de la fourchette, obtenu par composition d'URDF, la caméra de poignet ($640\times480$, champ de vue de $42^{\circ}$) répliquant le montage réel. La cible est un maillage rigide tiré parmi sept aliments (pomme de terre, poitrine de poulet, brocoli, sushi, rouleau de sushi, cube de saumon, saucisse), placé aléatoirement dans un rectangle de $12\times16$~cm du plan de travail avec un lacet uniforme sur $[-\pi,\pi]$ ; une fois sur deux, il repose sur un piédestal de hauteur uniforme entre $4$ et $10$~cm. La politique experte procède en trois phases : approche avec alignement du lacet sur l'axe principal de la cible (abordée du côté opposé au robot, tangage de $-10^{\circ}$), survol à $3$~cm puis piquage vertical d'une profondeur $\min(2h_z-2~\text{mm},\,15~\text{mm})$, où $h_z$ est la demi-hauteur de l'aliment, bornée par la surface d'appui ; redressement du poignet le long d'un arc de rayon $3{,}5$~cm jusqu'à un tangage de $80^{\circ}$ ; transport vers une pose de livraison fixe. Dès le piquage, l'aliment est cinématiquement solidarisé à la fourchette (pose relative verrouillée réappliquée à chaque pas), idéalisant un piquage ferme. Trois environnements parallèles sur cinq épisodes produisent les $15$ trajectoires (Figure~\ref{fig:sim_feeding_phases}).
+Pour la tâche d'alimentation, le robot est le Panda muni de la fourchette, obtenu par composition d'\ac{URDF}, la caméra de poignet ($640\times480$, champ de vue de $42^{\circ}$) répliquant le montage réel. La cible est un maillage rigide tiré parmi sept aliments (pomme de terre, poitrine de poulet, brocoli, sushi, rouleau de sushi, cube de saumon, saucisse), placé aléatoirement dans un rectangle de $12\times16$~cm du plan de travail avec un lacet uniforme sur $[-\pi,\pi]$ ; une fois sur deux, il repose sur un piédestal de hauteur uniforme entre $4$ et $10$~cm. La politique experte procède en trois phases : approche avec alignement du lacet sur l'axe principal de la cible (abordée du côté opposé au robot, tangage de $-10^{\circ}$), survol à $3$~cm puis piquage vertical d'une profondeur $\min(2h_z-2~\text{mm},\,15~\text{mm})$, où $h_z$ est la demi-hauteur de l'aliment, bornée par la surface d'appui ; redressement du poignet le long d'un arc de rayon $3{,}5$~cm jusqu'à un tangage de $80^{\circ}$ ; transport vers une pose de livraison fixe. Dès le piquage, l'aliment est cinématiquement solidarisé à la fourchette (pose relative verrouillée réappliquée à chaque pas), idéalisant un piquage ferme. Trois environnements parallèles sur cinq épisodes produisent les $15$ trajectoires (Figure~\ref{fig:sim_feeding_phases}).
 
-Pour la tâche de saisie et dépôt, le robot est le Panda standard et la saisie est physique : la politique ne commande que la position et la pince, l'orientation verticale de la pince étant fixée par la configuration initiale et maintenue par le contrôleur. Le cube (dynamique, $4$~cm, lacet aléatoire) apparaît dans un rectangle de $10\times10$~cm sous l'empreinte initiale de la caméra de poignet, ce qui garantit sa visibilité dans la première image ; la boîte de dépôt ($16\times16\times1$~cm) apparaît dans une zone aléatoire à la droite du robot couvrant les positions utilisées au déploiement. La machine à états à huit phases (survol, descente, saisie, dégagement, transport, dépôt, relâchement, retrait) suit ses segments de chemin par jalon : le paramètre d'avancement ne progresse que lorsque le TCP a rejoint le point courant du chemin, de sorte que les portions raides de l'arc de transport sont effectivement parcourues plutôt que coupées. Comme pour la tâche d'alimentation, le cube et la boîte sont segmentés par SAM~3 dans la première image et leurs nuages de points sont reconstruits par la chaîne de rétroprojection de la Section~\ref{subsec:pretraitement}. Quatre environnements parallèles sur dix épisodes produisent les $40$ trajectoires (Figure~\ref{fig:sim_pickplace_phases}).
+Pour la tâche de saisie et dépôt, le robot est le Panda standard et la saisie est physique : la politique ne commande que la position et la pince, l'orientation verticale de la pince étant fixée par la configuration initiale et maintenue par le contrôleur. Le cube (dynamique, $4$~cm, lacet aléatoire) apparaît dans un rectangle de $10\times10$~cm sous l'empreinte initiale de la caméra de poignet, ce qui garantit sa visibilité dans la première image ; la boîte de dépôt ($16\times16\times1$~cm) apparaît dans une zone aléatoire à la droite du robot couvrant les positions utilisées au déploiement. La machine à états à huit phases (survol, descente, saisie, dégagement, transport, dépôt, relâchement, retrait) suit ses segments de chemin par jalon : le paramètre d'avancement ne progresse que lorsque le \ac{TCP} a rejoint le point courant du chemin, de sorte que les portions raides de l'arc de transport sont effectivement parcourues plutôt que coupées. Comme pour la tâche d'alimentation, le cube et la boîte sont segmentés par \ac{SAM}~3 dans la première image et leurs nuages de points sont reconstruits par la chaîne de rétroprojection de la Section~\ref{subsec:pretraitement}. Quatre environnements parallèles sur dix épisodes produisent les $40$ trajectoires (Figure~\ref{fig:sim_pickplace_phases}).
 
 \section*{Reconstruction géométrique du nuage conditionnel}
-La détection initiale est réalisée par SAM~3 sur la première image, avec une requête textuelle décrivant la cible : \textit{Pink block}, \textit{Broccoli}, \textit{Carrot slice}, \textit{Chicken breast}, \textit{Sushi}, \textit{Nigiri}, \textit{Sausage} ou \textit{Potato} pour la tâche d'alimentation, \textit{Red Cube} et \textit{Brown box} pour la tâche de saisie et dépôt ; le masque au score de confiance le plus élevé est retenu. Le nuage de la cible est ensuite reconstruit dans le repère de la caméra : le masque de la première image est superposé à la carte de profondeur initiale afin de ne conserver que les pixels de la cible dotés d'une profondeur valide, chaque pixel étant rétroprojeté par le modèle sténopé détaillé en fin d'annexe. Le nuage résultant est exprimé dans le repère de la base du robot par la relation
+La détection initiale est réalisée par \ac{SAM}~3 sur la première image, avec une requête textuelle décrivant la cible : \textit{Pink block}, \textit{Broccoli}, \textit{Carrot slice}, \textit{Chicken breast}, \textit{Sushi}, \textit{Nigiri}, \textit{Sausage} ou \textit{Potato} pour la tâche d'alimentation, \textit{Red Cube} et \textit{Brown box} pour la tâche de saisie et dépôt ; le masque au score de confiance le plus élevé est retenu. Le nuage de la cible est ensuite reconstruit dans le repère de la caméra : le masque de la première image est superposé à la carte de profondeur initiale afin de ne conserver que les pixels de la cible dotés d'une profondeur valide, chaque pixel étant rétroprojeté par le modèle sténopé détaillé en fin d'annexe. Le nuage résultant est exprimé dans le repère de la base du robot par la relation
 \begin{equation}\label{eq:pose_cam}
   \mathbf{T}_{cible}^{b} = \mathbf{T}_{e}^{b} \mathbf{T}_{c}^{e} \mathbf{T}_{cible}^{c},
 \end{equation}
-évaluée à la pose du TCP du premier pas, les repères étant illustrés à la Figure~\ref{fig:rep} : $\mathcal{F}_b$ la base du robot, $\mathcal{F}_c$ la caméra à l'effecteur, $\mathcal{F}_e$ le TCP et $\mathcal{F}_o$ l'outil. Le nuage de l'outil est quant à lui échantillonné sur la surface de son modèle CAO avec la bibliothèque \texttt{trimesh} (fonction \texttt{trimesh.sample.sample\_surface}) et positionné dans le repère de base à chaque pas par la relation \eqref{eq:pose_fork}.
+évaluée à la pose du \ac{TCP} du premier pas, les repères étant illustrés à la Figure~\ref{fig:rep} : $\mathcal{F}_b$ la base du robot, $\mathcal{F}_c$ la caméra à l'effecteur, $\mathcal{F}_e$ le \ac{TCP} et $\mathcal{F}_o$ l'outil. Le nuage de l'outil est quant à lui échantillonné sur la surface de son modèle \ac{CAO} avec la bibliothèque \texttt{trimesh} (fonction \texttt{trimesh.sample.sample\_surface}) et positionné dans le repère de base à chaque pas par la relation \eqref{eq:pose_fork}.
 
 La carte de profondeur n'étant exploitable qu'au premier pas, la position de la cible aux pas suivants est reconstruite géométriquement plutôt que mesurée. Avant la saisie, la cible repose sur son support et son nuage demeure à sa position initiale ; à partir de l'instant de saisie, elle est considérée rigidement solidaire de l'outil et son nuage suit le mouvement de celui-ci selon la relation
 \begin{equation}\label{eq:cible_solidaire}
@@ -179,9 +175,23 @@ où $\tilde{\mathbf{p}}_0$ est un point de la cible en coordonnées homogènes �
 \section*{Détection de l'indice de saisie et champs des fichiers prétraités}
 L'indice de saisie $g$ est déterminé différemment selon la tâche. Pour la tâche d'alimentation, la saisie s'effectue par piquage : les dents de la fourchette pénètrent la cible, de sorte que la distance euclidienne entre la pointe de l'outil, positionnée par la relation \eqref{eq:pose_fork}, et le centroïde de la cible décroît durant l'approche et atteint son minimum à l'insertion maximale. Cette distance est donc évaluée à chaque pas, lissée par un filtre gaussien d'écart-type de deux pas d'échantillonnage afin d'atténuer le bruit sur la pose et sur le centroïde, et l'indice de son minimum définit $g$.
 
-Pour la tâche de saisie et dépôt, la saisie s'effectue par fermeture de la pince. Un état binaire de la pince, ouverte ou fermée, est plutôt dérivé à chaque pas des données enregistrées, à partir de la commande envoyée à la pince ou, à défaut, de l'ouverture moyenne des doigts comparée à un seuil de $3$~cm. La première transition vers l'état fermé définit $g$. La relation \eqref{eq:cible_solidaire} solidarise alors le cube au TCP jusqu'à la réouverture de la pince au dépôt, après quoi son nuage demeure à sa position de dépôt. La boîte de dépôt, qui n'est jamais saisie, conserve sa position initiale pendant toute la trajectoire.
+Pour la tâche de saisie et dépôt, la saisie s'effectue par fermeture de la pince. Un état binaire de la pince, ouverte ou fermée, est plutôt dérivé à chaque pas des données enregistrées, à partir de la commande envoyée à la pince ou, à défaut, de l'ouverture moyenne des doigts comparée à un seuil de $3$~cm. La première transition vers l'état fermé définit $g$. La relation \eqref{eq:cible_solidaire} solidarise alors le cube au \ac{TCP} jusqu'à la réouverture de la pince au dépôt, après quoi son nuage demeure à sa position de dépôt. La boîte de dépôt, qui n'est jamais saisie, conserve sa position initiale pendant toute la trajectoire.
 
-La dernière étape recopie le fichier JSON de chaque trajectoire dans le jeu de données prétraité et l'augmente de quatre éléments : le nom du fichier du nuage conditionnel associé à chaque pas ; la pose de l'outil dans le repère de base $\mathcal{F}_b$ à chaque pas (position et orientation en quaternion), calculée par la relation \eqref{eq:pose_fork} à partir de la pose du TCP enregistrée ; l'état binaire de la pince $s_k\in\{0,1\}$ à chaque pas, dérivé des données enregistrées comme décrit plus haut pour la tâche de saisie et dépôt, et constant à $1$ pour la tâche d'alimentation, la pince y demeurant fermée sur la fourchette pendant toute la trajectoire ; et la transformation constante $\mathbf{T}_{o}^{e}$, consignée une seule fois à la racine du fichier. La pose de l'outil et l'état binaire de la pince forment ensemble l'observation proprioceptive à dix dimensions du modèle de la Section~\ref{sec:CFM} et définissent l'espace dans lequel les trajectoires sont générées. L'organisation des fichiers du jeu de données prétraité est détaillée à l'Annexe~\ref{annexe:data_protocol}.
+La dernière étape recopie le fichier \ac{JSON} de chaque trajectoire dans le jeu de données prétraité et l'augmente de quatre éléments : le nom du fichier du nuage conditionnel associé à chaque pas ; la pose de l'outil dans le repère de base $\mathcal{F}_b$ à chaque pas (position et orientation en quaternion), calculée par la relation \eqref{eq:pose_fork} à partir de la pose du \ac{TCP} enregistrée ; l'état binaire de la pince $s_k\in\{0,1\}$ à chaque pas, dérivé des données enregistrées comme décrit plus haut pour la tâche de saisie et dépôt, et constant à $1$ pour la tâche d'alimentation, la pince y demeurant fermée sur la fourchette pendant toute la trajectoire ; et la transformation constante $\mathbf{T}_{o}^{e}$, consignée une seule fois à la racine du fichier. La pose de l'outil et l'état binaire de la pince forment ensemble l'observation proprioceptive du modèle de la Section~\ref{sec:CFM} et définissent l'espace dans lequel les trajectoires sont générées. Le modèle ne consomme toutefois pas le quaternion directement : à la lecture, l'orientation stockée $\mathbf{q}=(q_w,q_x,q_y,q_z)$, de norme unité, est convertie en matrice de rotation
+\begin{equation}\label{eq:quat_to_rot}
+  \mathbf{R}(\mathbf{q}) =
+  \begin{bmatrix}
+    1-2(q_y^2+q_z^2) & 2(q_xq_y-q_zq_w) & 2(q_xq_z+q_yq_w) \\
+    2(q_xq_y+q_zq_w) & 1-2(q_x^2+q_z^2) & 2(q_yq_z-q_xq_w) \\
+    2(q_xq_z-q_yq_w) & 2(q_yq_z+q_xq_w) & 1-2(q_x^2+q_y^2)
+  \end{bmatrix}
+  = \bigl[\,\mathbf{r}_1\ \ \mathbf{r}_2\ \ \mathbf{r}_3\,\bigr],
+\end{equation}
+dont on ne retient que les deux premières colonnes, la représentation 6D continue de Zhou et al.~\cite{Zhou2020Continuity},
+\begin{equation}\label{eq:zhou_6d}
+  \mathbf{o}_{6\mathrm{D}} = \begin{bmatrix}\mathbf{r}_1\\[2pt] \mathbf{r}_2\end{bmatrix}\in\mathbb{R}^6,
+\end{equation}
+la troisième colonne $\mathbf{r}_3=\mathbf{r}_1\times\mathbf{r}_2$ étant reconstruite par produit vectoriel au décodage. L'observation proprioceptive compte ainsi $3+6+1=10$ dimensions : position de l'outil, orientation 6D et état de la pince. L'organisation des fichiers du jeu de données prétraité est illustrée plus haut à la Figure~\ref{fig:preprocess_dir_tree}.
 
 \begin{figure}[htbp]
 \centering
@@ -223,7 +233,7 @@ La dernière étape recopie le fichier JSON de chaque trajectoire dans le jeu de
 \label{fig:sim_pickplace_phases}
 \end{figure}
 
-\paragraph{Rétroprojection sténopé.} Chaque pixel $(u,v)$ de profondeur $Z$ est rétroprojeté dans le repère de la caméra par $X_c = Z\,(u-c_x)/f_x$, $Y_c = Z\,(v-c_y)/f_y$, $Z_c = Z$, où $f_x$, $f_y$ sont les longueurs focales et $c_x$, $c_y$ les coordonnées du point principal, paramètres intrinsèques de la caméra D415 obtenus auprès du fabricant. La Figure~\ref{fig:rep} rassemble les repères du système intervenant dans les changements de repère du prétraitement (Section~\ref{subsec:pretraitement}) et de la conversion outil--TCP.
+\paragraph{Rétroprojection sténopé.} Chaque pixel $(u,v)$ de profondeur $Z$ est rétroprojeté dans le repère de la caméra par $X_c = Z\,(u-c_x)/f_x$, $Y_c = Z\,(v-c_y)/f_y$, $Z_c = Z$, où $f_x$, $f_y$ sont les longueurs focales et $c_x$, $c_y$ les coordonnées du point principal, paramètres intrinsèques de la caméra D415 obtenus auprès du fabricant. La Figure~\ref{fig:rep} rassemble les repères du système intervenant dans les changements de repère du prétraitement (Section~\ref{subsec:pretraitement}) et de la conversion outil--\ac{TCP}.
 
 \Annexe{Détails de l'architecture du réseau de vitesse}\label{annexe:unet_details}
 
@@ -247,7 +257,7 @@ Chaque bloc résiduel conditionnel enchaîne deux convolutions 1D dotées d'un n
 \text{Mish}(x) = x \cdot \tanh\left(\ln\left(1 + e^x\right)\right)
 \label{eq:mish_activation}
 \end{equation}
-le conditionnement global $c_g \in \mathbb{R}^{384}$ y étant appliqué par modulation affine de type FiLM : un gain $\gamma \in \mathbb{R}^{C_{\text{out}}}$ et un biais $\beta \in \mathbb{R}^{C_{\text{out}}}$ sont générés à partir de $c_g$ par un perceptron linéaire ($384 \to 2 C_{\text{out}}$) et modulent canal par canal les cartes de caractéristiques issues de la première convolution :
+le conditionnement global $c_g \in \mathbb{R}^{384}$ y étant appliqué par modulation affine de type \ac{FiLM} : un gain $\gamma \in \mathbb{R}^{C_{\text{out}}}$ et un biais $\beta \in \mathbb{R}^{C_{\text{out}}}$ sont générés à partir de $c_g$ par un perceptron linéaire ($384 \to 2 C_{\text{out}}$) et modulent canal par canal les cartes de caractéristiques issues de la première convolution :
 \begin{equation}\label{eq:film_modulation}
   y_c = \gamma_c \cdot x_c + \beta_c
 \end{equation}
@@ -519,7 +529,7 @@ Chaque itération du solveur applique l'incrément
 \qquad
 \mathbf{J}^{+}=\mathbf{J}^{\top}\big(\mathbf{J}\mathbf{J}^{\top}+\lambda\mathbf{I}\big)^{-1},
 \end{equation}
-où $\mathbf{J}(\mathbf{q})\in\mathbb{R}^{6\times7}$ est la Jacobienne géométrique du TCP : pseudo-inverse amortie~\cite{Nakamura1986Singularity, Wampler1986Damped} pour le suivi, l'amortissement $\lambda$ régularisant le voisinage des singularités, et rappel vers la posture de référence $\mathbf{q}_{\mathrm{ref}}$ dans le noyau de $\mathbf{J}$~\cite{Liegeois1977Redundancy}.
+où $\mathbf{J}(\mathbf{q})\in\mathbb{R}^{6\times7}$ est la Jacobienne géométrique du \ac{TCP} : pseudo-inverse amortie~\cite{Nakamura1986Singularity, Wampler1986Damped} pour le suivi, l'amortissement $\lambda$ régularisant le voisinage des singularités, et rappel vers la posture de référence $\mathbf{q}_{\mathrm{ref}}$ dans le noyau de $\mathbf{J}$~\cite{Liegeois1977Redundancy}.
 
 \section*{Erreur de pose et linéarisation}
 À l'itération courante, l'écart entre la pose atteinte $\mathbf{T}_{e}^{b}(\mathbf{q})$ et la pose désirée $\mathbf{T}_{e,k}^{b\star}$ est mesuré dans l'algèbre de Lie de $SE(3)$, via le logarithme du groupe,
@@ -645,7 +655,7 @@ le premier terme traduisant la translation du repère du lien, le second sa rota
 \frac{\partial\mathbf{u}}{\partial\mathbf{x}_{l,i}} = \frac{1}{2 s_l}\,\mathbf{I}_3.
 \end{equation}
 
-\paragraph{Gradient du SDF de Bernstein.} La dérivée d'un polynôme de Bernstein de degré $n-1$ se ramène à la base de degré immédiatement inférieur par la règle d'abaissement
+\paragraph{Gradient du \ac{SDF} de Bernstein.} La dérivée d'un polynôme de Bernstein de degré $n-1$ se ramène à la base de degré immédiatement inférieur par la règle d'abaissement
 \begin{equation}
 \frac{dB_a(u)}{du} = (n-1)\big(B_{a-1}^{(n-2)}(u) - B_a^{(n-2)}(u)\big),
 \end{equation}
@@ -667,7 +677,7 @@ d'où, en dérivant le produit tensoriel selon chacun des trois axes, le gradien
 \end{equation}
 soit la combinaison, pondérée par $1/\hat{d}$, de la composante polynomiale restreinte aux axes intérieurs au cube et du vecteur d'excursion, dont toutes les composantes sont orientées vers l'extérieur. Plutôt que d'assembler explicitement $\mathbf{J}_{x_{l,i}}$ pour chacun des points, ce qui matérialiserait un tenseur coûteux, les mêmes identités du produit vectoriel réécrivent $\nabla_{\mathbf{q}}d_{l,i}=\mathbf{J}_{x_{l,i}}^{\top}\nabla_{\mathbf{x}}d_{l,i}$ directement dans le repère de base, ce qui conduit à la forme encadrée de la Section~\ref{subsec:gradient}.
 
-\Annexe{Compléments du filtre de sécurité SDF-CBF}\label{annexe:cbf_details}
+\Annexe{Compléments du filtre de sécurité \ac{SDF}-\ac{CBF}}\label{annexe:cbf_details}
 
 Cette annexe rassemble les compléments du filtre de sécurité de la Section~\ref{sec:sdfcbf} : la forme close de la projection élémentaire sur un demi-espace, les formes closes du lissage et de la réparation qui transforment la vitesse projetée en commande publiée et les garde-fous qui bornent cette réparation, le statut de classe $\mathcal{K}$ du second membre saturé, le certificat de la variante à valeur exacte, ainsi que le choix et les conditions d'implémentation des projections de Dykstra. Les notations sont celles du chapitre ; la dérivation du gradient analytique de la contrainte figure à l'Annexe~\ref{annexe:gradient_details}.
 
@@ -688,81 +698,8 @@ Pour le lien $l$, la projection sur le demi-espace $\{\dot{\mathbf{q}} \mid \nab
 \end{equation}
 Si la contrainte du lien est déjà respectée, le terme $\max(0,\cdot)$ s'annule et la vitesse reste inchangée ; sinon, elle est déplacée le long de $\mathbf{W}^{-1}\nabla h_l$ pour ramener le produit $\nabla h_l^\top\dot{\mathbf{q}}$ sur sa borne, le facteur de relaxation $\omega$ pondérant ce pas. Quelle que soit la métrique, le demi-espace est satisfait exactement dès que $\nabla h_l^\top\mathbf{W}^{-1}\nabla h_l>\varepsilon_0$ : le plancher numérique $\varepsilon_0=10^{-8}$ ne mord que pour des gradients dégénérés, par ailleurs écartés par le seuil de fiabilité $g_{\min}$ de la réparation. Lorsqu'un seul lien est actif, une application de cette mise à jour avec $\omega=1$ résout exactement le problème~\eqref{eq:cbf_qp}.
 
-\begin{figure}[htbp!]
-    \centering
-    \begin{tikzpicture}[
-        font=\sffamily\small,
-        scale=1.3,
-        axis/.style={-{Stealth[scale=0.95]}, thick, draw=black!60},
-        vec/.style={-{Stealth[scale=1.15]}, very thick},
-        constraint_line/.style={draw=orange!90!black, very thick},
-        projection_line/.style={draw=red!80, dashed, thick, -{Stealth[scale=1.0]}},
-        normal_vec/.style={-{Stealth[scale=1.1]}, thick, draw=green!55!black},
-        lab/.style={font=\sffamily\scriptsize\bfseries, align=center}
-    ]
-        % --- Axes de vitesse ---
-        \draw[axis] (-0.2,0) -- (6.4,0) node[right, black] {$\dot{q}_1$};
-        \draw[axis] (0,-0.2) -- (0,5.2) node[above, black] {$\dot{q}_2$};
+\emph{(Voir la Figure~\ref{fig:projection_cbf} du Chapitre~\ref{sec:Theme2} pour l'illustration géométrique de cette projection dans l'espace des vitesses articulaires.)}
 
-        % --- Ensemble admissible : intersection de demi-espaces (non borné) ---
-        \fill[blue!6] (0,0) -- (4.26,0) -- (4.81,1.69) -- (1.7,4.8) -- (0,4.8) -- cycle;
-        \node[lab, blue!80!black] at (1.2,2.6) {Vitesses admissibles\\(intersection des\\demi-espaces actifs)};
-
-        % --- Contrainte active liante : lien l ---
-        \draw[constraint_line] (1.7,4.8) -- (5.4,1.1);
-        \node[lab, orange!90!black, anchor=south west] at (0.35,4.9)
-            {Contrainte du lien $l$ : $\nabla h_l^\top \dot{\mathbf{q}} = b(h_l) + \eta_l$};
-
-        % --- Seconde contrainte active, non liante : lien l' ---
-        \draw[draw=orange!60, thick] (4.26,0) -- (4.81,1.69);
-        \draw[draw=orange!60, thin, dashed] (4.81,1.69) -- (5.08,2.6);
-        \node[lab, orange!75!black, anchor=west, inner sep=2pt] at (4.95,0.55) {contrainte\\du lien $l'$};
-
-        % --- Zone non admissible ---
-        \node[lab, red!75!black] at (5.35,4.9) {Vitesses non admissibles};
-
-        % --- Normale de la contrainte liante (pointe vers l'intérieur) ---
-        \draw[normal_vec] (2.7,3.8) -- (2.2,3.3);
-        \node[lab, green!45!black, anchor=east, inner sep=2pt] at (2.18,3.68) {$\nabla h_l$};
-
-        % --- Ellipse de niveau de la métrique W, tangente à la frontière en q_proj ---
-        \draw[dashed, black!45, thin] (4.6,3.4) ellipse [x radius=0.912, y radius=1.401, rotate=75.6];
-        \node[lab, black!55, anchor=west] at (5.62,4.25)
-            {$\|\dot{\mathbf{q}}-\dot{\mathbf{q}}_{\mathrm{base}}\|_{\mathbf{W}} = \text{cste}$};
-
-        % --- Vecteurs ---
-        \coordinate (O) at (0,0);
-        \coordinate (Qbase) at (4.6,3.4);
-        \coordinate (Qproj) at (3.52,2.98);
-        \coordinate (Qeucl) at (3.85,2.65);
-
-        % vitesse nominale filtrée
-        \draw[vec, draw=black!80] (O) -- (Qbase);
-        \fill[black] (Qbase) circle (1.6pt);
-        \node[lab, black, anchor=west, inner sep=2pt] at (4.72,3.32)
-            {$\dot{\mathbf{q}}_{\mathrm{base}}$};
-
-        % vitesse sécurisée
-        \draw[vec, draw=blue!80!black] (O) -- (Qproj);
-        \fill[blue!80!black] (Qproj) circle (1.6pt);
-        \node[lab, blue!90!black, anchor=east, inner sep=2pt] at (3.28,3.02)
-            {$\dot{\mathbf{q}}_{\mathrm{proj}}$};
-
-        % correction dans la métrique W
-        \draw[projection_line] (Qbase) -- (Qproj);
-        \node[lab, red!80!black, anchor=south west, inner sep=2pt] at (3.82,3.62)
-            {$\Delta\dot{\mathbf{q}}_{\mathrm{CBF}} \parallel \mathbf{W}^{-1}\nabla h_l$} ;
-
-        % projection euclidienne, pour comparaison
-        \draw[black!45, dotted, thick] (Qbase) -- (Qeucl);
-        \draw[black!55, fill=white] (Qeucl) circle (1.5pt);
-        \draw[thin, black!50] ($(Qeucl)+(-0.085,0.085)$) -- ($(Qeucl)+(0.034,0.204)$) -- ($(Qeucl)+(0.153,0.085)$);
-        \node[lab, black!55, anchor=west] (eucl_lab) at (4.5,2.25) {projection euclidienne\\($\mathbf{W}=\mathbf{I}$)};
-        \draw[thin, black!40] (eucl_lab.west) -- ($(Qeucl)+(0.08,-0.08)$);
-    \end{tikzpicture}
-    \caption{Interprétation géométrique, dans un plan de l'espace des vitesses articulaires, de la projection de sécurité~\eqref{eq:cbf_qp} : la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ est projetée sur l'intersection des demi-espaces actifs $\nabla h_l^\top\dot{\mathbf{q}} \geq b(h_l)+\eta_l$, dont les normales $\nabla h_l$ pointent vers l'intérieur. La solution $\dot{\mathbf{q}}_{\mathrm{proj}}$ est le point où le plus petit ellipsoïde de niveau de la métrique de tâche $\mathbf{W}$ centré sur $\dot{\mathbf{q}}_{\mathrm{base}}$ touche la frontière : la correction $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ suit la direction $\mathbf{W}^{-1}\nabla h_l$ et non la normale, et s'écarte ainsi de la projection euclidienne ($\mathbf{W}=\mathbf{I}$, point creux), en déplaçant le moins possible le lien contrôlé.}
-    \label{fig:projection_cbf}
-\end{figure}
 
 \section*{Formes closes du post-traitement de la commande}
 
@@ -793,7 +730,7 @@ de la commande certifiée précédente et de la vitesse nominale filtrée couran
 }
 \,\mathbf{W}^{-1}\nabla h.
 \end{equation}
-Cette réparation est une projection corrective sur la même contrainte CBF linéarisée : elle réutilise la valeur de barrière $h$, le gradient $\nabla h$, la borne resserrée $r$ et la métrique $\mathbf{W}$ de la projection principale, de sorte qu'elle répartit sa correction de la même manière que le solveur au lieu de défaire, par un pas euclidien, la préférence pour le noyau de tâche.
+Cette réparation est une projection corrective sur la même contrainte \ac{CBF} linéarisée : elle réutilise la valeur de barrière $h$, le gradient $\nabla h$, la borne resserrée $r$ et la métrique $\mathbf{W}$ de la projection principale, de sorte qu'elle répartit sa correction de la même manière que le solveur au lieu de défaire, par un pas euclidien, la préférence pour le noyau de tâche.
 
 Deux garde-fous bornent cette réparation. D'une part, sa norme est plafonnée : à $\Delta v_{\max}$ tant que la barrière est positive, et à un plafond distinct $\Delta v_{\max}^{\mathrm{rec}}$, plus permissif, lorsque $h<0$ et qu'une sortie rapide de la zone de violation devient prioritaire. Ce plafond couvre notamment le scénario où la carte persistante fait apparaître de nouveaux points obstacles déjà très proches du robot, voire déjà dans la zone de violation : la violation instantanée $-c_f$ peut alors être grande, et une réparation non bornée se traduirait par une commande de vitesse violente en un seul cycle. D'autre part, la réparation est modulée par un seuil de fiabilité du gradient : son amplitude croît linéairement de zéro, lorsque $\|\nabla h\| = g_{\min}$, jusqu'à sa pleine valeur à $3\,g_{\min}$. La direction $\nabla h/\|\nabla h\|$ n'est en effet fiable que si la norme du gradient est significative : face à un obstacle mince, les gradients des points situés de part et d'autre du lien se compensent dans l'agrégation soft-min et $\|\nabla h\|$ s'effondre ; une réparation de pleine amplitude pousserait alors le bras dans une direction dépourvue de sens géométrique. Le filtre s'en remet dans ce cas à la vitesse issue de la projection pour le cycle courant, la violation résiduelle étant résorbée aux cycles suivants, dès que la géométrie redevient non dégénérée. La même limite $\Delta v_{\max}$ s'applique enfin à chaque pas de projection de la boucle de balayage elle-même : lorsque cette borne est atteinte, la solution retournée n'est plus la projection exacte de~\eqref{eq:cbf_qp}, mais une solution dont la correction par cycle est bornée, le résidu étant repris par la réévaluation finale puis par les cycles suivants. Face à plusieurs contraintes simultanément actives, la réparation reprend les balayages de Dykstra sur l'ensemble des lignes exportées par la résolution (gradients figés au cycle courant), et non sur la seule ligne critique : lorsque deux gradients s'opposent, la projection corrective sur la ligne critique seule peut rouvrir la seconde ligne, et seule la re-projection conjointe restitue l'intersection certifiée. Le résidu de contrainte définitif est mesuré sur la commande effectivement publiée, après la saturation finale et l'écrêtage aux limites articulaires, comme le \emph{pire} résidu sur toutes les lignes actives, et exporté à chaque cycle comme diagnostic (\texttt{constr\_final}), de sorte que l'effet conjoint de la troncature, des plafonds et de la saturation est observé plutôt que supposé nul.
 
@@ -807,10 +744,10 @@ Le mode à valeur exacte (Section~\ref{subsec:barriere}, mode déployé) pourrai
 \;\;\Longrightarrow\;\;
 \nabla h_{\mathrm{corr}}^{\top}\dot{\mathbf{q}} \;\geq\; b(h_{\mathrm{corr}}),
 \end{equation}
-implique la condition CBF standard, cohérente en valeur et en gradient, de la barrière $h_{\mathrm{corr}}$ ; la bande d'activation est couverte de même, puisque $h_{\min,l} \leq h_{\mathrm{corr}}$ garantit que la contrainte est évaluée dès que $h_{\mathrm{corr}} \leq h_{\mathrm{act}}$.
+implique la condition \ac{CBF} standard, cohérente en valeur et en gradient, de la barrière $h_{\mathrm{corr}}$ ; la bande d'activation est couverte de même, puisque $h_{\min,l} \leq h_{\mathrm{corr}}$ garantit que la contrainte est évaluée dès que $h_{\mathrm{corr}} \leq h_{\mathrm{act}}$.
 
 \section*{Choix et conditions d'implémentation des projections de Dykstra}
-Le problème~\eqref{eq:cbf_qp} demeure un programme quadratique qu'un solveur générique résoudrait exactement~\cite{Stellato2020Osqp}, mais au prix d'une structure de calcul à itérations et branchements variables, incompatible avec la capture en graphe CUDA. La méthode des projections cycliques (POCS, Section~\ref{subsec:revue_cbf_qp}) offre cette forme fixe : la projection sur le demi-espace d'un lien pouvant re-violer celui d'un lien déjà traité, l'ensemble $\mathcal{A}$ est balayé à plusieurs reprises à la manière de Gauss--Seidel et, les gradients étant figés à la configuration courante, la suite des projections converge vers un point de l'intersection~\cite{Bauschke1996Projection}. Ce point n'est cependant pas, en général, la projection de $\dot{\mathbf{q}}_{\mathrm{base}}$ au sens de $\mathbf{W}$ : l'excès de correction déposé par une projection précoce n'est jamais restitué lorsque les contraintes suivantes le rendent superflu, et le point atteint dépend de l'ordre de balayage. Une vérification numérique hors ligne, sur $2\,000$ instances aléatoires à contraintes multiples simultanément actives (solution exacte par énumération des ensembles actifs des conditions KKT), chiffre cet excès à $7{,}3$~\% du coût de déviation en médiane et $34$~\% au 90\textsuperscript{e} centile, écart permanent qu'aucun balayage supplémentaire ne résorbe ; d'où la variante de Dykstra retenue à la Section~\ref{subsec:projection}, dont l'écart résiduel à l'optimum exact tombe à $0{,}04$~\% en médiane dès $N_{\mathrm{it}}=6$ balayages sur les mêmes instances. La mise à jour par contrainte s'écrit, avec $P_l$ la projection élémentaire ci-dessus,
+Le problème~\eqref{eq:cbf_qp} demeure un programme quadratique qu'un solveur générique résoudrait exactement~\cite{Stellato2020Osqp}, mais au prix d'une structure de calcul à itérations et branchements variables, incompatible avec la capture en graphe CUDA. La méthode des projections cycliques (\ac{POCS}, Section~\ref{subsec:revue_cbf_qp}) offre cette forme fixe : la projection sur le demi-espace d'un lien pouvant re-violer celui d'un lien déjà traité, l'ensemble $\mathcal{A}$ est balayé à plusieurs reprises à la manière de Gauss--Seidel et, les gradients étant figés à la configuration courante, la suite des projections converge vers un point de l'intersection~\cite{Bauschke1996Projection}. Ce point n'est cependant pas, en général, la projection de $\dot{\mathbf{q}}_{\mathrm{base}}$ au sens de $\mathbf{W}$ : l'excès de correction déposé par une projection précoce n'est jamais restitué lorsque les contraintes suivantes le rendent superflu, et le point atteint dépend de l'ordre de balayage. Une vérification numérique hors ligne, sur $2\,000$ instances aléatoires à contraintes multiples simultanément actives (solution exacte par énumération des ensembles actifs des conditions \ac{KKT}), chiffre cet excès à $7{,}3$~\% du coût de déviation en médiane et $34$~\% au 90\textsuperscript{e} centile, écart permanent qu'aucun balayage supplémentaire ne résorbe ; d'où la variante de Dykstra retenue à la Section~\ref{subsec:projection}, dont l'écart résiduel à l'optimum exact tombe à $0{,}04$~\% en médiane dès $N_{\mathrm{it}}=6$ balayages sur les mêmes instances. La mise à jour par contrainte s'écrit, avec $P_l$ la projection élémentaire ci-dessus,
 \begin{equation}
 \dot{\mathbf{q}}' = \dot{\mathbf{q}} + \mathbf{z}_l,
 \qquad
@@ -828,7 +765,7 @@ Deux conditions d'implémentation, non stylistiques, s'y attachent. D'une part, 
   constante $(K_a{+}1)\times 7$, remis à zéro en tête de chaque résolution, et un lien déjà satisfait laissant $\dot{\mathbf{q}}$ et
   $\mathbf{z}_l$ inchangés, compléter $\mathcal{A}$ à un effectif fixe demeure sans effet sur le point de convergence. La sélection
   \textit{top-}$K_a$ et la boucle de $N_{\mathrm{it}}$ balayages conservent donc leur structure sans branchement ni masquage dynamique,
-  capturée une seule fois dans un graphe CUDA puis exécutée intégralement sur le GPU à chaque cycle de commande, pour un surcoût d'environ deux
+  capturée une seule fois dans un graphe CUDA puis exécutée intégralement sur le \ac{GPU} à chaque cycle de commande, pour un surcoût d'environ deux
   opérations vectorielles par projection.
 
 \Annexe{Détermination des constantes de Lipschitz du frein réflexe}\label{annexe:lipschitz}

@@ -2,28 +2,28 @@
 
 Ce chapitre présente la conception et la mise en œuvre du système de génération de trajectoires sans collision. Le travail suit une approche expérimentale guidée par l'implémentation, caractérisée par un développement itératif, une architecture modulaire et une évaluation empirique. Le système est décrit à travers cinq blocs de conception directement alignés sur les objectifs spécifiques de la Section~\ref{sec:objectifs} :
 \begin{itemize}
-  \item la plateforme expérimentale et l'architecture d'ensemble qui accueillent tous les modules (fondation du déploiement de SO4) ;
-  \item la chaîne de perception sémantique et la carte persistante de la scène (SO1) ;
-  \item l'acquisition des démonstrations et leur prétraitement en données d'entraînement (SO2) ;
-  \item le modèle génératif de trajectoires par Flow Matching et la chaîne de conversion et d'exécution de ses sorties (SO2, SO5) ;
-  \item le filtre de sécurité réactif SDF-CBF (SO3).
+  \item la plateforme expérimentale et l'architecture d'ensemble qui accueillent tous les modules (fondation du déploiement de \acs{SO}4) ;
+  \item la chaîne de perception sémantique et la carte persistante de la scène (\acs{SO}1) ;
+  \item l'acquisition des démonstrations et leur prétraitement en données d'entraînement (\acs{SO}2) ;
+  \item le modèle génératif de trajectoires par Flow Matching et la chaîne de conversion et d'exécution de ses sorties (\acs{SO}2, \acs{SO}5) ;
+  \item le filtre de sécurité réactif \ac{SDF}-\ac{CBF} (\acs{SO}3).
 \end{itemize}
-Cet ordre suit le flux des données, de la perception à la commande : chaque bloc consomme la sortie du précédent, et le chapitre se conclut par la portée des garanties du filtre. La vérification et la validation expérimentales du système, phases d'évaluation de SO4 et SO5, font l'objet du Chapitre~\ref{sec:Theme3}.
+Cet ordre suit le flux des données, de la perception à la commande : chaque bloc consomme la sortie du précédent, et le chapitre se conclut par la portée des garanties du filtre. La vérification et la validation expérimentales du système, phases d'évaluation de \acs{SO}4 et \acs{SO}5, font l'objet du Chapitre~\ref{sec:Theme3}.
 % =================================================================
 \section{Plateforme expérimentale et architecture globale}
 % =================================================================
-Cette section porte sur la fondation du système : la plateforme expérimentale et l'architecture d'ensemble sur lesquelles tous les modules (SO1 à SO3) sont implantés et testés. Elle couvre les données d'entrée et de sortie de chacun des modules utilisés pour réaliser l'ensemble des objectifs listés au Chapitre~\ref{sec:Metho}.
+Cette section porte sur la fondation du système : la plateforme expérimentale et l'architecture d'ensemble sur lesquelles tous les modules (\acs{SO}1 à \acs{SO}3) sont implantés et testés. Elle couvre les données d'entrée et de sortie de chacun des modules utilisés pour réaliser l'ensemble des objectifs listés au Chapitre~\ref{sec:Metho}.
 \subsection{Plateforme matérielle et logicielle}\label{subsec:plateforme}
-Le système est développé et vérifié sur un manipulateur Franka Emika Panda à sept degrés de liberté, dont la redondance cinématique est exploitée tant par la cinématique inverse que par le filtre de sécurité ; la méthode se transpose à tout manipulateur redondant décrit par un modèle URDF, moyennant l'adaptation des éléments propres à la plateforme : le modèle URDF lui-même, les SDF par lien à réentraîner sur ses maillages, et l'interface du contrôleur de vitesse.
+Le système est développé et vérifié sur un manipulateur Franka Emika Panda à sept degrés de liberté, dont la redondance cinématique est exploitée tant par la cinématique inverse que par le filtre de sécurité ; la méthode se transpose à tout manipulateur redondant décrit par un modèle \ac{URDF}, moyennant l'adaptation des éléments propres à la plateforme : le modèle \ac{URDF} lui-même, les \ac{SDF} par lien à réentraîner sur ses maillages, et l'interface du contrôleur de vitesse.
 
-Pour la tâche d'alimentation, le robot porte une fourchette fixée à sa pince, intégrée par composition de son modèle URDF, et une caméra RGB-D Intel RealSense D415 ($640\times480$ pixels) est montée au poignet, répliquant le montage utilisé pour la collecte des démonstrations (Section~\ref{subsec:Protocol}).
+Pour la tâche d'alimentation, le robot porte une fourchette fixée à sa pince, intégrée par composition de son modèle \ac{URDF}, et une caméra \ac{RGB-D} Intel RealSense D415 ($640\times480$ pixels) est montée au poignet, répliquant le montage utilisé pour la collecte des démonstrations (Section~\ref{subsec:Protocol}).
 
-L'ensemble logiciel repose sur ROS~1 Noetic sous Ubuntu 20.04, la scène étant simulée dans Gazebo~11. Bien que ROS Noetic soit distribué avec Python~3.8, les modèles de fondation de vision employés, SAM~3 et SAM~2 (Section~\ref{subsec:SAM3}), exigent une version plus récente : l'ensemble du système s'exécute donc dans un unique environnement virtuel Python~3.10.13, activé avant le lancement des nœuds ROS.
+L'ensemble logiciel repose sur \ac{ROS}~1 Noetic sous Ubuntu 20.04, la scène étant simulée dans Gazebo~11. Bien que \ac{ROS} Noetic soit distribué avec Python~3.8, les modèles de fondation de vision employés, \ac{SAM}~3 et \ac{SAM}~2 (Section~\ref{subsec:SAM3}), exigent une version plus récente : l'ensemble du système s'exécute donc dans un unique environnement virtuel Python~3.10.13, activé avant le lancement des nœuds \ac{ROS}.
 
-Au sein de cet environnement, tous les modules sont implémentés en Python, à l'exception de la lecture d'état du robot et de la cinématique inverse, écrites en C++ avec la bibliothèque \texttt{Pinocchio}~\cite{Carpentier2019Pinocchio} afin d'en minimiser la latence. Les composantes d'apprentissage (modèle de Flow Matching, SDF de Bernstein, bouclier CBF) s'appuient sur \texttt{PyTorch}~2.10 avec CUDA~13.0 et s'exécutent sur un unique GPU NVIDIA RTX~3090 (24~Go), partagé par l'ensemble des modules ; le serveur de segmentation SAM~3, qui charge un modèle de fondation volumineux, demeure un nœud dédié exposé au reste du système comme un service ROS et invoqué à la demande (Section~\ref{subsec:SAM2_tracking}). Les démonstrations simulées sont collectées avec la bibliothèque \textit{ManiSkill~3} (Section~\ref{subsec:Protocol}) et la visualisation s'effectue dans RViz.
+Au sein de cet environnement, tous les modules sont implémentés en Python, à l'exception de la lecture d'état du robot, de la cinématique inverse (écrites en C++ avec la bibliothèque \texttt{Pinocchio}~\cite{Carpentier2019Pinocchio}) et du frein réflexe (intégré en C++ dans la boucle temps réel \texttt{ros\_control} à ${\sim}1$~kHz, Section~\ref{subsubsec:reflexe}), afin d'en minimiser la latence. Les composantes d'apprentissage (modèle de Flow Matching, \ac{SDF} de Bernstein, bouclier \ac{CBF}) s'appuient sur \texttt{PyTorch}~2.10 avec CUDA~13.0 et s'exécutent sur un unique \ac{GPU} NVIDIA RTX~3090 (24~Go), partagé par l'ensemble des modules ; le serveur de segmentation \ac{SAM}~3, qui charge un modèle de fondation volumineux, demeure un nœud dédié exposé au reste du système comme un service \ac{ROS} et invoqué à la demande (Section~\ref{subsec:SAM2_tracking}). Les démonstrations simulées sont collectées avec la bibliothèque \textit{ManiSkill~3} (Section~\ref{subsec:Protocol}) et la visualisation s'effectue dans RViz.
 
 \subsection{Architecture modulaire du système}
-La Figure~\ref{fig:architecture_systeme_final_v12} illustre l'architecture modulaire du système et le trajet des données, des images RGB-D jusqu'à la commande de vitesse articulaire. Le flux se sépare en deux chemins dès la perception. Le premier conditionne la génération : la cible, détectée par SAM~3 puis suivie par SAM~2, est projetée en un nuage de points 3D, fusionnée au maillage de l'outil, et le nuage résultant conditionne le modèle de \textit{Flow Matching}, qui replanifie la trajectoire nominale en boucle fermée. Le second garantit la sécurité : les pixels restants forment le nuage d'obstacles qui, nettoyé puis accumulé dans la carte persistante, alimente le bouclier CBF ; celui-ci corrige à la fréquence de commande la trajectoire nominale interpolée par l'exécuteur, puis le frein réflexe re-certifie la commande maintenue entre deux résolutions avant de l'envoyer au contrôleur de vitesse du robot.
+La Figure~\ref{fig:architecture_systeme_final_v12} illustre l'architecture modulaire du système et le trajet des données, des images \ac{RGB-D} jusqu'à la commande de vitesse articulaire. Le flux se sépare en deux chemins dès la perception. Le premier conditionne la génération de trajectoire : la cible, détectée par \ac{SAM}~3 puis suivie par \ac{SAM}~2, est projetée en un nuage de points 3D, fusionnée au maillage de l'outil, et le nuage résultant conditionne le modèle de \textit{Flow Matching}, qui replanifie la trajectoire nominale en boucle fermée. Le second garantit la sécurité : les pixels restants forment le nuage d'obstacles qui, nettoyé puis accumulé dans la carte persistante, alimente le bouclier \ac{CBF} ; celui-ci corrige à la fréquence de commande la trajectoire nominale interpolée par l'exécuteur, puis le frein réflexe re-certifie la commande maintenue entre deux résolutions avant de l'envoyer au contrôleur de vitesse du robot.
 
 Deux liaisons secondaires ferment le système : le nœud de saisie soude la cible à l'outil au moment du contact et publie le nuage saisi, que le bouclier protège dès lors comme un lien supplémentaire du robot, et l'état articulaire mesuré revient à tous les modules par le bus de retour de droite, la boucle physique se refermant à travers la simulation.
 
@@ -34,17 +34,41 @@ Le système comportant de nombreux mécanismes secondaires, le Tableau~\ref{tab:
 \caption{Hiérarchie des mécanismes du système selon leur rôle vis-à-vis des objectifs de recherche.}
 \label{tab:mecanismes}
 \small
-\begin{tabular}{>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{7.6cm}>{\raggedright\arraybackslash}p{3.2cm}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{7.4cm}>{\raggedright\arraybackslash}p{3.8cm}}
 \hline
-\textbf{Rôle} & \textbf{Mécanismes} & \textbf{Critère servi} \\ \hline
-Essentiels à la contribution & Politique Flow Matching gelée ; carte persistante d'obstacles ; SDF de Bernstein corps-complet raffiné et son gradient analytique ; barrières par lien soft-min (paire valeur-gradient cohérente) et projection multi-contraintes ; métrique de tâche $\mathbf{W}$ ; marge $d_{\mathrm{safe}}$ & Sécurité, tâche, persistance \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Infrastructure habilitante & Chaîne SAM~3/SAM~2 et rétroprojection ; cinématique inverse et réajustement temporel ; exécuteur à horloge de progression ; graphe CUDA et flux séparés ; interface de vitesse articulaire & Temps réel \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Heuristiques de robustesse (sans effet sur le certificat) & Dégagement postural ; resserrement temporel $\eta_l$ ; atténuation de réparation $g_{\min}$ ; réglages de filtres & Progression de la tâche \\ \hline
+\textbf{Rôle} & \textbf{Mécanismes} & \textbf{Critères servis} \\ \hline
+\textbf{Essentiels à la contribution} 
+& \begin{itemize}[leftmargin=*,noitemsep,topsep=2pt,partopsep=0pt]
+    \item Chaîne de perception sémantique et suivi temporel (\ac{SAM}~3 / \ac{SAM}~2, \acs{SO}1)
+    \item Politique générative de \ac{FM} pré-entraînée et gelée (\acs{SO}2)
+    \item Carte d'obstacles persistante avec éviction d'espace libre (\acs{SO}1)
+    \item Modèle \ac{SDF} de Bernstein corps-complet \acs{SO}3)
+    \item Barrières de contrôle par lien (\ac{CBF}) et projection multi-contraintes (\acs{SO}3)
+    \item Métrique de tâche $\mathbf{W}$ et marge de sécurité $d_{\mathrm{safe}}$
+  \end{itemize}
+& Sécurité, réussite de la tâche, perception, persistance \\ \addlinespace[0.4em] \hline \addlinespace[0.4em]
+\textbf{Infrastructure habilitante} 
+& \begin{itemize}[leftmargin=*,noitemsep,topsep=2pt,partopsep=0pt]
+    \item Rétroprojection géométrique 3D sténopé et sous-échantillonnage
+    \item Cinématique inverse (\texttt{Pinocchio}) et réajustement temporel
+    \item Exécuteur de trajectoire à horloge de progression
+    \item Graphes CUDA, flux asynchrones séparés et frein réflexe $1$~kHz
+    \item Interface de commande en vitesse articulaire
+  \end{itemize}
+& Temps réel, fréquence de commande \\ \addlinespace[0.4em] \hline \addlinespace[0.4em]
+\textbf{Heuristiques de robustesse} \newline {\footnotesize (sans effet sur le certificat)} 
+& \begin{itemize}[leftmargin=*,noitemsep,topsep=2pt,partopsep=0pt]
+    \item Dégagement postural dans le noyau de la Jacobienne
+    \item Resserrement temporel $\eta_l$
+    \item Atténuation de réparation $g_{\min}$
+    \item Réglages et filtrage du signal
+  \end{itemize}
+& Progression de la tâche, robustesse opérationnelle \\ \hline
 \end{tabular}
 \end{table}
 \begin{figure}[htbp!]
 \centering
-\resizebox{\textwidth}{!}{%
+\resizebox{!}{0.8\textheight}{%
 \begin{tikzpicture}[
     font=\sffamily\small,
     proc/.style={draw, rounded corners=2pt, thick, align=center,
@@ -69,12 +93,12 @@ Heuristiques de robustesse (sans effet sur le certificat) & Dégagement postural
 \node[sim]  (cam)     at (0, 14.8) {Simulation Gazebo\\{\footnotesize $\sim$30~Hz}};
 
 % Axe Central Haut (X = 0)
-\node[vis]  (sam)     at (0, 11.5) {SAM3\,+\,SAM2\\détection \& suivi};
+\node[vis]  (sam)     at (0, 11.5) {SAM2\\détection \& suivi 15 Hz};
 \node[vis]  (sam3srv) at (-8.2, 11.5) {Serveur SAM3\\segmentation zéro-coup\\{\footnotesize (service)}};
-\node[vis]  (proj)    at (0, 8.8)  {Projecteur 3D\\masque + profondeur\\$\rightarrow$ nuages de points};
+\node[vis]  (proj)    at (0, 8.8)  {Projecteur 3D 30 Hz\\masque + profondeur\\$\rightarrow$ nuages de points};
 
 % Axe Gauche Élargi (X = -8.2)
-\node[map]  (perc)    at (-8.2, 5.8) {Filtrage perception\\CropBox + ROR\\auto-filtre robot (SDF)};
+\node[map]  (perc)    at (-8.2, 5.8) {Filtrage perception\\CropBox + \ac{ROR}\\auto-filtre robot (\ac{SDF})};
 \node[map]  (pers)    at (-8.2, 2.6) {Carte d'obstacles\\persistante : voxels\\+ éviction d'espace libre};
 
 % Axe Droit Élargi (X = +8.2)
@@ -84,7 +108,7 @@ Heuristiques de robustesse (sans effet sur le certificat) & Dégagement postural
 % Axe Central Bas (X = 0)
 \node[plan] (plan)    at (0, 2.6)  {Planificateur Flow Matching\\U-Net 1D $\rightarrow$ trajectoire 10D\\{\footnotesize replanification 3--5~Hz}};
 \node[plan] (exe)     at (0, -0.2)  {Exécuteur de trajectoire\\interpolation\\{\footnotesize 100~Hz}};
-\node[safe] (cbf)     at (0, -3.8)  {Bouclier CBF multi-contraintes\\{\footnotesize 100~Hz}};
+\node[safe] (cbf)     at (0, -3.8)  {Bouclier \ac{CBF} multi-contraintes\\{\footnotesize 100~Hz}};
 \node[safe] (rfx)     at (0, -6.2)  {Frein réflexe\\re-certification de la commande\\{\footnotesize $\sim$1~kHz}};
 \node[sim]  (ctrl)    at (0, -9.4) {Contrôleur de vitesse\\Panda / Gazebo};
 
@@ -97,15 +121,18 @@ Heuristiques de robustesse (sans effet sur le certificat) & Dégagement postural
   \node[grp, fill=red!3,    draw=red!55!black, dashed, fit=(cbf)(rfx)] (gsafe) {};
 \end{scope}
 
-\node[grplab, green!45!black, anchor=south west] at (gvis.north west) {Perception \& suivi — asynchrone};
+\node[grplab, green!45!black, anchor=south west] at (gvis.north west) {Perception \& suivi — 15 Hz / 30 Hz};
 \node[grplab, cyan!40!black, rotate=90, anchor=south] at ($(gmap.west)$) [xshift=-0.15cm] {Cartographie d'obstacles — 30~Hz};
 \node[grplab, orange!75!black, anchor=south] at ($(gplan.north)$) [yshift=0.15cm] {Planification générative};
 \node[grplab, red!55!black, anchor=north east] at ([xshift=-0.35cm]gsafe.south) {Sécurité réactive — 100~Hz / $\sim$1~kHz};
 
 
 % ===================== LIAISONS ========================
-\draw[arrow] (cam) -- (sam);
-\node[tlab, right] at ($(cam.south)!0.5!(sam.north)$) {\texttt{/camera/\dots/image\_raw}};
+\draw[arrow] (cam.south) -- (sam.north);
+\node[tlab, right] at ($(cam.south)!0.5!(sam.north)$) {\texttt{/camera/rgb/image\_raw}};
+
+\draw[arrow] (cam.east) -- (5.2, 14.8) |- ([yshift=0.4cm]proj.east);
+\node[tlab, right] at (5.2, 11.8) {\texttt{/camera/depth/image\_raw}};
 
 \draw[svc]  (sam3srv) -- (sam);
 \node[tlab, above] at ($(sam3srv.east)!0.5!(sam.west)$) {\texttt{/sam3/segment}};
@@ -179,59 +206,65 @@ Heuristiques de robustesse (sans effet sur le certificat) & Dégagement postural
 \label{fig:architecture_systeme_final_v12}
 \end{figure}
 
-Cette architecture est délibérément asynchrone : chaque groupe de la figure tourne à sa propre cadence et communique par messages, sans jamais bloquer les groupes en aval. La perception et la planification sont ainsi découplées de la boucle de commande : le bouclier CBF n'attend jamais le planificateur, et un nuage de conditionnement périmé dégrade la trajectoire nominale sans jamais suspendre la commande à $100$~Hz.
+Cette architecture est délibérément asynchrone : chaque groupe de la figure tourne à sa propre cadence et communique par messages, sans jamais bloquer les groupes en aval. La perception et la planification sont ainsi découplées de la boucle de commande : le bouclier \ac{CBF} n'attend jamais le planificateur, et un nuage de conditionnement périmé dégrade la trajectoire nominale sans jamais suspendre la commande à $100$~Hz.
 
-La hiérarchie des fréquences est un choix de conception qui reflète la dynamique de chaque information : le filtre de sécurité et la commande, seuls garants de la réactivité, tournent à $100$~Hz, doublés d'un frein réflexe à ${\sim}1$~kHz qui re-certifie la commande maintenue entre deux résolutions (Section~\ref{subsubsec:reflexe}) ; la cartographie d'obstacles à $30$~Hz, la sélection des points critiques suivant quant à elle la fréquence de commande ; la replanification générative entre $3$ et $5$~Hz selon la tâche ; la perception sémantique, la plus coûteuse, s'exécute de manière asynchrone à la cadence que lui laisse le GPU partagé. La vérification expérimentale de ce budget temporel fait l'objet du Chapitre~\ref{sec:Theme3}.
+La hiérarchie des fréquences est un choix de conception qui reflète la dynamique de chaque information : le filtre de sécurité et la commande, seuls garants de la réactivité, tournent à $100$~Hz, doublés d'un frein réflexe à ${\sim}1$~kHz qui re-certifie la commande maintenue entre deux résolutions (Section~\ref{subsubsec:reflexe}) ; la cartographie d'obstacles à $30$~Hz, la sélection des points critiques suivant quant à elle la fréquence de commande ; la replanification générative entre $3$ et $5$~Hz selon la tâche ; la perception sémantique, la plus coûteuse, s'exécute de manière asynchrone à la cadence que lui laisse le \ac{GPU} partagé. La vérification expérimentale de ce budget temporel fait l'objet du Chapitre~\ref{sec:Theme3}.
 
 % =================================================================
 \section{Perception sémantique et reconstruction 3D}
 % =================================================================
-Cette section porte sur le premier volet de SO1 : la chaîne de perception qui, à partir du flux RGB-D de la caméra au poignet, produit en temps réel les deux nuages de points consommés par le système, celui de la cible, qui conditionne le modèle génératif (SO2), et celui des obstacles, qui alimente le filtre de sécurité (SO3).
+Cette section porte sur le premier volet de \acs{SO}1 : la chaîne de perception qui, à partir du flux \ac{RGB-D} de la caméra au poignet, produit en temps réel les deux nuages de points consommés par le système, celui de la cible, qui conditionne le modèle génératif (\acs{SO}2), et celui des obstacles, qui alimente le filtre de sécurité (\acs{SO}3).
 
 \subsection{Extraction sémantique et suivi temporel de la cible} \label{subsec:SAM3}
-La détection des objets d'intérêt repose sur le modèle de fondation \textit{Segment Anything Model 3} (SAM~3) de Meta \cite{Meta2025Sam3}, qui produit, à partir d'une image RGB et d'une requête textuelle, la boîte englobante, la segmentation au niveau du pixel (le masque) et un score de confiance de détection. La Figure~\ref{fig:SAM3_ex} présente un exemple de masque obtenu pour la requête \textit{Pink Block}.
+La détection des objets d'intérêt repose sur le modèle de fondation \textit{Segment Anything Model 3} (\ac{SAM}~3) de Meta \cite{Meta2025Sam3}, qui produit, à partir d'une image RGB et d'une requête textuelle, la boîte englobante, la segmentation au niveau du pixel (le masque) et un score de confiance de détection. La Figure~\ref{fig:SAM3_ex} présente un exemple de masque obtenu pour la requête \textit{Pink Block}.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.7\textwidth]{images/Méthodologie/overlay_ee_rgb_step_0001.png}
-    \caption{Exemple de masque obtenu par le modèle de segmentation SAM3 pour le prompt \textit{Pink Block}}\label{fig:SAM3_ex}
+    \includegraphics[width=0.48\textwidth]{images/Méthodologie/overlay_ee_rgb_step_0001.png}
+    \caption{Exemple de masque obtenu par le modèle de segmentation \ac{SAM}~3 pour la requête \textit{Pink Block}.}\label{fig:SAM3_ex}
 \end{figure}
 
-\label{subsec:SAM2_tracking}Une évaluation de SAM~3 à chaque image serait toutefois incompatible avec le budget temps réel, le modèle de fondation exigeant plusieurs centaines de millisecondes par inférence. Le suivi est donc délégué à \textit{Segment Anything Model 2} (SAM~2) \cite{Ravi2024Sam2}, un modèle de segmentation vidéo plus léger doté d'une mémoire d'attention : initialisé avec le masque produit par SAM~3, il propage ce masque d'image en image à une cadence de $15$~Hz, sur des images réduites à $512$~pixels de côté au maximum, la fraîcheur du masque important davantage que sa finesse. Lorsque le suivi se dégrade (masque vide ou dégénéré), une nouvelle détection SAM~3 est demandée pour réinitialiser le suiveur ; ces requêtes sont espacées d'une période de repli qui s'allonge après des échecs répétés (de $8$ à $30$~s), afin qu'une cible durablement absente ne monopolise pas le budget GPU partagé avec le reste du système.
+\label{subsec:SAM2_tracking}Une évaluation de \ac{SAM}~3 à chaque image serait toutefois incompatible avec le budget temps réel, le modèle de fondation exigeant plusieurs centaines de millisecondes par inférence. Le suivi est donc délégué à \textit{Segment Anything Model 2} (\ac{SAM}~2) \cite{Ravi2024Sam2}, un modèle de segmentation vidéo plus léger doté d'une mémoire d'attention : initialisé avec le masque produit par \ac{SAM}~3, il propage ce masque d'image en image à une cadence de $15$~Hz, sur des images réduites à $512$~pixels de côté au maximum, la fraîcheur du masque important davantage que sa finesse. Lorsque le suivi se dégrade (masque vide ou dégénéré), une nouvelle détection \ac{SAM}~3 est demandée pour réinitialiser le suiveur ; ces requêtes sont espacées d'une période de repli qui s'allonge après des échecs répétés (de $8$ à $30$~s), afin qu'une cible durablement absente ne monopolise pas le budget \ac{GPU} partagé avec le reste du système.
 
-\subsection{Reconstruction 3D et nettoyage des nuages}\label{subsec:nettoyage}
-Le masque suivi est combiné à la carte de profondeur alignée pour produire les nuages de points, par la rétroprojection sténopé déjà employée au prétraitement (Section~\ref{subsec:pretraitement}) : chaque pixel de profondeur valide est projeté dans le repère de la caméra à l'aide des paramètres intrinsèques, puis exprimé dans le repère de base par la transformation extrinsèque, obtenue de la cinématique directe du robot puisque la caméra est montée au poignet. Deux nuages sont produits à chaque image : les pixels du masque forment le nuage de la cible, les autres celui des obstacles. Le coût des traitements en aval est borné par sous-échantillonnage aléatoire, à $2000$ points pour la cible et $5000$ points pour les obstacles.
+\subsection{Reconstruction 3D et nettoyage des nuages de points}\label{subsec:nettoyage}
+Les changements de repère de cette section, comme ceux du reste de la chaîne, s'appuient sur les quatre repères du système résumés à la Figure~\ref{fig:rep} : la base du robot ($\mathcal{F}_b$), la caméra à l'effecteur ($\mathcal{F}_c$), le \ac{TCP} ($\mathcal{F}_e$) et l'outil ($\mathcal{F}_o$). 
+
+Le masque suivi est combiné à la carte de profondeur alignée pour produire les nuages de points par rétroprojection sténopé : un pixel $(u,v)$ de profondeur valide $Z$ est d'abord rétroprojeté dans $\mathcal{F}_c$ à l'aide des paramètres intrinsèques, puis exprimé dans $\mathcal{F}_b$ par la cinématique directe du robot,
+\begin{equation}\label{eq:retroprojection}
+    X_c = \frac{(u-c_x)\,Z}{f_x},\qquad Y_c = \frac{(v-c_y)\,Z}{f_y},\qquad Z_c = Z,\qquad \tilde{\mathbf{p}}^b = \mathbf{T}_c^b(\mathbf{q})\,\tilde{\mathbf{p}}^c,
+\end{equation}
+où $(f_x,f_y)$ et $(c_x,c_y)$ sont les focales et le point principal de la caméra, $\mathbf{p}^c=[X_c,Y_c,Z_c]^\top$, $\tilde{\mathbf{p}}$ dénote les coordonnées homogènes et $\mathbf{T}_c^b(\mathbf{q})=\mathbf{T}_e^b(\mathbf{q})\,\mathbf{T}_c^e$ compose la pose du \ac{TCP} issue de la cinématique directe et l'extrinsèque main-œil constante $\mathbf{T}_c^e$. Pour gérer l'écart de cadence entre l'inférence de \ac{SAM}~2 ($15$~Hz) et le flux de profondeur ($30$~Hz), la séparation s'adapte à la fraîcheur du masque : lorsqu'un masque est disponible, la cible est extraite par masquage 2D direct et rafraîchit la mémoire 3D de la cible (\texttt{persistent\_target}). Aux tiques intermédiaires à $30$~Hz, l'enveloppe 3D de cette mémoire est réutilisée pour filtrer la carte de profondeur courante. Cette gestion multi-cadence empêche la cible de déborder dans le nuage d'obstacles lors des mouvements du bras entre deux inférences. Deux nuages sous-échantillonnés sont ainsi émis à chaque image.
 
 \begin{figure}[htbp!]
     \centering
-    \includegraphics[width=0.75\textwidth]{images/Méthodologie/repere_frames.pdf}
-    \caption{Représentation schématique des différents repères du système ($\mathcal{F}_b$ base robot, $\mathcal{F}_c$ caméra à l'effecteur, $\mathcal{F}_e$ TCP et $\mathcal{F}_o$ outil/fourchette) intervenant dans les changements de repère et les projections.}\label{fig:rep}
+    \includegraphics[width=0.52\textwidth]{images/Méthodologie/repere_frames.pdf}
+    \caption{Représentation schématique des différents repères du système ($\mathcal{F}_b$ base robot, $\mathcal{F}_c$ caméra à l'effecteur, $\mathcal{F}_e$ \ac{TCP} et $\mathcal{F}_o$ outil/fourchette) intervenant dans les changements de repère et les projections.}\label{fig:rep}
 \end{figure}
 
-La caméra étant montée au poignet, l'outil occupe une part importante du champ de vision : sans traitement, ses pixels seraient projetés dans le nuage d'obstacles et le filtre de sécurité freinerait le robot contre son propre outil. L'outil est donc retiré par deux mécanismes complémentaires : en 2D, un masque obtenu de SAM~3, dilaté de 5 pixels, est soustrait de l'image avant projection ; en 3D, un filtre fondé sur le SDF du maillage de l'outil supprime les fuites résiduelles que le masque 2D ne capture pas, tout point à moins de $5$~mm de la surface du maillage, positionné par la cinématique directe, étant écarté. Cette combinaison élimine les points de l'outil sans effacer les obstacles réels situés juste au-delà de cette coquille.
+La caméra étant montée au poignet, l'outil peut occuper une part importante du champ de vision : sans traitement, ses pixels seraient projetés dans le nuage d'obstacles et le filtre de sécurité freinerait le robot contre son propre outil. L'outil est donc retiré par deux mécanismes complémentaires : en 2D, un masque obtenu de \ac{SAM}~3, dilaté de $5$~pixels, est soustrait de l'image avant projection ; en 3D, un filtre fondé sur le \ac{SDF} du maillage de l'outil supprime les fuites résiduelles que le masque 2D ne capture pas, tout point à moins de $5$~mm de la surface du maillage, positionné par la cinématique directe, étant écarté. Cette combinaison élimine les points de l'outil sans effacer les obstacles réels situés juste au-delà de cette coquille.
 
-Le nuage d'obstacles brut hérite par ailleurs des artefacts typiques des capteurs de profondeur (points volants aux discontinuités, retours hors de la zone d'intérêt), auxquels s'ajoutent les projections du corps du robot lui-même dans le champ de la caméra. Trois opérations le nettoient : une boîte de recadrage (\textit{CropBox}) le restreint au volume de travail du robot ; un filtre de voisinage (\textit{Radius Outlier Removal}) rejette tout point n'ayant pas un nombre minimal de voisins dans un rayon donné, signature des points isolés non associés à une surface réelle. Finalement, un auto-filtre écarte les points appartenant au robot, en réutilisant le modèle de distance signée du corps complet appris hors ligne (Section~\ref{subsec:sdf_robot}), celui-là même qui alimente le filtre de sécurité. Ainsi, tout point dont la distance à la surface d'un lien est négative ou inférieure à 5~mm est retiré. Sans ce retrait, les projections du bras seraient accumulées dans la carte persistante et le bouclier CBF, traitant le robot comme un obstacle, le freinerait contre son propre corps. Le nuage nettoyé constitue l'entrée de la carte persistante de la section suivante.
+Le nuage d'obstacles brut hérite par ailleurs des artefacts typiques des capteurs de profondeur (points volants aux discontinuités, retours hors de la zone d'intérêt), auxquels s'ajoutent les projections du corps du robot lui-même dans le champ de la caméra. Trois opérations le nettoient : une boîte de recadrage (\textit{CropBox}) le restreint au volume de travail du robot ; un filtre de voisinage (\ac{ROR}) rejette tout point n'ayant pas un nombre minimal de voisins dans un rayon donné, signature des points isolés non associés à une surface réelle ; enfin, un auto-filtre écarte les points appartenant au robot, en réutilisant le modèle de distance signée du corps complet appris hors ligne (Section~\ref{subsec:sdf_robot}), celui-là même qui alimente le filtre de sécurité. Ainsi, tout point dont la distance à la surface d'un lien est négative ou inférieure à $5$~mm est retiré. Sans ce retrait, les projections du bras seraient accumulées dans la carte persistante et le bouclier \ac{CBF}, traitant le robot comme un obstacle, le freinerait contre son propre corps. Le nuage nettoyé constitue l'entrée de la carte persistante de la section suivante.
 
 % =================================================================
 \section{Cartes persistantes de la scène}
 % =================================================================
-Cette section porte sur le second volet de SO1 : doter la perception d'une mémoire spatiale, la carte persistante, qui rend la représentation des obstacles robuste aux occlusions et aux pertes de détection.
+Cette section porte sur le second volet de \acs{SO}1 : doter la perception d'une mémoire spatiale, la carte persistante, qui rend la représentation des obstacles robuste aux occlusions et aux pertes de détection.
 
-La chaîne de perception précédente est instantanée : elle ne décrit que ce que la caméra voit à l'image courante. Or le champ de vision de la caméra au poignet est étroit et se déplace avec le bras : un obstacle contourné sort du champ précisément au moment où le robot passe à côté, et l'approche finale plonge la caméra vers la cible, masquant le reste de la scène. Une perception sans mémoire ferait ainsi disparaître les contraintes de sécurité au moment où elles importent le plus, et les pertes de détection transitoires (occlusion par le bras, échec ponctuel du suivi) auraient le même effet. La carte persistante conserve donc en mémoire les surfaces observées, et c'est elle, plutôt que la vue instantanée, qui alimente le filtre de sécurité.
+La chaîne de perception précédente est sans mémoire : elle ne décrit que ce que la caméra voit à l'image courante. Or le champ de vision de la caméra au poignet est étroit et se déplace avec le bras : un obstacle contourné sort du champ précisément au moment où le robot passe à côté, et l'approche finale plonge la caméra vers la cible, masquant le reste de la scène. Une perception sans mémoire ferait ainsi disparaître les contraintes de sécurité au moment où elles importent le plus, et les pertes de détection transitoires (occlusion par le bras, échec ponctuel du suivi) auraient le même effet. La carte persistante conserve donc en mémoire les surfaces observées, et c'est elle, plutôt que la vue instantanée, qui alimente le filtre de sécurité.
 
-La même politique de mémoire s'applique à la cible : en cas de perte du suivi, le dernier nuage de cible valide est conservé et le conditionnement du modèle génératif est gelé plutôt qu'annulé, la trajectoire nominale demeurant inchangée pendant l'occlusion au lieu de provoquer un arrêt du système ; une temporisation invalide cette mémoire si la perte se prolonge au-delà de quelques secondes.
+La même politique de mémoire s'applique à la cible : en cas de perte du suivi, le dernier nuage de cible valide est conservé et le conditionnement du modèle génératif est gelé plutôt qu'annulé, la trajectoire nominale demeurant inchangée pendant l'occlusion au lieu de provoquer un arrêt du système ; une temporisation invalide cette mémoire si la perte se prolonge au-delà de $5$~s.
 
-Cette mémoire prend la forme d'une grille de voxels creuse de pas $1$~cm, résolution dictée par la précision requise à la pointe de l'outil. À chaque image, le nuage d'obstacles nettoyé y est voxelisé, la voxelisation fusionnant les doublons et bornant le coût des traitements en aval, puis chaque voxel observé est inscrit dans la carte, plafonnée à $10^{5}$ voxels.
+La carte persistante prend la forme d'une grille de voxels creuse de pas $1$~cm. Cette résolution résulte d'un compromis : assez fine pour représenter les obstacles à l'échelle centimétrique des dégagements de la tâche, assez grossière pour maintenir la carte compacte. À chaque image, le nuage d'obstacles nettoyé y est voxelisé, ce qui fusionne les doublons et borne le coût des traitements en aval, puis chaque voxel observé est inscrit dans la carte, plafonnée à $4096$ voxels.
 
-Les points appartenant à la cible, identifiés par le masque suivi, sont exclus de cette carte : la cible est accumulée dans une carte distincte, maintenue compacte par éviction des voxels s'éloignant trop de son centroïde courant, de sorte qu'elle n'apparaisse jamais comme un obstacle à sa propre saisie. La carte d'obstacles est publiée à $30$~Hz vers le filtre de sécurité.
+Les points appartenant à la cible, identifiés par le masque suivi, sont exclus de la carte d'obstacles et accumulés dans une carte distincte, de sorte que la cible n'apparaisse jamais comme un obstacle à sa propre saisie. Cette carte n'est pas soumise à l'éviction par espace libre ; pour l'empêcher de s'étaler au fil des poses, les voxels situés à plus de $4$~cm du centroïde courant de la cible en sont écartés. La carte d'obstacles est publiée à $30$~Hz vers le filtre de sécurité.
 
-Deux règles gouvernent ensuite la vie d'un voxel, illustrées à la Figure~\ref{fig:eviction_voxels}. Hors du champ de vision courant, il persiste indéfiniment : aucune éviction par vieillissement n'est appliquée, et c'est précisément cette persistance qui protège le robot des obstacles qu'il ne voit plus. Dans le champ de vision, une éviction par espace libre est calculée sur GPU à chaque image : chaque voxel est reprojeté dans l'image de profondeur courante le long de son rayon de pixel et, si la profondeur mesurée dépasse la sienne d'une marge $\delta_{\mathrm{libre}}$ (fixée à $2$~cm, soit deux voxels), la caméra voit \emph{au-delà} de l'emplacement du voxel, qui ne peut donc plus être occupé et est évincé immédiatement. Un voxel dont la profondeur excède au contraire la mesure est occulté par la surface observée et conservé. Un obstacle déplacé ou retiré disparaît ainsi de la carte dès qu'il repasse dans le champ de vision, sans délai de péremption ; lorsque la capacité maximale est atteinte, les voxels les plus anciens sont écartés en priorité.
+Deux règles gouvernent ensuite la vie d'un voxel, illustrées à la Figure~\ref{fig:eviction_voxels}. Hors du champ de vision courant, il persiste indéfiniment : aucune éviction par vieillissement n'est appliquée, et c'est précisément cette persistance qui protège le robot des obstacles qu'il ne voit plus. Dans le champ de vision, une éviction par espace libre est calculée sur \ac{GPU} à chaque image : chaque voxel est reprojeté dans l'image de profondeur courante le long de son rayon de pixel et, si la profondeur mesurée dépasse la sienne d'une marge $\delta_{\mathrm{libre}}$ (fixée à $1$~cm, soit un voxel), la caméra voit au-delà de l'emplacement du voxel, qui ne peut donc plus être occupé et est évincé immédiatement. Un voxel dont la profondeur excède au contraire la mesure est occulté par la surface observée et conservé. Un obstacle déplacé ou retiré disparaît ainsi de la carte dès qu'il repasse dans le champ de vision, sans délai de péremption ; l'âge ne sert que de critère de repli, les voxels les plus anciens étant écartés en premier lorsque la capacité maximale est atteinte.
 
 \begin{figure}[htbp!]
     \centering
     \begin{tikzpicture}[
         font=\sffamily\small,
-        scale=1.2,
+        scale=1.0,
         camera/.style={draw, fill=gray!20, thick, minimum width=0.75cm, minimum height=0.55cm},
         voxel_kept/.style={draw=blue!80!black, fill=blue!15, thick, minimum size=0.4cm, inner sep=0pt},
         voxel_evicted/.style={draw=red!80!black, fill=red!15, dashed, thick, minimum size=0.4cm, inner sep=0pt},
@@ -247,22 +280,24 @@ Deux règles gouvernent ensuite la vie d'un voxel, illustrées à la Figure~\ref
         % zone occultée (derrière la surface mesurée, dans le FOV)
         \fill[gray!12] (5.2,3.447) -- (6.9,4.217) -- (6.9,-1.217) -- (5.2,-0.447) -- cycle;
 
-        % --- Limites du champ de vision ---
-        \draw[fov] (0.9,1.5) -- (6.9,4.217);
-        \draw[fov] (0.9,1.5) -- (6.9,-1.217);
-        \node[lab, black!70, rotate=24.4] at (3.6,3.05) {Champ de vision};
-
         % --- Obstacle et surface mesurée ---
         \draw[draw=black!70, fill=black!20, thick] (5.2,-0.447) rectangle (5.5,3.447);
         \draw[very thick, black!85] (5.2,-0.447) -- (5.2,3.447);
         \node[lab, black!75, rotate=90] at (5.35,2.55) {Obstacle};
         \node[lab, black!80, rotate=90] at (5.02,1.35) {Surface mesurée $Z$};
         \node[lab, black!55, anchor=west] at (5.58,-0.45) {Zone occultée\\(non observée)};
+        
+        % --- Limites du champ de vision ---
+        \draw[fov] (0.9,1.5) -- (6.9,4.217);
+        \draw[fov] (0.9,1.5) -- (6.9,-1.217);
+        \node[lab, black!70, rotate=24.4] at (3.6,3.05) {Champ de vision};
+
+        
 
         % --- Caméra ---
         \node[camera] (cam) at (0.4,1.5) {};
         \draw[fill=black, thick] (cam.east) ++(0,0.15) -- ++(0.15,0.1) -- ++(0,-0.5) -- ++(-0.15,0.1) -- cycle;
-        \node[lab, above=0.15cm of cam] {Caméra RGB-D};
+        \node[lab, above=0.15cm of cam] {Caméra \ac{RGB-D}};
 
         % --- Rayons de mesure (pixels) ---
         \draw[ray] (0.9,1.5) -- (5.15,2.538);
@@ -276,7 +311,7 @@ Deux règles gouvernent ensuite la vie d'un voxel, illustrées à la Figure~\ref
         \node[voxel_evicted] (v_evict) at (3.0,0.99) {};
         \draw[red!80!black, thick] (v_evict.north west) -- (v_evict.south east);
         \draw[red!80!black, thick] (v_evict.south west) -- (v_evict.north east);
-        \node[lab, red!90!black] at (3.1,1.42) {Voxel évincé\\($Z_{\text{voxel}} < Z - \delta_{\text{libre}}$)};
+        \node[lab, red!90!black] at (3.1,1.5) {Voxel évincé\\($Z_{\text{voxel}} < Z - \delta_{\text{libre}}$)};
 
         % 2) conservé : sur le rayon supérieur, derrière la surface
         \node[voxel_kept] (v_kept) at (6.0,2.745) {};
@@ -313,32 +348,32 @@ Deux règles gouvernent ensuite la vie d'un voxel, illustrées à la Figure~\ref
 Cette section présente le protocole utilisé pour collecter les démonstrations qui servent à entraîner le modèle génératif, puis les étapes de prétraitement qui transforment ces enregistrements bruts en données d'entraînement.
 \subsection{Protocole de collecte des démonstrations} \label{subsec:Protocol}
 
-Les démonstrations proviennent de deux sources complémentaires : le robot et les capteurs réels d'une part, la simulation d'autre part, cette dernière reposant sur la bibliothèque \textit{ManiSkill~3}, retenue pour sa facilité d'utilisation et son moteur physique à l'état de l'art fondé sur SAPIEN~\cite{Xiang_2020_SAPIEN}. Les deux sources reproduisent des environnements quasi identiques, de sorte que les données y sont récoltées de la même manière.
-
-Pour garantir un protocole reproductible, l'échantillonnage des configurations est défini dans deux repères imbriqués plutôt que de façon qualitative : l'assiette occupe les $9$ positions d'une grille $3\times3$ dans le repère de base $\mathcal{F}_b$, et la cible $5$ positions en quinconce autour de chaque centre d'assiette avec orientation aléatoire, soit $9\times5=45$ configurations illustrées à la Figure~\ref{fig:protocole_echantillonnage} ; les valeurs numériques de la grille figurent à l'Annexe~\ref{annexe:data_protocol}. À chaque configuration, l'outil descend verticalement vers la cible en maintenant les dents verticales et alignées sur son axe principal.
+Les démonstrations proviennent de deux sources complémentaires : le robot et les capteurs réels d'une part, la simulation d'autre part, cette dernière reposant sur la bibliothèque \textit{ManiSkill~3}, retenue pour sa facilité d'utilisation et son moteur physique à l'état de l'art fondé sur SAPIEN~\cite{Xiang_2020_SAPIEN}. Les deux sources reproduisent des environnements quasi identiques et des mouvements similaires pour accomplir la même tâche, sous un format d'enregistrement commun.
 
 \begin{figure}[htbp!]
     \centering
-    \includegraphics[width=0.65\textwidth]{images/Méthodologie/protocole_echantillonnage.pdf}
+    \includegraphics[width=0.48\textwidth]{images/Méthodologie/protocole_echantillonnage.pdf}
     \caption{Protocole d'échantillonnage des cibles, vu de dessus dans le repère de base du robot $\mathcal{F}_b$. Les assiettes ($26$~cm de diamètre) se chevauchant, seules trois des neuf positions de la grille $3\times3$ sont illustrées (supérieur droit, centre, inférieur gauche), le centre de chacune étant marqué par une croix noire. Autour de chaque centre, les $5$ points indiquent les positions de cible en quinconce.}
     \label{fig:protocole_echantillonnage}
 \end{figure}
 
-Chaque démonstration réelle est fournie par guidage kinesthésique depuis une configuration articulaire initiale fixe, la chaîne d'acquisition échantillonnant à $10$~Hz la pose du TCP, ses vitesses et le flux RGB-D de la caméra à l'effecteur. Quinze démonstrations simulées complètent ces $45$ démonstrations réelles : l'environnement simulé réplique la scène, le montage de la caméra et la cadence d'enregistrement, une politique experte scriptée y reproduit le geste de l'opérateur (approche alignée, redressement du poignet, transport vers une pose de livraison fixe), et l'échantillonnage y est continu, avec randomisation de la géométrie de la cible parmi sept aliments maillés et de sa hauteur sur un piédestal.
+Pour garantir un protocole reproductible, l'échantillonnage des configurations est défini dans deux repères imbriqués plutôt que de façon qualitative : l'assiette occupe les $9$ positions d'une grille $3\times3$ dans le repère de base $\mathcal{F}_b$, et la cible $5$ positions en quinconce autour de chaque centre d'assiette avec orientation aléatoire, soit $9\times5=45$ configurations illustrées à la Figure~\ref{fig:protocole_echantillonnage} ; les valeurs numériques de la grille figurent à l'Annexe~\ref{annexe:data_protocol}. À chaque configuration, l'outil descend verticalement vers la cible en maintenant les dents verticales et alignées sur son axe principal.
+
+Chaque démonstration réelle est fournie par guidage kinesthésique depuis une configuration articulaire initiale fixe, la chaîne d'acquisition échantillonnant à $10$~Hz la pose du \ac{TCP}, ses vitesses et le flux \ac{RGB-D} de la caméra à l'effecteur. Quinze démonstrations simulées complètent ces $45$ démonstrations réelles : l'environnement simulé réplique la scène, le montage de la caméra et la cadence d'enregistrement, une politique experte scriptée y reproduit le geste de l'opérateur (approche alignée, redressement du poignet, transport vers une pose de livraison fixe), et l'échantillonnage y est continu, avec randomisation de la géométrie de la cible parmi sept aliments maillés et de sa hauteur sur un piédestal.
 
 Le jeu de données de saisie et dépôt (\textit{pick-and-place}), entièrement simulé, suit le même principe avec le Panda standard : le cube y est un corps dynamique réellement saisi par la pince, la politique experte enchaîne descente, saisie, transport le long d'un arc aux pentes prescrites, dépôt sur la boîte puis retrait, et les positions du cube et de la boîte sont tirées uniformément à chaque épisode, la randomisation de la boîte évitant que le modèle n'apprenne une position de dépôt fixe ; $40$ trajectoires sont ainsi collectées. La chaîne d'acquisition, la configuration initiale, les politiques expertes et les plages de randomisation des deux tâches sont détaillées à l'Annexe~\ref{annexe:data_protocol}.
 
 \subsection{Prétraitement des données}\label{subsec:pretraitement}
 
-Les enregistrements bruts contiennent les poses du TCP et les flux RGB-D, mais pas le nuage de points conditionnel attendu par le modèle génératif de la Section~\ref{sec:CFM}. Un prétraitement hors ligne les transforme en données d'entraînement en trois étapes, ce qui évite de recalculer la perception à chaque époque et permet de valider visuellement les nuages avant l'entraînement. La première étape détecte la cible par SAM~3 (Section~\ref{subsec:SAM3}), sur requête textuelle, dans la première image de chaque trajectoire, seule à garantir une carte de profondeur valide, l'approche amenant ensuite la caméra sous la distance minimale de mesure du capteur ($31$~cm).
+Les enregistrements bruts contiennent les poses du \ac{TCP} et les flux \ac{RGB-D}, mais pas le nuage de points conditionnel attendu par le modèle génératif de la Section~\ref{sec:CFM}. Un prétraitement hors ligne les transforme en données d'entraînement en trois étapes, ce qui évite de recalculer la perception à chaque époque et permet de valider visuellement les nuages avant l'entraînement. La première étape détecte la cible par \ac{SAM}~3 (Section~\ref{subsec:SAM3}), sur requête textuelle, dans la première image de chaque trajectoire, seule à garantir une carte de profondeur valide, l'approche amenant ensuite la caméra sous la distance minimale de mesure du capteur ($31$~cm).
 
-La deuxième étape génère, à chaque pas, le nuage fusionné de l'outil et de la cible : le nuage de la cible est reconstruit par rétroprojection sténopé des pixels du masque dotés d'une profondeur valide, celui de l'outil est échantillonné sur son modèle CAO et positionné par la relation
+La deuxième étape génère, à chaque pas, le nuage fusionné de l'outil et de la cible : le nuage de la cible est reconstruit par la rétroprojection sténopé introduite à la Section~\ref{subsec:nettoyage}, appliquée aux pixels du masque dotés d'une profondeur valide, celui de l'outil est échantillonné sur son modèle \ac{CAO} et positionné par la relation
 \begin{equation}\label{eq:pose_fork}
   \mathbf{T}_{o}^{b} = \mathbf{T}_{e}^{b} \mathbf{T}_{o}^{e},
 \end{equation}
-où $\mathbf{T}_{o}^{e}$ est la transformation constante entre le TCP et l'outil. La carte de profondeur n'étant exploitable qu'au premier pas, la position de la cible aux pas suivants est reconstruite géométriquement : immobile avant la saisie, la cible est considérée rigidement solidaire de l'outil à partir de l'indice de saisie $g$, sous l'hypothèse d'une saisie ferme et sans glissement. Les nuages sont fusionnés puis sous-échantillonnés à $1024$ points par échantillonnage du point le plus éloigné (pour la saisie et dépôt, répartis entre la pince, le cube et la boîte de dépôt, reconstruits par la même chaîne). Le nuage est finalement centré, en translation seulement, sur l'origine du repère de l'outil : la représentation devient invariante à la position absolue de la scène tout en préservant l'orientation et la direction de la gravité, qu'un changement de repère complet masquerait.
+où $\mathbf{T}_{o}^{e}$ est la transformation constante entre le \ac{TCP} et l'outil. La carte de profondeur n'étant exploitable qu'au premier pas, la position de la cible aux pas suivants est reconstruite géométriquement : immobile avant la saisie, la cible est considérée rigidement solidaire de l'outil à partir de l'indice de saisie $g$, sous l'hypothèse d'une saisie ferme et sans glissement. Les nuages sont fusionnés puis sous-échantillonnés à $1024$ points par échantillonnage du point le plus éloigné (pour la saisie et dépôt, répartis entre la pince, le cube et la boîte de dépôt, reconstruits par la même chaîne). Le nuage est finalement centré, en translation seulement, sur l'origine du repère de l'outil : la représentation devient invariante à la position absolue de la scène tout en préservant l'orientation et la direction de la gravité, qu'un changement de repère complet masquerait.
 
-La dernière étape augmente le fichier de chaque trajectoire du nuage conditionnel de chaque pas, de la pose de l'outil et de l'état binaire de la pince $s_k\in\{0,1\}$, ces deux derniers formant l'observation proprioceptive à dix dimensions du modèle de la Section~\ref{sec:CFM}. Les changements de repère, la détection de $g$ propre à chaque tâche, les requêtes de détection et l'organisation des fichiers sont détaillés à l'Annexe~\ref{annexe:data_protocol}.
+La dernière étape augmente le fichier de chaque trajectoire du nuage conditionnel de chaque pas, de la pose de l'outil et de l'état binaire de la pince $s_k\in\{0,1\}$, ces deux derniers formant l'observation proprioceptive à $10$ dimensions du modèle de la Section~\ref{sec:CFM}. Les changements de repère, la détection de $g$ propre à chaque tâche, les requêtes de détection et l'organisation des fichiers sont détaillés à l'Annexe~\ref{annexe:data_protocol}.
 
 % =================================================================
 \section{Génération de trajectoire par Flow Matching} \label{sec:CFM}
@@ -370,7 +405,7 @@ Dans le cadre de ce travail, un échantillon $X_1$ est un segment de trajectoire
 
 Le modèle réalise le champ de vitesses conditionnel $u_t^{\theta}(X_t \mid c)$ : il reçoit l'observation, le segment intermédiaire $X_t$ et le temps d'écoulement $t$, et produit une vitesse à dix dimensions pour chacune des $H$ actions. L'observation regroupe le nuage de points conditionnel de la Section~\ref{subsec:pretraitement} ($1024\times3$) et la proprioception des deux derniers pas, toutes les positions étant exprimées relativement à la position courante de l'outil, conformément au centrage du prétraitement, et normalisées dans $[-1,1]$. Deux encodeurs repris de la littérature la transforment en un vecteur de conditionnement : l'encodeur de nuage léger de \textit{3D Diffusion Policy}~\cite{Ze2024Diffusion}, invariant à l'ordre des points, et un perceptron proprioceptif ; le temps $t$ y est adjoint par le plongement sinusoïdal de~\cite{Vaswani2017Attention}, l'ensemble formant le conditionnement global $c_g$.
 
-Le réseau de vitesse qui consomme ce conditionnement est le U-Net 1D conditionnel popularisé par \textit{Diffusion Policy}~\cite{ChiXXXXVisuomotor} : le segment $X_t$ y est traité comme un signal unidimensionnel de longueur $H$ à dix canaux, traversant trois niveaux de résolution en blocs résiduels dont les cartes de caractéristiques sont modulées par $c_g$ (transformation affine de type FiLM), l'injection à tous les niveaux permettant à l'observation d'influencer autant la forme d'ensemble du segment que ses détails locaux. Le U-Net convolutif est préféré à la tête Transformer pour sa stabilité d'entraînement avec quelques dizaines de démonstrations, l'adéquation des biais inductifs convolutifs aux trajectoires lisses démontrées, et l'inutilité de l'auto-attention sur l'horizon court retenu. La vue d'ensemble du réseau, la composition des encodeurs et des blocs et leurs dimensions sont documentées à l'Annexe~\ref{annexe:unet_details}.
+Le réseau de vitesse qui consomme ce conditionnement est le U-Net 1D conditionnel popularisé par \textit{Diffusion Policy}~\cite{ChiXXXXVisuomotor} : le segment $X_t$ y est traité comme un signal unidimensionnel de longueur $H$ à dix canaux, traversant trois niveaux de résolution en blocs résiduels dont les cartes de caractéristiques sont modulées par $c_g$ (transformation affine de type \ac{FiLM}), l'injection à tous les niveaux permettant à l'observation d'influencer autant la forme d'ensemble du segment que ses détails locaux. Le U-Net convolutif est préféré à la tête Transformer pour sa stabilité d'entraînement avec quelques dizaines de démonstrations, l'adéquation des biais inductifs convolutifs aux trajectoires lisses démontrées, et l'inutilité de l'auto-attention sur l'horizon court retenu. La vue d'ensemble du réseau, la composition des encodeurs et des blocs et leurs dimensions sont documentées à l'Annexe~\ref{annexe:unet_details}.
 
 À l'inférence, la génération d'un segment intègre l'équation \eqref{eq:psi} de $t=0$ à $t=1$ depuis un tirage $X_0\sim\mathcal{N}(\mathbf{0},\mathbf{I})$, par le schéma d'Euler explicite :
 \begin{equation}\label{eq:euler}
@@ -381,7 +416,7 @@ Le segment est ensuite dénormalisé et converti en consignes exécutables : pos
 
 \subsection{Entraînement du modèle}
 
-Les trajectoires prétraitées sont découpées en échantillons par fenêtre glissante (nuage conditionnel courant, proprioception des deux derniers pas, segment des $H=16$ actions à venir, soit $1{,}6$~s à $10$~Hz), réparties entre entraînement ($80\,\%$) et validation ($20\,\%$). Chaque échantillon subit une augmentation aléatoire préservant la cohérence géométrique entre le nuage et les poses : rotation de la scène autour de la verticale ($\pm15^{\circ}$), translation ($\pm1$~cm) et bruit gaussien sur les points ($5$~mm) imitant le capteur.
+Les trajectoires prétraitées sont réparties, par dossier, entre entraînement ($80\,\%$) et validation ($20\,\%$), puis découpées en échantillons par fenêtre glissante (nuage conditionnel courant, proprioception des deux derniers pas, segment des $H=16$ actions à venir, soit $1{,}6$~s à $10$~Hz) ; répartir avant le fenêtrage évite toute fuite entre fenêtres superposées. Chaque échantillon subit une augmentation aléatoire préservant la cohérence géométrique entre le nuage et les poses : rotation de la scène autour de la verticale ($\pm15^{\circ}$), translation ($\pm1$~cm) et bruit gaussien sur les points ($5$~mm) imitant le capteur.
 
 L'optimisation minimise la perte \eqref{eq:Loss} avec AdamW, recuit en cosinus et écrêtage du gradient ; une moyenne mobile exponentielle des poids sert à l'évaluation comme au déploiement, et le point de contrôle retenu minimise la perte de validation sous ces poids moyennés. Les hyperparamètres complets, identiques pour les deux tâches, sont rassemblés au Tableau~\ref{tab:fm_hyperparams} de l'Annexe~\ref{annexe:unet_details}.
 
@@ -389,28 +424,49 @@ L'optimisation minimise la perte \eqref{eq:Loss} avec AdamW, recuit en cosinus e
 % =================================================================
 \section{Conversion et exécution de la trajectoire nominale} \label{sec:Conversion}
 % =================================================================
-La sortie du modèle de la section précédente est une séquence de poses de l'outil dans l'espace cartésien ; le robot, lui, est asservi dans l'espace articulaire. Cette section décrit la chaîne qui transforme chaque segment généré en une trajectoire articulaire exécutable : le passage des poses de l'outil aux poses du TCP, leur conversion en configurations articulaires par cinématique inverse, puis le réajustement temporel qui leur affecte des instants de passage produisant un profil de vitesse régulier.
+La sortie du modèle de la section précédente est une séquence de poses de l'outil dans l'espace cartésien ; le robot, lui, est asservi dans l'espace articulaire. Cette section décrit la chaîne qui transforme chaque segment généré en une trajectoire articulaire exécutable : le passage des poses de l'outil aux poses du \ac{TCP}, leur conversion en configurations articulaires par cinématique inverse, puis le réajustement temporel qui leur affecte des instants de passage produisant un profil de vitesse régulier.
 
-\subsection{Conversion outil--TCP}
-Le modèle de Flow Matching est entraîné et échantillonné dans le repère de l'outil $\mathcal{F}_o$ : pour la tâche d'alimentation, les poses générées sont celles de la pointe de la fourchette, soit l'élément qui interagit physiquement avec la cible. Le contrôleur du robot n'asservit toutefois pas ce repère, mais celui du TCP $\mathcal{F}_e$. La pose du TCP à commander s'obtient en inversant la relation \eqref{eq:pose_fork} utilisée au prétraitement (Section~\ref{subsec:pretraitement}) :
+\subsection{Conversion outil--\acs{TCP}}
+Le modèle de Flow Matching est entraîné et échantillonné dans le repère de l'outil $\mathcal{F}_o$ : pour la tâche d'alimentation, les poses générées sont celles de la pointe de la fourchette, soit l'élément qui interagit physiquement avec la cible. Le contrôleur du robot n'asservit toutefois pas ce repère, mais celui du \ac{TCP} $\mathcal{F}_e$. La pose du \ac{TCP} à commander s'obtient en inversant la relation \eqref{eq:pose_fork} utilisée au prétraitement (Section~\ref{subsec:pretraitement}) :
 \begin{equation}\label{eq:tcp_from_tool}
   \mathbf{T}_{e,k}^{b} = \mathbf{T}_{o,k}^{b}\,\bigl(\mathbf{T}_{o}^{e}\bigr)^{-1}, \qquad k=1,\dots,H,
 \end{equation}
-où $\mathbf{T}_{o,k}^{b}$ est la pose homogène de l'outil au pas $k$, assemblée à partir de la position et de la matrice de rotation issues de l'inférence (Section~\ref{sec:CFM}), et $\mathbf{T}_{o}^{e}$ la transformation rigide constante entre le TCP et l'outil, illustrée à la Figure~\ref{fig:rep} et consignée dans les fichiers de trajectoire (Section~\ref{subsec:pretraitement}). Cette transformation étant connue et invariante, la conversion est exacte et ne coûte qu'un produit matriciel par pose ; pour la tâche de saisie et dépôt, l'outil est le TCP lui-même ($\mathbf{T}_{o}^{e}=\mathbf{I}$). Les poses ainsi obtenues constituent les poses désirées du TCP, notées $\mathbf{T}_{e,k}^{b\star}$ dans la sous-section suivante.
-\subsection{Cinématique inverse pour obtenir la trajectoire articulaire nominale}\label{subsec:ik}
-Le robot étant commandé dans l'espace articulaire, chaque pose désirée $\mathbf{T}_{e,k}^{b\star}\in SE(3)$ doit être convertie en une configuration $\mathbf{q}_k\in\mathbb{R}^7$ par cinématique inverse ; les deux articulations de la pince n'influent pas sur la pose du TCP et la préhension est commandée séparément. Le manipulateur disposant de sept articulations pour une tâche de pose à six degrés de liberté, le problème est redondant et son issue doit être fixée par un critère explicite.
+où $\mathbf{T}_{o,k}^{b}$ est la pose homogène de l'outil au pas $k$, assemblée à partir de la position et de la matrice de rotation issues de l'inférence (Section~\ref{sec:CFM}), et $\mathbf{T}_{o}^{e}$ la transformation rigide constante entre le \ac{TCP} et l'outil, illustrée à la Figure~\ref{fig:rep} et consignée dans les fichiers de trajectoire (Section~\ref{subsec:pretraitement}). Cette transformation étant connue et invariante, la conversion est exacte et ne coûte qu'un produit matriciel par pose ; pour la tâche de saisie et dépôt, l'outil est le \ac{TCP} lui-même ($\mathbf{T}_{o}^{e}=\mathbf{I}$). Les poses ainsi obtenues constituent les poses désirées du \ac{TCP}, notées $\mathbf{T}_{e,k}^{b\star}$ dans la sous-section suivante.
 
-La résolution s'effectue, pour chaque point de passage, par une descente de Gauss--Newton amortie sur l'erreur de pose mesurée dans l'algèbre de Lie de $SE(3)$ (implémentée en C++ avec \texttt{Pinocchio}) : une pseudo-inverse amortie~\cite{Nakamura1986Singularity, Wampler1986Damped} assure le suivi de pose, et la redondance est résolue dans le noyau de la Jacobienne par rappel vers une posture de référence~\cite{Liegeois1977Redundancy}, sans influence sur la tâche principale au premier ordre : le même levier que la métrique de tâche et le dégagement postural du filtre de sécurité exploiteront à l'exécution (Section~\ref{sec:sdfcbf}). La référence est prise égale à la configuration d'amorçage (\emph{warm-start}), propagée le long de l'horizon depuis la configuration mesurée, ce chaînage assurant simultanément une résolution cohérente de la redondance et la continuité de la trajectoire articulaire. L'incrément exact, l'erreur logarithmique, les bornes d'itération et les garde-fous numériques sont donnés à l'Annexe~\ref{annexe:chaine_nominale}.
+\subsection{Cinématique inverse pour obtenir la trajectoire articulaire nominale}\label{subsec:ik}
+Le robot étant commandé dans l'espace articulaire, chaque pose désirée $\mathbf{T}_{e,k}^{b\star}\in SE(3)$ doit être convertie en une configuration $\mathbf{q}_k\in\mathbb{R}^7$ par cinématique inverse ; les deux articulations de la pince n'influent pas sur la pose du \ac{TCP} et la préhension est commandée séparément. Le manipulateur disposant de sept articulations pour une tâche de pose à six degrés de liberté, le problème est redondant et son issue doit être fixée par un critère explicite.
+
+La résolution s'effectue, pour chaque point de passage, par une descente de Gauss--Newton amortie (implémentée en C++ avec \texttt{Pinocchio}). L'écart entre la pose atteinte $\mathbf{T}_{e}^{b}(\mathbf{q})$ et la pose désirée $\mathbf{T}_{e,k}^{b\star}$ est mesuré dans l'algèbre de Lie de $SE(3)$ par l'erreur logarithmique :
+\begin{equation}\label{eq:ik_error}
+  \mathbf{e}(\mathbf{q}) = \log\!\big( (\mathbf{T}_{e,k}^{b\star})^{-1}\,\mathbf{T}_{e}^{b}(\mathbf{q}) \big) \in \mathbb{R}^6.
+\end{equation}
+À chaque itération du solveur, l'incrément articulaire est calculé par :
+\begin{equation}\label{eq:ik_update}
+  \Delta\mathbf{q} = -\,\mathbf{J}^{+}\mathbf{e} + \big(\mathbf{I}-\mathbf{J}^{+}\mathbf{J}\big)\big(-k_0(\mathbf{q}-\mathbf{q}_{\mathrm{ref}})\big),
+  \qquad
+  \mathbf{J}^{+}=\mathbf{J}^{\top}\big(\mathbf{J}\mathbf{J}^{\top}+\lambda\mathbf{I}\big)^{-1},
+\end{equation}
+où $\mathbf{J}(\mathbf{q})\in\mathbb{R}^{6\times7}$ est la Jacobienne géométrique du \ac{TCP}. Une pseudo-inverse amortie~\cite{Nakamura1986Singularity, Wampler1986Damped} assure le suivi de pose tout en régularisant le passage des singularités via $\lambda$, tandis que la redondance est résolue dans le noyau de $\mathbf{J}$ par un rappel vers une posture de référence $\mathbf{q}_{\mathrm{ref}}$ avec un gain $k_0$~\cite{Liegeois1977Redundancy}. Ce rappel s'effectue sans influence sur la tâche principale au premier ordre : c'est le même levier que la métrique de tâche et le dégagement postural du filtre de sécurité exploiteront à l'exécution (Section~\ref{sec:sdfcbf}). La référence $\mathbf{q}_{\mathrm{ref}}$ est prise égale à la configuration d'amorçage (\emph{warm-start}), propagée le long de l'horizon depuis la configuration mesurée pour garantir la continuité articulaire. Les bornes d'itération et les garde-fous numériques sont conservés à l'Annexe~\ref{annexe:chaine_nominale}.
 
 Le solveur produit ainsi la trajectoire articulaire nominale $\mathbf{q}_{1:H}$, qui est la seule grandeur retenue en aval : elle est publiée, puis ré-échelonnée temporellement (Section~\ref{subsec:dqff}) avant d'alimenter le filtre de sécurité.
+
 \subsection{Réajustement temporel de la trajectoire articulaire}\label{subsec:dqff}
-La cinématique inverse fournit une suite de configurations articulaires $\mathbf{q}_1,\dots,\mathbf{q}_H$, mais sans horodatage : le modèle de \textit{Flow Matching} produit un nombre fixe de points de passage dont l'espacement dans l'espace articulaire n'est pas uniforme et varie aussi bien à l'intérieur d'un plan que d'un plan à l'autre. Leur affecter une cadence constante, par exemple un point toutes les $0{,}1$~s, ferait alors varier fortement la vitesse articulaire réelle : élevée entre deux configurations éloignées, faible entre deux configurations voisines, d'où un profil de vitesse irrégulier et saccadé. Le réajustement attribue au contraire à chaque segment une durée proportionnelle à sa longueur articulaire, de sorte que la vitesse reste approximativement constante d'un segment à l'autre.
+La cinématique inverse fournit une suite de configurations articulaires $\mathbf{q}_1,\dots,\mathbf{q}_H$, mais sans horodatage : le modèle de \textit{Flow Matching} produit un nombre fixe de points de passage dont l'espacement dans l'espace articulaire n'est pas uniforme et varie aussi bien à l'intérieur d'un plan que d'un plan à l'autre. Leur affecter une cadence constante ferait alors varier fortement la vitesse articulaire réelle. Le réajustement attribue au contraire à chaque segment de longueur $\ell_i = \|\mathbf{q}_{i+1}-\mathbf{q}_i\|_2$ une durée proportionnelle à sa longueur articulaire :
+\begin{equation}\label{eq:retime_duration}
+  \Delta t_i = \frac{\max(\ell_i,\,\ell_{\min})}{v^{\star}},
+  \qquad
+  t_1 = 0,\quad t_{i+1} = t_i + \Delta t_i,
+\end{equation}
+où $v^{\star}=0{,}3$~rad/s est la vitesse cible et $\ell_{\min}$ un plancher de longueur empêchant les segments quasi stationnaires de recevoir une durée nulle (Annexe~\ref{annexe:chaine_nominale}). La trajectoire ré-échelonnée est publiée en positions horodatées. L'exécuteur l'interpole à la fréquence de commande et en extrait la vitesse feedforward $\dot{\mathbf{q}}_{\mathrm{ff}}$ par différentiation finie entre points de passage :
+\begin{equation}\label{eq:retime_feedforward}
+  \dot{\mathbf{q}}_{\mathrm{ff}}(t) = \frac{\mathbf{q}_{i+1}-\mathbf{q}_i}{t_{i+1}-t_i},
+  \qquad t \in [t_i, t_{i+1}[.
+\end{equation}
+De norme approximativement constante et proche de $v^{\star}$ par construction, $\dot{\mathbf{q}}_{\mathrm{ff}}$ représente l'intention instantanée de la trajectoire générée et fournit au filtre de sécurité une référence régulière.
 
-Chaque segment reçoit une durée $\Delta t_i = \ell_i/v^{\star}$, où $\ell_i$ est sa longueur articulaire euclidienne et $v^{\star}=0{,}3$~rad/s la vitesse cible, un plancher de longueur empêchant les segments quasi stationnaires de recevoir une durée nulle (détails à l'Annexe~\ref{annexe:chaine_nominale}). La trajectoire ré-échelonnée est publiée en positions horodatées ; l'exécuteur l'interpole à la fréquence de commande et en publie la vitesse feedforward $\dot{\mathbf{q}}_{\mathrm{ff}}$ par différentiation finie entre points de passage : de norme approximativement constante et proche de $v^{\star}$ par construction, elle représente l'intention instantanée de la trajectoire générée et fournit au filtre de sécurité une référence régulière, plutôt qu'une différentiation bruitée d'une consigne échantillonnée à cadence fixe.
-
-L'exécuteur n'avance pas le long de cette trajectoire au rythme de l'horloge murale, mais d'une \emph{horloge de progression} : l'abscisse temporelle courante n'est incrémentée que si le robot suit effectivement la consigne, et son avancement est suspendu dans deux cas. Le premier est un retard de poursuite excessif : si l'écart articulaire entre la consigne interpolée et la configuration mesurée dépasse une limite, la consigne attend le robot au lieu de creuser l'erreur. Le second est signalé par le filtre de sécurité lui-même : tant que la barrière publiée est en violation ($h<0$), la progression est gelée. Sans ce gel, la consigne nominale continuerait de défiler pendant qu'une déviation de sécurité retient le robot : l'erreur de suivi s'accumulerait, le terme de retour saturerait contre la contrainte et, à la libération, le robot rejoindrait la trajectoire loin en aval, court-circuitant le segment que le filtre venait de lui faire éviter. Avec lui, la trajectoire planifiée reprend exactement là où elle a été interrompue.
+L'exécuteur n'avance pas le long de cette trajectoire au rythme de l'horloge murale, mais d'une \emph{horloge de progression} : l'abscisse temporelle courante n'est incrémentée que si le robot suit effectivement la consigne, et son avancement est suspendu en cas de retard de poursuite excessif ou si le filtre de sécurité signale une violation de barrière ($h<0$). Sans ce gel, la consigne nominale continuerait de défiler pendant qu'une déviation de sécurité retient le robot, creusant l'erreur de suivi ; avec lui, la trajectoire planifiée reprend exactement là où elle a été interrompue.
 % =================================================================
-\section{Filtre de sécurité réactif SDF-CBF}\label{sec:sdfcbf}
+\section{Filtre de sécurité réactif \acs{SDF}-\acs{CBF}}\label{sec:sdfcbf}
 % =================================================================
 Le modèle génératif est entraîné sur des démonstrations sans obstacle et exécuté en boucle ouverte : il n'offre aucune garantie vis-à-vis d'un environnement non vu à l'entraînement. Plutôt que de contraindre le processus de génération (au prix d'une dérive distributionnelle et d'un coût de calcul accru, voir le Chapitre~\ref{sec:RevLitt}), la sécurité est déléguée à un filtre réactif agissant sur la vitesse articulaire à la fréquence de commande. Le robot étant protégé sur l'ensemble de ses liens, chaque lien $l$ menacé par un obstacle impose sa propre condition de sécurité ; à chaque cycle de commande, le filtre retient la vitesse la plus proche de l'intention du modèle qui les respecte toutes :
 \begin{equation}\label{eq:cbf_qp}
@@ -425,7 +481,7 @@ Ce problème comporte trois ingrédients, qui structurent la section. Les foncti
 \subsection{Modèle de distance du robot appris hors ligne}\label{subsec:sdf_robot}
 Le filtre doit connaître, en quelques millisecondes et pour des milliers de points simultanément, la distance signée entre tout point de l'espace et la surface du robot ainsi que leur gradient.
 
-Suivant l'approche \emph{Robot Distance Fields}~\cite{Li2024rdf}, également exploitée pour l'évitement réactif de collisions dans un cadre de commande à priorité de tâches~\cite{Govoni2026rdf}, le SDF de chaque lien $l$ est approximé par une base tensorielle de polynômes de Bernstein dans un repère normalisé propre au lien. La géométrie maillée du lien est d'abord centrée et mise à l'échelle :
+Suivant l'approche \emph{Robot Distance Fields}~\cite{Li2024rdf}, également exploitée pour l'évitement réactif de collisions dans un cadre de commande à priorité de tâches~\cite{Govoni2026rdf}, le \ac{SDF} de chaque lien $l$ est approximé par une base tensorielle de polynômes de Bernstein dans un repère normalisé propre au lien. La géométrie maillée du lien est d'abord centrée et mise à l'échelle :
 \begin{equation}\label{eq:norm_dataset_SDF}
   \bar{\mathbf{x}} = \frac{\mathbf{x}-\mathbf{o}_l}{s_l},
 \qquad
@@ -433,7 +489,7 @@ Suivant l'approche \emph{Robot Distance Fields}~\cite{Li2024rdf}, également exp
 \qquad
 s_l = \max_{\mathbf{v}\in\mathcal{V}_l}\|\mathbf{v}-\mathbf{o}_l\|,
 \end{equation}
-où $\mathcal{V}_l$ est l'ensemble des sommets du maillage : le lien est ainsi contenu dans la boule unitaire, donc dans le cube $[-1,1]^3$ qui sert de domaine d'approximation. Sur ce domaine, le SDF normalisé est une combinaison linéaire de $n^3$ fonctions de base :
+où $\mathcal{V}_l$ est l'ensemble des sommets du maillage : le lien est ainsi contenu dans la boule unitaire, donc dans le cube $[-1,1]^3$ qui sert de domaine d'approximation. Sur ce domaine, le \ac{SDF} normalisé est une combinaison linéaire de $n^3$ fonctions de base :
 \begin{align}
 \bar{d}_l(\bar{\mathbf{x}}) &= \sum_{a,b,c=0}^{n-1} w^{(l)}_{abc}\, B_a(u_x)\,B_b(u_y)\,B_c(u_z) = \boldsymbol{\Phi}(\bar{\mathbf{x}})\,\mathbf{w}_l \\
 \qquad
@@ -442,7 +498,7 @@ B_a(u)&=\binom{n-1}{a}u^a(1-u)^{n-1-a} \\
 \end{align}
 et la distance métrique s'en déduit par $d_l = s_l\,\bar{d}_l$. Les polynômes de Bernstein étant définis sur $[0,1]$, le changement de variable affine $\mathbf{u}=(\bar{\mathbf{x}}+\mathbf{1})/2$ y ramène la coordonnée normalisée, suivant la convention de l'implémentation de référence de~\cite{Li2024rdf}.
 
-Chacun des neuf liens protégés (liens 2 à 7, la main et les deux doigts de la pince) utilise $n=12$ fonctions par axe, soit $1728$ coefficients par lien. Trois propriétés motivent ce choix de représentation : le modèle est polynomial, donc $\mathcal{C}^\infty$ et de gradient analytique exact ; il est linéaire en ses paramètres $\mathbf{w}_l$, ce qui rend l'ajustement convexe ; et son évaluation se réduit à des produits tensoriels, massivement parallélisables sur GPU. La cinématique directe qui place ces liens dans l'espace utilise la configuration mesurée complète : les deux articulations prismatiques des doigts, non commandées par le filtre, sont lues dans l'état mesuré de la pince et incluses dans la pose des liens de la main et des doigts, l'ouverture de la pince déplaçant leurs surfaces jusqu'à $4$~cm ; le gradient articulaire demeure pris par rapport aux sept articulations commandées.
+Chacun des neuf liens protégés (liens 2 à 7, la main et les deux doigts de la pince) utilise $n=12$ fonctions par axe, soit $1728$ coefficients par lien. Trois propriétés motivent ce choix de représentation : le modèle est polynomial, donc $\mathcal{C}^\infty$ et de gradient analytique exact ; il est linéaire en ses paramètres $\mathbf{w}_l$, ce qui rend l'ajustement convexe ; et son évaluation se réduit à des produits tensoriels, massivement parallélisables sur \ac{GPU}. La cinématique directe qui place ces liens dans l'espace utilise la configuration mesurée complète : les deux articulations prismatiques des doigts, non commandées par le filtre, sont lues dans l'état mesuré de la pince et incluses dans la pose des liens de la main et des doigts, l'ouverture de la pince déplaçant leurs surfaces jusqu'à $4$~cm ; le gradient articulaire demeure pris par rapport aux sept articulations commandées.
 
 L'apprentissage des poids procède en deux étapes par lien. La première reproduit le protocole original de~\cite{Li2024rdf} : un jeu d'étiquettes de distance signée exacte est généré sur le maillage (points concentrés près de la surface et points uniformes dans le cube normalisé), puis, la sortie du modèle étant linéaire en $\mathbf{w}_l$, les poids sont ajustés par \emph{moindres carrés récursifs} avec régularisation de type \emph{ridge}. Cette étape n'est pas une contribution de ce mémoire ; son protocole d'échantillonnage, ses équations de mise à jour et ses hyperparamètres sont reproduits à l'Annexe~\ref{annexe:sdf_training}. La régression de valeur qui en résulte fournit une distance précise, mais ne contraint pas le gradient : près de la surface, sa direction reste bruitée et sa norme s'écarte de l'unité.
 
@@ -476,12 +532,12 @@ Pour les points situés hors du domaine d'approximation $[-1,1]^3$, la coordonn�
 \end{equation}
 La garantie tient à la géométrie du bornage par axes, qui assure $d(\mathbf{x})^2 \geq d(\mathbf{c})^2 + \|\mathbf{x}-\mathbf{c}\|^2$ pour la distance vraie (preuve à l'Annexe~\ref{annexe:gradient_details}) : à l'erreur d'approximation de $d(\mathbf{c})$ près (Section~\ref{subsec:garanties}), le prolongement sous-estime toujours la distance, jamais l'inverse. Contrairement à d'autres minorants valides, telle la borne lipschitzienne $d(\mathbf{c})-\|\mathbf{x}-\mathbf{c}\|$, il croît de façon monotone avec l'éloignement, de sorte que son gradient conserve partout l'orientation physique qu'exigent la contrainte et le dégagement postural de la Section~\ref{subsec:minima}, et il se raccorde continûment au modèle polynomial à la frontière du domaine (différentiable par morceaux, Annexe~\ref{annexe:gradient_details}). Les points qui déclenchent la contrainte résident pour l'essentiel à l'intérieur du domaine ; le prolongement gouverne la bande d'activation large du dégagement postural et l'ordonnancement des candidats lointains du préfiltre.
 
-\label{subsec:selection}Évaluer cette distance sur la totalité de la carte persistante à chaque cycle serait toutefois inutilement coûteux : seuls les points les plus proches du robot peuvent activer la contrainte. La carte est donc d'abord élaguée par un préfiltre sphérique autour des liens protégés, puis les $K$ points de plus faible SDF corps-complet sont conservés :
+\label{subsec:selection}Évaluer cette distance sur la totalité de la carte persistante à chaque cycle serait toutefois inutilement coûteux : seuls les points les plus proches du robot peuvent activer la contrainte. La carte est donc d'abord élaguée par un préfiltre sphérique autour des liens protégés, puis les $K$ points de plus faible \ac{SDF} corps-complet sont conservés :
 \begin{equation}
-\mathcal{P}_{\mathrm{CBF}} = \operatorname{TopK}_{K}\Big( \min_l d_{l}(\mathbf{q},\mathbf{p}_i) \Big),
+\mathcal{P}_{\mathrm{\ac{CBF}}} = \operatorname{TopK}_{K}\Big( \min_l d_{l}(\mathbf{q},\mathbf{p}_i) \Big),
 \qquad K = 100.
 \end{equation}
-Cette sélection est rafraîchie à la fréquence même de la boucle de commande ($100$~Hz) : préfiltre, évaluation du SDF corps-complet et TopK sont capturés en un unique graphe CUDA rejoué en un appel, de temps médian inférieur à la milliseconde. L'ensemble actif que voit la contrainte n'est ainsi jamais plus vieux qu'un cycle ($10$~ms), obsolescence prise en compte dans le budget de la marge de sécurité $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}).
+Cette sélection est rafraîchie à la fréquence même de la boucle de commande ($100$~Hz) : préfiltre, évaluation du \ac{SDF} corps-complet et TopK sont capturés en un unique graphe CUDA rejoué en un appel, de temps médian inférieur à la milliseconde. L'ensemble actif que voit la contrainte n'est ainsi jamais plus vieux qu'un cycle ($10$~ms), obsolescence prise en compte dans le budget de la marge de sécurité $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}).
 
 Les distances $d_{l,i}$ des points retenus sont alors agrégées, lien par lien, en une barrière scalaire. Le minimum sur les points obstacles y est approché par un soft-min de température $\alpha$, formulé de manière numériquement stable autour de $m_l=\min_i d_{l,i}$ :
 \begin{equation}
@@ -503,9 +559,9 @@ La projection~\eqref{eq:cbf_qp} repose entièrement sur le gradient $\nabla_{\ma
 \begin{equation*}
 \mathbf{q} \;\xrightarrow{\ \text{cinématique}\ }\; \mathbf{x}_{l,i}
 \;\xrightarrow{\ \text{normalisation}\ }\; \mathbf{u}
-\;\xrightarrow{\ \text{SDF de Bernstein}\ }\; \bar{d}_l,
+\;\xrightarrow{\ \text{\ac{SDF} de Bernstein}\ }\; \bar{d}_l,
 \end{equation*}
-toutes trois dérivables analytiquement. Cette forme close distingue le présent filtre de l'implémentation de référence de~\cite{Li2024rdf}, qui obtient le gradient articulaire par différences finies sur la cinématique directe : elle en fournit la valeur exacte, sans choix d'un pas de perturbation et à coût indépendant du nombre d'articulations perturbées. La dérivation des trois différentielles et leur composition figurent à l'Annexe~\ref{annexe:gradient_details} ; seul le résultat en est énoncé ici. En notant $\nabla_{\mathbf{x}}d_{l,i}$ le gradient spatial métrique du SDF du lien (la moitié du gradient du polynôme de Bernstein pour un point dans le cube d'apprentissage, la dérivée du prolongement minorant $\hat{d}$ de la Section~\ref{subsec:barriere} hors de celui-ci), $\mathbf{g}_{l,i}=\mathbf{R}_{l}^{b}\,\nabla_{\mathbf{x}}d_{l,i}$ son expression dans le repère de base, où $\mathbf{R}_{l}^{b}(\mathbf{q})$ et $\mathbf{d}_{l}^{b}(\mathbf{q})$ sont la rotation et la translation du repère du lien $l$ dans la base, et $\mathbf{r}_{l,i}=\mathbf{p}_i-\mathbf{d}_{l}^{b}$ le vecteur reliant l'origine de ce repère au point obstacle, le gradient articulaire de la distance s'écrit :
+toutes trois dérivables analytiquement. Cette forme close distingue le présent filtre de l'implémentation de référence de~\cite{Li2024rdf}, qui obtient le gradient articulaire par différences finies sur la cinématique directe : elle en fournit la valeur exacte, sans choix d'un pas de perturbation et à coût indépendant du nombre d'articulations perturbées. La dérivation des trois différentielles et leur composition figurent à l'Annexe~\ref{annexe:gradient_details} ; seul le résultat en est énoncé ici. En notant $\nabla_{\mathbf{x}}d_{l,i}$ le gradient spatial métrique du \ac{SDF} du lien (la moitié du gradient du polynôme de Bernstein pour un point dans le cube d'apprentissage, la dérivée du prolongement minorant $\hat{d}$ de la Section~\ref{subsec:barriere} hors de celui-ci), $\mathbf{g}_{l,i}=\mathbf{R}_{l}^{b}\,\nabla_{\mathbf{x}}d_{l,i}$ son expression dans le repère de base, où $\mathbf{R}_{l}^{b}(\mathbf{q})$ et $\mathbf{d}_{l}^{b}(\mathbf{q})$ sont la rotation et la translation du repère du lien $l$ dans la base, et $\mathbf{r}_{l,i}=\mathbf{p}_i-\mathbf{d}_{l}^{b}$ le vecteur reliant l'origine de ce repère au point obstacle, le gradient articulaire de la distance s'écrit :
 \begin{equation}
 \boxed{\;
 \nabla_{\mathbf{q}}d_{l,i} =
@@ -524,11 +580,11 @@ Chaque facteur étant la dérivée exacte d'un polynôme ou d'une transformation
 \subsection{Contrainte de sécurité et vitesse nominale}\label{subsec:contrainte}
 Le problème~\eqref{eq:cbf_qp} requiert encore ses deux entrées : le second membre $b(h)$, qui délimite les vitesses admissibles, puis la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$, centre de l'objectif.
 
-Pour la première, la condition CBF classique impose $\nabla h^\top\dot{\mathbf{q}} \geq -\kappa h$. Avec une barrière issue de la perception, le terme linéaire $\kappa h$ présente deux inconvénients pratiques : loin de l'obstacle il autorise des vitesses d'approche arbitrairement grandes, et en violation il exige des vitesses de récupération proportionnelles à la pénétration, amplifiant le bruit de $h$. La contrainte implémentée sature ces deux régimes :
+Pour la première, la condition \ac{CBF} classique impose $\nabla h^\top\dot{\mathbf{q}} \geq -\kappa h$. Avec une barrière issue de la perception, le terme linéaire $\kappa h$ présente deux inconvénients pratiques : loin de l'obstacle il autorise des vitesses d'approche arbitrairement grandes, et en violation il exige des vitesses de récupération proportionnelles à la pénétration, amplifiant le bruit de $h$. La contrainte implémentée sature ces deux régimes :
 \begin{equation}
 \nabla h(\mathbf{q})^{\top}\dot{\mathbf{q}} \;\geq\; b(h),
 \qquad
-b(h) = m_{\mathrm{CBF}} +
+b(h) = m_{\mathrm{\ac{CBF}}} +
 \begin{cases}
 -\,v_{\mathrm{in}}\,\min\!\big(h/h_{\mathrm{act}},\,1\big), & h > 0,\\[4pt]
 \;\;\,v_{\mathrm{rec}}\,\min\!\big(-h/d_{\mathrm{rec}},\,1\big), & h \leq 0,
@@ -542,6 +598,7 @@ b(h) = m_{\mathrm{CBF}} +
   \definecolor{okSky}{HTML}{56B4E9}%
   \definecolor{okGrey}{HTML}{555555}%
   \definecolor{okLightGrey}{HTML}{909090}%
+  \resizebox{0.95\textwidth}{!}{%
   \begin{tikzpicture}[
       >={Stealth[length=2.2mm]},
       annot/.style={font=\scriptsize, inner sep=1.5pt, align=center},
@@ -639,7 +696,8 @@ b(h) = m_{\mathrm{CBF}} +
       \node[font=\small\bfseries, anchor=south east]
         at ($(-25,0.44)+(-24pt,0)$) {(b)};
     \end{scope}
-  \end{tikzpicture}
+  \end{tikzpicture}%
+  }
   \caption{Géométrie du filtre de sécurité : (a) champ de distance du lien protégé
   $l$ et ses bandes de fonctionnement (marge $d_{\mathrm{safe}}$, bande d'activation
   $h_{\mathrm{act}}$, zone de récupération $d_{\mathrm{rec}}$), où sont évalués les
@@ -668,7 +726,7 @@ Une dernière hypothèse implicite demeure : que la vitesse commandée soit exac
 \end{equation}
 de sorte que la condition originale $\nabla h_l^{\top}\dot{\mathbf{q}} \geq b(h_l)+\eta_l$ reste satisfaite par la vitesse réelle dès que la perturbation \emph{projetée} sur ce gradient vérifie $-\nabla h_l^{\top}\mathbf{d}/\|\nabla h_l\| \leq \varepsilon_{\mathrm{p}}$. C'est cette borne projetée, par ligne active, qui est directement suffisante et que le certificat requiert ; la borne de norme $\|\mathbf{d}\|\leq\varepsilon_{\mathrm{p}}$ l'entraîne par Cauchy--Schwarz (cas d'un $\mathbf{d}$ exactement anti-aligné sur $\nabla h_l$), mais la surcharge inutilement et n'est pas celle retenue. La borne $\varepsilon_{\mathrm{p}}$ n'est pas déduite d'un modèle du contrôleur : elle est calibrée sur la statistique mesurée de la perturbation projetée, puis érigée en \emph{hypothèse surveillée}. À chaque cycle, la perturbation réalisée est mesurée en projetant l'écart entre la vitesse articulaire mesurée et la commande effectivement appliquée sur les gradients des lignes actives ; tout dépassement de $\varepsilon_{\mathrm{p}}$ est signalé au frein réflexe (Section~\ref{subsubsec:reflexe}), qui retient la commande le temps que la mesure revienne sous la borne. La garantie prend ainsi la forme d'une assurance à l'exécution : la sécurité vaut tant que l'hypothèse surveillée tient, et sa violation est détectée et traitée par un arrêt certifié plutôt que d'invalider silencieusement le certificat. La distribution mesurée de cette perturbation et le positionnement de $\varepsilon_{\mathrm{p}}$ dans cette distribution sont rapportés au Chapitre~\ref{sec:Theme3} ; le détail du moniteur figure à l'Annexe~\ref{annexe:surveillance}.
 
-Un dernier écart à la dynamique en temps continu tient au régime échantillonné lui-même. Entre deux résolutions, la commande est maintenue par bloqueur d'ordre zéro et l'état parcourt un segment rectiligne à vitesse constante, de sorte que la condition instantanée ne garantit $h_l \geq 0$ qu'à l'instant de résolution, non sur toute la période. Plutôt que de provisionner cet écart au pire cas dans la marge statique $d_{\mathrm{safe}}$, chaque demi-espace actif est resserré du terme dépendant de l'état issu de la condition CBF échantillonnée de Breeden et al.~\cite{Breeden2022Sampled} :
+Un dernier écart à la dynamique en temps continu tient au régime échantillonné lui-même. Entre deux résolutions, la commande est maintenue par bloqueur d'ordre zéro et l'état parcourt un segment rectiligne à vitesse constante, de sorte que la condition instantanée ne garantit $h_l \geq 0$ qu'à l'instant de résolution, non sur toute la période. Plutôt que de provisionner cet écart au pire cas dans la marge statique $d_{\mathrm{safe}}$, chaque demi-espace actif est resserré du terme dépendant de l'état issu de la condition \ac{CBF} échantillonnée de Breeden et al.~\cite{Breeden2022Sampled} :
 \begin{equation}\label{eq:sampled_margin}
 m_l(\dot{\mathbf{q}}) = \tfrac{1}{2}\,L_l\,\|\dot{\mathbf{q}}\|^{2}\,T,
 \end{equation}
@@ -702,7 +760,7 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
 
   Les entrées du problème~\eqref{eq:cbf_qp} sont désormais toutes définies : les barrières et leurs gradients (Sections~\ref{subsec:barriere} et~\ref{subsec:gradient}), le second membre resserré et la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ (Section~\ref{subsec:contrainte}). Il reste à le résoudre, puis à transformer sa solution en commande exécutable.
 
-  La projection CBF recherche la vitesse admissible la plus proche de $\dot{\mathbf{q}}_{\mathrm{base}}$ au sens de la métrique $\mathbf{W}$,
+  La projection \ac{CBF} recherche la vitesse admissible la plus proche de $\dot{\mathbf{q}}_{\mathrm{base}}$ au sens de la métrique $\mathbf{W}$,
   c'est-à-dire sa projection sur l'intersection des demi-espaces actifs~\eqref{eq:cbf_qp} :
   \begin{equation}
   \dot{\mathbf{q}}_{\mathrm{proj}}
@@ -725,7 +783,7 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   \end{equation}
   La correction de sécurité $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}} \equiv \dot{\mathbf{q}}_{\mathrm{proj}}-\dot{\mathbf{q}}_{\mathrm{base}}$ n'est
   pas une entrée du calcul mais la quantité \emph{dérivée} qui mesure l'intervention du filtre. Cette dernière est nulle dès que toutes les contraintes sont
-  satisfaites et de norme égale à l'intensité de la correction ; son interprétation géométrique dans l'espace des vitesses articulaires est illustrée à la Figure~\ref{fig:projection_cbf} de l'Annexe~\ref{annexe:cbf_details}.
+  satisfaites et de norme égale à l'intensité de la correction ; son interprétation géométrique dans l'espace des vitesses articulaires est illustrée à la Figure~\ref{fig:projection_cbf}.
 
 
   La brique élémentaire de la résolution est la projection $P_l$ sur un seul demi-espace, en forme close pour toute métrique $\mathbf{W}$
@@ -751,6 +809,82 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   Figure~\ref{fig:projection_cbf}). Le poids $w_{\mathrm{rot}}=0{,}01$ règle l'arbitrage position--orientation (un radian de rotation
   du repère de tâche y coûte autant que dix centimètres de translation) et la régularisation $\lambda=0{,}01$ maintient $\mathbf{W}$
   inversible en attribuant un coût résiduel aux mouvements du noyau, faible devant le coût de tâche.
+
+\begin{figure}[htbp!]
+    \centering
+    \begin{tikzpicture}[
+        font=\sffamily\small,
+        scale=0.9,
+        axis/.style={-{Stealth[scale=0.95]}, thick, draw=black!60},
+        vec/.style={-{Stealth[scale=1.15]}, very thick},
+        constraint_line/.style={draw=orange!90!black, very thick},
+        projection_line/.style={draw=red!80, dashed, thick, -{Stealth[scale=1.0]}},
+        normal_vec/.style={-{Stealth[scale=1.1]}, thick, draw=green!55!black},
+        lab/.style={font=\sffamily\scriptsize\bfseries, align=center}
+    ]
+        % --- Axes de vitesse ---
+        \draw[axis] (-0.2,0) -- (6.4,0) node[right, black] {$\dot{q}_1$};
+        \draw[axis] (0,-0.2) -- (0,5.2) node[above, black] {$\dot{q}_2$};
+
+        % --- Ensemble admissible : intersection de demi-espaces (non borné) ---
+        \fill[blue!6] (0,0) -- (4.26,0) -- (4.81,1.69) -- (1.7,4.8) -- (0,4.8) -- cycle;
+        \node[lab, blue!80!black] at (1.2,2.6) {Vitesses admissibles\\(intersection des\\demi-espaces actifs)};
+
+        % --- Contrainte active liante : lien l ---
+        \draw[constraint_line] (1.7,4.8) -- (5.4,1.1);
+        \node[lab, orange!90!black, anchor=south west] at (0.35,4.9)
+            {Contrainte du lien $l$ : $\nabla h_l^\top \dot{\mathbf{q}} = b(h_l) + \eta_l$};
+
+        % --- Seconde contrainte active, non liante : lien l' ---
+        \draw[draw=orange!60, thick] (4.26,0) -- (4.81,1.69);
+        \draw[draw=orange!60, thin, dashed] (4.81,1.69) -- (5.08,2.6);
+        \node[lab, orange!75!black, anchor=west, inner sep=2pt] at (4.95,0.55) {contrainte\\du lien $l'$};
+
+        % --- Zone non admissible ---
+        \node[lab, red!75!black] at (5.35,4.9) {Vitesses non admissibles};
+
+        % --- Normale de la contrainte liante (pointe vers l'intérieur) ---
+        \draw[normal_vec] (2.7,3.8) -- (2.2,3.3);
+        \node[lab, green!45!black, anchor=east, inner sep=2pt] at (2.18,3.68) {$\nabla h_l$};
+
+        % --- Ellipse de niveau de la métrique W, tangente à la frontière en q_proj ---
+        \draw[dashed, black!45, thin] (4.6,3.4) ellipse [x radius=0.912, y radius=1.401, rotate=75.6];
+        \node[lab, black!55, anchor=west] at (5.62,4.25)
+            {$\|\dot{\mathbf{q}}-\dot{\mathbf{q}}_{\mathrm{base}}\|_{\mathbf{W}} = \text{cste}$};
+
+        % --- Vecteurs ---
+        \coordinate (O) at (0,0);
+        \coordinate (Qbase) at (4.6,3.4);
+        \coordinate (Qproj) at (3.52,2.98);
+        \coordinate (Qeucl) at (3.85,2.65);
+
+        % vitesse nominale filtrée
+        \draw[vec, draw=black!80] (O) -- (Qbase);
+        \fill[black] (Qbase) circle (1.6pt);
+        \node[lab, black, anchor=west, inner sep=2pt] at (4.72,3.32)
+            {$\dot{\mathbf{q}}_{\mathrm{base}}$};
+
+        % vitesse sécurisée
+        \draw[vec, draw=blue!80!black] (O) -- (Qproj);
+        \fill[blue!80!black] (Qproj) circle (1.6pt);
+        \node[lab, blue!90!black, anchor=east, inner sep=2pt] at (3.28,3.02)
+            {$\dot{\mathbf{q}}_{\mathrm{proj}}$};
+
+        % correction dans la métrique W
+        \draw[projection_line] (Qbase) -- (Qproj);
+        \node[lab, red!80!black, anchor=south west, inner sep=2pt] at (3.82,3.62)
+            {$\Delta\dot{\mathbf{q}}_{\mathrm{CBF}} \parallel \mathbf{W}^{-1}\nabla h_l \parallel$} ;
+
+        % projection euclidienne, pour comparaison
+        \draw[black!45, dotted, thick] (Qbase) -- (Qeucl);
+        \draw[black!55, fill=white] (Qeucl) circle (1.5pt);
+        \draw[thin, black!50] ($(Qeucl)+(-0.085,0.085)$) -- ($(Qeucl)+(0.034,0.204)$) -- ($(Qeucl)+(0.153,0.085)$);
+        \node[lab, black!55, anchor=west] (eucl_lab) at (4.5,2.25) {projection euclidienne\\($\mathbf{W}=\mathbf{I}$)};
+        \draw[thin, black!40] (eucl_lab.west) -- ($(Qeucl)+(0.08,-0.08)$);
+    \end{tikzpicture}
+    \caption{Interprétation géométrique, dans un plan de l'espace des vitesses articulaires, de la projection de sécurité~\eqref{eq:cbf_qp} : la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ est projetée sur l'intersection des demi-espaces actifs $\nabla h_l^\top\dot{\mathbf{q}} \geq b(h_l)+\eta_l$, dont les normales $\nabla h_l$ pointent vers l'intérieur. La solution $\dot{\mathbf{q}}_{\mathrm{proj}}$ est le point où le plus petit ellipsoïde de niveau de la métrique de tâche $\mathbf{W}$ centré sur $\dot{\mathbf{q}}_{\mathrm{base}}$ touche la frontière : la correction $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ suit la direction $\mathbf{W}^{-1}\nabla h_l$ et non la normale, et s'écarte ainsi de la projection euclidienne ($\mathbf{W}=\mathbf{I}$, point creux), en déplaçant le moins possible le lien contrôlé.}
+    \label{fig:projection_cbf}
+\end{figure}
 
   La métrique est un préconditionneur lentement variable : elle est rafraîchie à $30$~Hz dans le fil de perception, par différences finies sur la cinématique directe, et la
   boucle de commande à $100$~Hz la lit sans synchronisation, l'obsolescence maximale ($\approx33$~ms, soit moins de $0{,}025$~rad de
@@ -804,25 +938,25 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   dans la marge $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}) et surveillé entre les résolutions par le frein réflexe décrit ci-dessous
   (Section~\ref{subsubsec:reflexe}).
 
-\paragraph{Barrière de limites articulaires et garde de singularité.} Une dernière contrainte, indépendante des obstacles, s'applique à la vitesse finale : chaque articulation freine à l'approche de sa butée de position URDF, sa vitesse admissible décroissant proportionnellement à sa distance à une bande de garde (facteur $\kappa_{\mathrm{art}}$), et reçoit une poussée bornée de rappel si elle y pénètre. Sur le Panda, ce mécanisme tient aussi lieu de garde de singularité : le coude tendu correspond à $q_4$ contre sa borne supérieure et le poignet aligné à $q_6$ contre sa borne inférieure, de sorte qu'une marge de $0{,}15$~rad éloigne le bras de ces deux configurations singulières quelle que soit l'origine du mouvement (intention du modèle, correction de sécurité, réparation ou dégagement postural). Cette contrainte agit toutefois sur la commande finale, en aval de la projection d'évitement : la réduction qu'elle impose à une articulation modifie $\nabla h_l^\top\dot{\mathbf{q}}$ et peut donc rouvrir une ligne d'obstacle, en particulier une vitesse de sortie exigée en récupération. Elle ne saurait être supposée préserver l'admissibilité ; c'est pourquoi le résidu de contrainte est réévalué sur la commande effectivement publiée, \emph{après} cette modification comme après la saturation (le signal \texttt{constr\_final}, Section~\ref{subsec:projection}), toute violation résiduelle étant résorbée aux cycles suivants.
+\paragraph{Barrière de limites articulaires et garde de singularité.} Une dernière contrainte, indépendante des obstacles, s'applique à la vitesse finale : chaque articulation freine à l'approche de sa butée de position \ac{URDF}, sa vitesse admissible décroissant proportionnellement à sa distance à une bande de garde (facteur $\kappa_{\mathrm{art}}$), et reçoit une poussée bornée de rappel si elle y pénètre. Sur le Panda, ce mécanisme tient aussi lieu de garde de singularité : le coude tendu correspond à $q_4$ contre sa borne supérieure et le poignet aligné à $q_6$ contre sa borne inférieure, de sorte qu'une marge de $0{,}15$~rad éloigne le bras de ces deux configurations singulières quelle que soit l'origine du mouvement (intention du modèle, correction de sécurité, réparation ou dégagement postural). Cette contrainte agit toutefois sur la commande finale, en aval de la projection d'évitement : la réduction qu'elle impose à une articulation modifie $\nabla h_l^\top\dot{\mathbf{q}}$ et peut donc rouvrir une ligne d'obstacle, en particulier une vitesse de sortie exigée en récupération. Elle ne saurait être supposée préserver l'admissibilité ; c'est pourquoi le résidu de contrainte est réévalué sur la commande effectivement publiée, \emph{après} cette modification comme après la saturation (le signal \texttt{constr\_final}, Section~\ref{subsec:projection}), toute violation résiduelle étant résorbée aux cycles suivants.
 
 \subsubsection{Frein réflexe entre les instants de résolution}\label{subsubsec:reflexe}
   Le certificat du filtre est instantané : la projection garantit $\nabla h^\top\dot{\mathbf{q}} \geq b(h)+\eta$ à l'instant de résolution,
   puis la commande est maintenue par le bloqueur d'ordre zéro pendant toute la période suivante, durant laquelle $h$ évolue sans surveillance.
   Loin de la frontière, la marge $d_{\mathrm{safe}}$ absorbe cette érosion ; en revanche, les phases où la tâche impose de \emph{longer} la
   frontière ($h$ de quelques millimètres pendant plusieurs secondes, régime typique du transport d'objet près d'une paroi) consomment le
-  certificat à chaque maintien, d'autant plus que la cadence effective de résolution fléchit sous la charge du GPU partagé. Plutôt que
+  certificat à chaque maintien, d'autant plus que la cadence effective de résolution fléchit sous la charge du \ac{GPU} partagé. Plutôt que
   d'immobiliser en permanence cette réserve dans la marge, une seconde couche, le \emph{frein réflexe}, re-certifie la commande maintenue
   \emph{entre} les résolutions, en quelques opérations vectorielles par ligne à ${\sim}1$~kHz entre le filtre et le contrôleur. Dans la
   configuration déployée, cette re-certification est portée par le contrôleur bas niveau lui-même : le frein s'exécute en C++ à l'intérieur de
   la boucle temps réel dur \texttt{ros\_control} à ${\sim}1$~kHz, consommant à chaque tique un paquet atomique (commande et certificat) publié
-  par le filtre à $100$~Hz, ce qui affranchit la garantie inter-échantillons de la latence de l'ordonnanceur Python et du GPU partagé ; le
+  par le filtre à $100$~Hz, ce qui affranchit la garantie inter-échantillons de la latence de l'ordonnanceur Python et du \ac{GPU} partagé ; le
   calcul du scalaire $\alpha$ demeure celui décrit ci-dessous.
 
   À chaque tique, le frein met à l'échelle la commande maintenue par un unique scalaire $\alpha\in[0,1]$,
   $\dot{\mathbf{q}}_{\mathrm{exec}} = \alpha\,\dot{\mathbf{q}}_{\mathrm{final}}$ : un frein pur, qui préserve le chemin articulaire et n'en
   module que la cadence de parcours, sans jamais amplifier ni dévier la commande. Le scalaire retenu est le plus grand qui demeure certifié
-  sûr sur l'horizon de maintien $T_{\mathrm{rfx}}$, que le frein mesure à chaque tique comme l'intervalle effectif écoulé depuis la dernière résolution plutôt que de le fixer a priori, dans l'esprit des conditions CBF échantillonnées de Breeden et
+  sûr sur l'horizon de maintien $T_{\mathrm{rfx}}$, que le frein mesure à chaque tique comme l'intervalle effectif écoulé depuis la dernière résolution plutôt que de le fixer a priori, dans l'esprit des conditions \ac{CBF} échantillonnées de Breeden et
   al.~\cite{Breeden2022Sampled} : chaque ligne de gradient étant supposée $L$-lipschitzienne en $\mathbf{q}$, la borne de Taylor
   \begin{equation}
   h(\mathbf{q}_0+\mathbf{d}) \;\geq\; h(\mathbf{q}_0) + \nabla h^\top\mathbf{d} - \tfrac{L}{2}\|\mathbf{d}\|^2,
@@ -862,25 +996,25 @@ où $\mathbf{N}$ est le projecteur amorti sur le noyau de la Jacobienne complèt
 
 \subsection{Portée des garanties}\label{subsec:garanties}
 
-\paragraph{Portée du certificat.} En temps continu, pour un ensemble fini et fixe de points d'obstacle, une fonction barrière apprise continûment différentiable, un état exactement connu et une commande satisfaisant exactement une contrainte CBF faisable sans modification subséquente, la formulation assure l'invariance prospective de l'ensemble sûr \emph{défini par la barrière apprise}, et non l'évitement physique des collisions : l'erreur d'approximation du SDF, l'exécution en temps discret, l'erreur de poursuite de l'actionneur, les saturations en aval et la mise à jour de la sélection des points critiques sortent de ce théorème nominal. Dans l'implantation, cette invariance devient conditionnelle aux bornes adoptées sur la courbure de la barrière, l'erreur de modèle, la vitesse exécutée et les perturbations d'exécution ; ces bornes sont identifiées empiriquement et surveillées en ligne, et ne constituent donc pas des majorants globaux démontrés. Le veto de poursuite et la réévaluation de la commande finale (\texttt{constr\_final}) forment une couche d'assurance à l'exécution destinée à \emph{détecter ou atténuer} les violations de ces hypothèses, sans convertir les taux de couverture observés en garantie déterministe de non-collision physique. Les paragraphes qui suivent explicitent, hypothèse par hypothèse, la quantité surveillée et le comportement du filtre lorsqu'elle est violée.
+\paragraph{Portée du certificat.} En temps continu, pour un ensemble fini et fixe de points d'obstacle, une fonction barrière apprise continûment différentiable, un état exactement connu et une commande satisfaisant exactement une contrainte \ac{CBF} faisable sans modification subséquente, la formulation assure l'invariance prospective de l'ensemble sûr \emph{défini par la barrière apprise}, et non l'évitement physique des collisions : l'erreur d'approximation du \ac{SDF}, l'exécution en temps discret, l'erreur de poursuite de l'actionneur, les saturations en aval et la mise à jour de la sélection des points critiques sortent de ce théorème nominal. Dans l'implantation, cette invariance devient conditionnelle aux bornes adoptées sur la courbure de la barrière, l'erreur de modèle, la vitesse exécutée et les perturbations d'exécution ; ces bornes sont identifiées empiriquement et surveillées en ligne, et ne constituent donc pas des majorants globaux démontrés. Le veto de poursuite et la réévaluation de la commande finale (\texttt{constr\_final}) forment une couche d'assurance à l'exécution destinée à \emph{détecter ou atténuer} les violations de ces hypothèses, sans convertir les taux de couverture observés en garantie déterministe de non-collision physique. Les paragraphes qui suivent explicitent, hypothèse par hypothèse, la quantité surveillée et le comportement du filtre lorsqu'elle est violée.
 
-  Au-delà du solveur lui-même, il reste à délimiter ce que le filtre garantit réellement. L'invariance avant théorique de l'ensemble $\mathcal{C}$ suppose une dynamique en temps continu, un SDF exact, des obstacles correctement observés et immobiles, et un suivi parfait de la commande par le contrôleur bas niveau. L'implémentation s'écarte de ces hypothèses sur trois points quantifiables : la discrétisation de la commande (100~Hz), l'obsolescence de l'ensemble des points critiques (au plus un cycle, sa mise à jour suivant la fréquence de commande) et l'erreur d'approximation du SDF de Bernstein (caractérisée au Chapitre~\ref{sec:Theme3}).
+  Au-delà du solveur lui-même, il reste à délimiter ce que le filtre garantit réellement. L'invariance avant théorique de l'ensemble $\mathcal{C}$ suppose une dynamique en temps continu, un \ac{SDF} exact, des obstacles correctement observés et immobiles, et un suivi parfait de la commande par le contrôleur bas niveau. L'implémentation s'écarte de ces hypothèses sur trois points quantifiables : la discrétisation de la commande (100~Hz), l'obsolescence de l'ensemble des points critiques (au plus un cycle, sa mise à jour suivant la fréquence de commande) et l'erreur d'approximation du \ac{SDF} de Bernstein (caractérisée au Chapitre~\ref{sec:Theme3}).
 
   S'y ajoute le cas dégénéré du gradient effondré face aux obstacles minces, où la réparation finale est volontairement atténuée (seuil $g_{\min}$, Section~\ref{subsec:projection}) et la résorption de la violation reportée aux cycles suivants. Quant à l'hypothèse d'immobilité, le resserrement temporel $\eta_l$ (Section~\ref{subsec:contrainte}) étend dynamiquement la formulation au cas d'obstacles mobiles en adaptant la marge selon la vitesse d'approche estimée de l'environnement. Si la formulation théorique d'invariance est établie pour le cas quasi statique, l'apport de cette extension face à des mouvements lents de l'environnement est validé empiriquement au Chapitre~\ref{sec:Theme3}.
 
-  Dans ce cadre, le certificat de chacun des deux modes de barrière de la Section~\ref{subsec:barriere} s'établit comme suit. Le mode déployé, à valeur exacte, s'obtient en attribuant la paire implémentée à la barrière compensée $h_{\mathrm{corr}} = h_{\mathrm{soft}} + \alpha\log N$ : le terme de compensation étant indépendant de $\mathbf{q}$, le gradient implémenté est exactement $\nabla h_{\mathrm{corr}}$, et le second membre $b(\cdot)$ étant monotone non croissant, la condition appliquée implique la condition CBF standard, cohérente en valeur et en gradient, de la barrière $h_{\mathrm{corr}}$, bande d'activation comprise ; la dérivation est donnée à l'Annexe~\ref{annexe:cbf_details}. L'invariance avant certifiée porte donc sur l'ensemble $\mathcal{C}_{\mathrm{corr}}=\{h_{\mathrm{corr}} \geq 0\}$, dont tout point vérifie $\min_i d_{l,i} \geq d_{\mathrm{safe}} - \alpha\log(N/M_{\mathrm{eff}})$, avec $M_{\mathrm{eff}} = \sum_{i}\exp\big(-(d_{l,i}-m_l)/\alpha\big) \in [1, N]$ l'encombrement effectif à moins de $\alpha$ du minimum : la compensation ajoutée $\alpha\log N$ correspondant au pire encombrement possible, la réduction résiduelle $\alpha\log(N/M_{\mathrm{eff}})$ décroît à mesure que l'encombrement réel augmente et s'annule à $M_{\mathrm{eff}} = N$ ; elle est bornée au pire, pour un point isolé ($M_{\mathrm{eff}} = 1$), par $\alpha\log N \approx 9{,}2$~mm ($\alpha = 0{,}002$, $N = 100$).
+  Dans ce cadre, le certificat de chacun des deux modes de barrière de la Section~\ref{subsec:barriere} s'établit comme suit. Le mode déployé, à valeur exacte, s'obtient en attribuant la paire implémentée à la barrière compensée $h_{\mathrm{corr}} = h_{\mathrm{soft}} + \alpha\log N$ : le terme de compensation étant indépendant de $\mathbf{q}$, le gradient implémenté est exactement $\nabla h_{\mathrm{corr}}$, et le second membre $b(\cdot)$ étant monotone non croissant, la condition appliquée implique la condition \ac{CBF} standard, cohérente en valeur et en gradient, de la barrière $h_{\mathrm{corr}}$, bande d'activation comprise ; la dérivation est donnée à l'Annexe~\ref{annexe:cbf_details}. L'invariance avant certifiée porte donc sur l'ensemble $\mathcal{C}_{\mathrm{corr}}=\{h_{\mathrm{corr}} \geq 0\}$, dont tout point vérifie $\min_i d_{l,i} \geq d_{\mathrm{safe}} - \alpha\log(N/M_{\mathrm{eff}})$, avec $M_{\mathrm{eff}} = \sum_{i}\exp\big(-(d_{l,i}-m_l)/\alpha\big) \in [1, N]$ l'encombrement effectif à moins de $\alpha$ du minimum : la compensation ajoutée $\alpha\log N$ correspondant au pire encombrement possible, la réduction résiduelle $\alpha\log(N/M_{\mathrm{eff}})$ décroît à mesure que l'encombrement réel augmente et s'annule à $M_{\mathrm{eff}} = N$ ; elle est bornée au pire, pour un point isolé ($M_{\mathrm{eff}} = 1$), par $\alpha\log N \approx 9{,}2$~mm ($\alpha = 0{,}002$, $N = 100$).
 
-  La variante soft-min n'appelle aucun raisonnement particulier : la valeur et le gradient provenant tous deux de $h_{\mathrm{soft}}$, fonction lisse de $\mathbf{q}$, la condition appliquée est la condition CBF standard et l'invariance avant de $\mathcal{C}_{\mathrm{soft}}=\{h_{\mathrm{soft}} \geq 0\}$ suit du théorème usuel ; puisque $h_{\mathrm{soft}} \leq h_{\min,l}$, tout point de cet ensemble vérifie de surcroît $\min_i d_{l,i} \geq d_{\mathrm{safe}}$, le biais d'encombrement devenant une conservativité certifiée. Cette conservativité a toutefois un coût opérationnel : face à un nuage dense (une surface plane vue de près), le biais atteint l'ordre de la marge $d_{\mathrm{safe}}$ elle-même et le filtre freine plus tôt que la géométrie ne l'exige, jusqu'à déclencher son régime de récupération sur des frôlements fictifs ; c'est ce coût qui motive le mode déployé, au prix de la réduction bornée de marge quantifiée ci-dessus.
+  La variante soft-min n'appelle aucun raisonnement particulier : la valeur et le gradient provenant tous deux de $h_{\mathrm{soft}}$, fonction lisse de $\mathbf{q}$, la condition appliquée est la condition \ac{CBF} standard et l'invariance avant de $\mathcal{C}_{\mathrm{soft}}=\{h_{\mathrm{soft}} \geq 0\}$ suit du théorème usuel ; puisque $h_{\mathrm{soft}} \leq h_{\min,l}$, tout point de cet ensemble vérifie de surcroît $\min_i d_{l,i} \geq d_{\mathrm{safe}}$, le biais d'encombrement devenant une conservativité certifiée. Cette conservativité a toutefois un coût opérationnel : face à un nuage dense (une surface plane vue de près), le biais atteint l'ordre de la marge $d_{\mathrm{safe}}$ elle-même et le filtre freine plus tôt que la géométrie ne l'exige, jusqu'à déclencher son régime de récupération sur des frôlements fictifs ; c'est ce coût qui motive le mode déployé, au prix de la réduction bornée de marge quantifiée ci-dessus.
 
   Ce filtrage réactif n'est pour autant pas un champ de potentiel répulsif : l'intention du modèle n'entre que dans l'objectif du problème~\eqref{eq:cbf_qp}, jamais dans ses contraintes, de sorte qu'aucune vitesse violant un demi-espace de sécurité n'est atteignable, quelle que soit l'intensité de cette intention. La garantie tient donc de la structure du filtre et non du réglage d'une marge : c'est l'invariance avant de l'ensemble certifié ($\mathcal{C}_{\mathrm{corr}}$ pour le mode déployé, $\mathcal{C}_{\mathrm{soft}}$ pour la variante soft-min), exacte en temps continu pour un ensemble fixe et fini de points obstacles observés, quelle que soit leur disposition géométrique, sous des hypothèses qu'il convient d'expliciter : (i)~sélection de points et effectif $N$ constants entre deux mises à jour ; (ii)~intersection non vide des demi-espaces actifs avec les limites de vitesse articulaire (faisabilité) ; (iii)~poursuite de la vitesse commandée à une perturbation près bornée par $\varepsilon_{\mathrm{p}}$ dans la direction de chaque gradient actif, hypothèse couverte par le resserrement~\eqref{eq:issf_tightening} et surveillée en ligne (Section~\ref{subsec:contrainte}) ; (iv)~état initial dans l'ensemble certifié ; (v)~environnement immobile.
 
   Chaque mise à jour de la sélection peut en particulier réintroduire des points déjà à l'intérieur de la marge : ce cas sort du certificat, est pris en charge par le régime de récupération et la réparation plafonnée (Annexe~\ref{annexe:cbf_details}), et son issue est évaluée empiriquement.
 
-  La marge $d_{\mathrm{safe}}$ ne produit pas l'évitement, elle le robustifie : elle éloigne la frontière certifiée de la surface de collision réelle, de sorte que les écarts d'implémentation énumérés ci-dessus se consomment dans cette réserve plutôt qu'en pénétration. Son dimensionnement ($15$~mm) est propre au cadre d'évaluation retenu : la validation se déroulant en simulation sans bruit de capteur, avec des nuages d'obstacles synthétiques échantillonnés sur la surface exacte des objets et des transformations de repères connues, les termes d'erreur perceptive (bruit de profondeur, calibration, quantification de carte) y sont nuls, et la réserve n'a à couvrir que le résidu de discrétisation que le resserrement échantillonné~\eqref{eq:sampled_margin} de la contrainte (Section~\ref{subsec:contrainte}) ne prend pas déjà en charge, l'obsolescence de la sélection des points critiques (au plus un cycle, $10$~ms) et l'erreur du SDF appris, auxquelles s'ajoute, pour le mode déployé à valeur exacte, la réduction $\alpha\log M_{\mathrm{eff}}$ du certificat (la variante soft-min convertit ce même terme en réserve supplémentaire).
+  La marge $d_{\mathrm{safe}}$ ne produit pas l'évitement, elle le robustifie : elle éloigne la frontière certifiée de la surface de collision réelle, de sorte que les écarts d'implémentation énumérés ci-dessus se consomment dans cette réserve plutôt qu'en pénétration. Son dimensionnement ($15$~mm) est propre au cadre d'évaluation retenu : la validation se déroulant en simulation sans bruit de capteur, avec des nuages d'obstacles synthétiques échantillonnés sur la surface exacte des objets et des transformations de repères connues, les termes d'erreur perceptive (bruit de profondeur, calibration, quantification de carte) y sont nuls, et la réserve n'a à couvrir que le résidu de discrétisation que le resserrement échantillonné~\eqref{eq:sampled_margin} de la contrainte (Section~\ref{subsec:contrainte}) ne prend pas déjà en charge, l'obsolescence de la sélection des points critiques (au plus un cycle, $10$~ms) et l'erreur du \ac{SDF} appris, auxquelles s'ajoute, pour le mode déployé à valeur exacte, la réduction $\alpha\log M_{\mathrm{eff}}$ du certificat (la variante soft-min convertit ce même terme en réserve supplémentaire).
 
   Ce traitement de la discrétisation, échantillonné-robuste, est discuté au Chapitre~\ref{sec:RevLitt} et opère à deux niveaux. La contrainte instantanée coïncide d'abord avec la linéarisation de la condition en temps discret de~\cite{Agrawal2017Discrete} ; son reste dépendant de l'état, plutôt que d'être dimensionné au pire cas dans la marge ou confié à un programme non linéaire exact (incompatible avec la fréquence de commande pour une barrière apprise évaluée sur des milliers de points), est réinjecté dans la contrainte elle-même par le resserrement échantillonné~\eqref{eq:sampled_margin} de la Section~\ref{subsec:contrainte}, dans l'esprit de~\cite{Breeden2022Sampled} : la projection commande directement la vitesse certifiable sur la période. Le frein réflexe (Section~\ref{subsubsec:reflexe}) complète ce traitement en re-certifiant à ${\sim}1$~kHz la commande maintenue entre deux résolutions, interceptant la part résiduelle du comportement inter-échantillons au lieu de la provisionner au pire cas.
 
-Ce certificat porte enfin sur la barrière \emph{apprise}, non sur la géométrie réelle : la distance physique hérite de l'erreur d'approximation du SDF. En régime établi, la contrainte maintient $h_{\min}\geq 0$, soit une distance apprise d'au moins $15$~mm et, au 99\textsuperscript{e} centile de l'erreur du SDF ($6{,}8$~mm, Chapitre~\ref{sec:Theme3}), une distance réelle d'au moins $8{,}2$~mm. Dans le pire transitoire certifié du mode déployé ($h_{\mathrm{corr}}=0$), le plancher de $5{,}8$~mm ne domine en revanche plus cette erreur de queue : la conjonction des deux pires cas ne peut être exclue par le seul calcul. La distinction est donc assumée : l'invariance est exacte vis-à-vis de la barrière apprise, tandis que l'évitement physique est validé empiriquement, par la marge mesurée au maillage exact rapportée au Chapitre~\ref{sec:Theme3} ; un déploiement hors simulation exigerait d'augmenter $d_{\mathrm{safe}}$ du budget d'erreur perceptive correspondant.
+Ce certificat porte enfin sur la barrière \emph{apprise}, non sur la géométrie réelle : la distance physique hérite de l'erreur d'approximation du \ac{SDF}. En régime établi, la contrainte maintient $h_{\min}\geq 0$, soit une distance apprise d'au moins $15$~mm et, au 99\textsuperscript{e} centile de l'erreur du \ac{SDF} ($6{,}8$~mm, Chapitre~\ref{sec:Theme3}), une distance réelle d'au moins $8{,}2$~mm. Dans le pire transitoire certifié du mode déployé ($h_{\mathrm{corr}}=0$), le plancher de $5{,}8$~mm ne domine en revanche plus cette erreur de queue : la conjonction des deux pires cas ne peut être exclue par le seul calcul. La distinction est donc assumée : l'invariance est exacte vis-à-vis de la barrière apprise, tandis que l'évitement physique est validé empiriquement, par la marge mesurée au maillage exact rapportée au Chapitre~\ref{sec:Theme3} ; un déploiement hors simulation exigerait d'augmenter $d_{\mathrm{safe}}$ du budget d'erreur perceptive correspondant.
 
 La portée de ces garanties est enfin celle de la sécurité, non de la progression : l'invariance de $\mathcal{C}$ vaut pour une géométrie d'obstacle arbitraire, tandis que le dégagement postural de la Section~\ref{subsec:minima} n'étend la vivacité qu'aux blocages portés par le corps du bras, résolubles dans le noyau de la tâche.
 
@@ -890,12 +1024,12 @@ L'exécution est enfin défensive vis-à-vis de ses propres entrées : un certif
 
 \begin{table}[htpb]
 \centering
-\caption{Paramètres du filtre de sécurité SDF-CBF.}
+\caption{Paramètres du filtre de sécurité \acs{SDF}-\ac{CBF}.}
 \label{tab:cbf_params}
 \begin{tabular}{lll}
 \hline
 \textbf{Symbole} & \textbf{Description} & \textbf{Valeur} \\ \hline
-$d_{\mathrm{safe}}$ & marge de sécurité du SDF & $15$~mm \\
+$d_{\mathrm{safe}}$ & marge de sécurité du \ac{SDF} & $15$~mm \\
 $\alpha$ & température du soft-min & $0{,}002$ \\
 $K$ & points critiques sélectionnés & $64$ \\
 $h_{\mathrm{act}}$ & bande d'activation de la contrainte & $80$~mm \\
