@@ -28,15 +28,15 @@ Le nœud d'acquisition s'abonne aux topics \ac{ROS} suivants :
   \item \texttt{/camera\_ee/aligned\_depth\_to\_color/image\_raw} (de type \texttt{sensor\_msgs/Image}) : fournit la carte de profondeur alignée sur l'image RGB.
 \end{itemize}
 
-\section*{Procédure de calibration caméra-\ac{TCP}}
-La transformation extrinsèque de la caméra à l'effecteur relative à la base du robot ($\mathbf{T}_{c}^{b}$) est déterminée par une chaîne cinématique œil-en-main (\emph{eye-in-hand}) rigide à partir des spécifications géométriques de la \ac{CAO} :
+\section*{Transformation main-œil caméra--\ac{TCP}}
+La caméra étant montée rigidement au poignet (configuration main-œil, \emph{eye-in-hand}), son extrinsèque relative au \ac{TCP} n'est pas estimée par une procédure de calibration : elle est connue, donnée par la chaîne cinématique rigide déclarée dans le modèle \ac{URDF}. La pose de la caméra dans le repère de base s'écrit
 \begin{equation}\label{eq:calib_ee}
   \mathbf{T}_{c}^{b} = \mathbf{T}_{e}^{b} \, \mathbf{T}_{c}^{e}
 \end{equation}
 où :
 \begin{itemize}
   \item $\mathbf{T}_{e}^{b}$ est la pose de l'effecteur (\ac{TCP}) lue directement de la centrale d'état du contrôleur Franka Control ;
-  \item $\mathbf{T}_{c}^{g}$ est la transformation constante du support de caméra fixé sur la pince (translation $x = -0{,}052$~m, $y = 0{,}035$~m, $z = -0{,}045$~m, et rotation de $90^{\circ}$).
+  \item $\mathbf{T}_{c}^{e}$ est la transformation constante entre le \ac{TCP} et le repère optique de la caméra. Elle compose le montage du support sur l'effecteur (translation $(-0{,}052,\;0{,}035,\;-0{,}045)$~m, orientation \emph{rpy} $(0,\,-\pi/2,\,0)$) et le changement de convention vers le repère optique (translation nulle, orientation \emph{rpy} $(-\pi/2,\,0,\,-\pi/2)$), ce dernier orientant $z$ vers l'avant, $x$ vers la droite et $y$ vers le bas, conformément au modèle sténopé de l'équation~\eqref{eq:retroprojection}.
 \end{itemize}
 
 \section*{Procédure opératoire}
@@ -510,49 +510,22 @@ Régularisation (\textit{weight decay}) & $1\times10^{-6}$ \\
 Ordonnancement du pas d'apprentissage & cosinus, $500$ pas d'échauffement \\
 Écrêtage du gradient (norme) & $1{,}0$ \\
 Taux de décroissance EMA (maximal) & $0{,}9999$ \\
-Pas d'intégration à l'inférence $N$ & $10$ \\
+Pas d'intégration à l'inférence $N$ & $5$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \Annexe{Compléments de la chaîne nominale}\label{annexe:chaine_nominale}
 
-Cette annexe rassemble les détails numériques du solveur de cinématique inverse et du réajustement temporel de la Section~\ref{sec:Conversion} ; les notations sont celles du chapitre.
+Cette annexe rassemble les détails numériques du solveur de cinématique inverse et du réajustement temporel de la Section~\ref{sec:Conversion} ; les notations et les numéros d'équation sont ceux du chapitre.
 
-\section*{Incrément de Gauss--Newton amorti}
-Chaque itération du solveur applique l'incrément
-\begin{equation}
-\Delta\mathbf{q} =
-\underbrace{-\,\mathbf{J}^{+}\mathbf{e}}_{\text{suivi de pose}}
-\;+\;
-\underbrace{\big(\mathbf{I}-\mathbf{J}^{+}\mathbf{J}\big)\big(-k_0(\mathbf{q}-\mathbf{q}_{\mathrm{ref}})\big)}_{\text{résolution de la redondance}},
-\qquad
-\mathbf{J}^{+}=\mathbf{J}^{\top}\big(\mathbf{J}\mathbf{J}^{\top}+\lambda\mathbf{I}\big)^{-1},
-\end{equation}
-où $\mathbf{J}(\mathbf{q})\in\mathbb{R}^{6\times7}$ est la Jacobienne géométrique du \ac{TCP} : pseudo-inverse amortie~\cite{Nakamura1986Singularity, Wampler1986Damped} pour le suivi, l'amortissement $\lambda$ régularisant le voisinage des singularités, et rappel vers la posture de référence $\mathbf{q}_{\mathrm{ref}}$ dans le noyau de $\mathbf{J}$~\cite{Liegeois1977Redundancy}.
+\section*{Approximations et garde-fous du solveur}
+Deux approximations sont consenties dans l'incrément~\eqref{eq:ik_update}. Le solveur utilise d'abord la linéarisation $\mathbf{e}(\mathbf{q}+\Delta\mathbf{q})\approx\mathbf{e}(\mathbf{q})+\mathbf{J}(\mathbf{q})\,\Delta\mathbf{q}$ de l'erreur~\eqref{eq:ik_error} : l'omission de la Jacobienne du logarithme de $SE(3)$, qui tend vers l'identité à la convergence, est l'approximation de Gauss--Newton standard, n'altère que la direction des premiers pas, loin de la convergence, et ne change pas le point fixe $\mathbf{e}=\mathbf{0}$. Le projecteur $\mathbf{I}-\mathbf{J}^{+}\mathbf{J}$ n'est ensuite qu'un projecteur approché lorsque $\lambda>0$ : la tâche secondaire n'influence la tâche principale qu'au premier ordre et à l'amortissement près.
 
-\section*{Erreur de pose et linéarisation}
-À l'itération courante, l'écart entre la pose atteinte $\mathbf{T}_{e}^{b}(\mathbf{q})$ et la pose désirée $\mathbf{T}_{e,k}^{b\star}$ est mesuré dans l'algèbre de Lie de $SE(3)$, via le logarithme du groupe,
-\begin{equation}
-\mathbf{e}(\mathbf{q}) = \log\!\big( (\mathbf{T}_{e,k}^{b\star})^{-1}\,\mathbf{T}_{e}^{b}(\mathbf{q}) \big) \in \mathbb{R}^6.
-\end{equation}
-Le solveur utilise la linéarisation $\mathbf{e}(\mathbf{q}+\Delta\mathbf{q})\approx\mathbf{e}(\mathbf{q})+\mathbf{J}(\mathbf{q})\,\Delta\mathbf{q}$ : l'omission de la Jacobienne du logarithme de $SE(3)$, qui tend vers l'identité à la convergence, est l'approximation de Gauss--Newton standard, n'altère que la direction des premiers pas, loin de la convergence, et ne change pas le point fixe $\mathbf{e}=\mathbf{0}$. Le projecteur $\mathbf{I}-\mathbf{J}^{+}\mathbf{J}$ n'est par ailleurs qu'un projecteur approché lorsque $\lambda>0$ : la tâche secondaire n'influence la tâche principale qu'au premier ordre et à l'amortissement près.
-
-\section*{Bornes d'itération et garde-fous numériques}
-L'incrément est borné en norme ($\|\Delta\mathbf{q}\|\le\delta_{\max}=0{,}2$~rad), puis intégré sur la variété des configurations, $\mathbf{q}\leftarrow\mathbf{q}\oplus\Delta\mathbf{q}$, jusqu'à ce que $\|\mathbf{e}\|<\varepsilon=10^{-5}$ ou que $50$ itérations soient atteintes. Des garde-fous numériques complètent la robustesse du solveur : déroulement des écarts successifs dans $[-\pi,\pi]$, projection de la rotation cible sur $SO(3)$, et rejet des configurations dégénérées au profit de la configuration d'amorçage.
+L'incrément est borné en norme ($\|\Delta\mathbf{q}\|\le\delta_{\max}=0{,}2$~rad), puis intégré sur la variété des configurations, $\mathbf{q}\leftarrow\mathbf{q}\oplus\Delta\mathbf{q}$, jusqu'à ce que $\|\mathbf{e}\|<\varepsilon=10^{-5}$ ou que $50$ itérations soient atteintes. Des garde-fous numériques complètent la robustesse du solveur : projection de la rotation cible sur $SO(3)$, détection des rotations d'erreur dégénérées avant le passage au logarithme, et rejet des cibles ou des configurations d'amorçage non finies au profit de l'amorce.
 
 \section*{Réajustement temporel}
-La longueur d'un segment est mesurée par la norme articulaire pondérée $\ell_i = \| \mathbf{U}\,(\mathbf{q}_{i+1}-\mathbf{q}_i)\|$, $\mathbf{U} = \mathrm{diag}(\mathbf{u})$, dont les poids, tous égaux à l'unité dans la configuration retenue, la réduisent à la norme euclidienne. Les durées et instants de passage valent
-\begin{equation}
-\Delta t_i = \frac{\max(\ell_i,\,\ell_{\min})}{v^{\star}},
-\qquad
-t_1 = 0,\quad t_{i+1} = t_i + \Delta t_i,
-\end{equation}
-avec le plancher $\ell_{\min} = f_{\min}\,L/(H-1)$, fraction $f_{\min}=0{,}02$ de la longueur totale $L=\sum_i \ell_i$ rapportée au nombre de segments : un segment quasi stationnaire ne peut recevoir une durée nulle, qui ferait diverger la vitesse feedforward ; les segments plus courts que ce plancher sont en contrepartie parcourus à une vitesse inférieure à $v^{\star}$. La vitesse feedforward publiée par l'exécuteur est la différence finie
-\begin{equation}\label{eq:diff_num}
-\dot{\mathbf{q}}_{\mathrm{ff}}(t) = \frac{\mathbf{q}_{i+1}-\mathbf{q}_i}{t_{i+1}-t_i},
-\qquad t \in [t_i, t_{i+1}[.
-\end{equation}
+La longueur de segment de~\eqref{eq:retime_duration} est mesurée par la norme articulaire pondérée $\ell_i = \| \mathbf{U}\,(\mathbf{q}_{i+1}-\mathbf{q}_i)\|$, $\mathbf{U} = \mathrm{diag}(\mathbf{u})$, dont les poids, tous égaux à l'unité dans la configuration retenue, la réduisent à la norme euclidienne. Le plancher vaut $\ell_{\min} = f_{\min}\,L/(H-1)$, fraction $f_{\min}=0{,}02$ de la longueur totale $L=\sum_i \ell_i$ rapportée au nombre de segments : un segment quasi stationnaire ne peut ainsi recevoir une durée nulle, qui ferait diverger la vitesse feedforward~\eqref{eq:retime_feedforward} ; les segments plus courts que ce plancher sont en contrepartie parcourus à une vitesse inférieure à $v^{\star}$.
 
 \Annexe{Entraînement du champ de distance signée du robot}\label{annexe:sdf_training}
 
@@ -774,9 +747,9 @@ Cette annexe détaille l'obtention des constantes $L_l$ du certificat échantill
 
 \section*{Architecture d'exécution et engagement du frein}
 
-Le frein réflexe forme avec le solveur une architecture multi-cadence au sens de~\cite{Rosolia2022Unified} : la décision lourde (sélection des points critiques, gradients, projection) demeure à la cadence du solveur, tandis que le frein, quelques opérations vectorielles par ligne, tourne à ${\sim}1$~kHz entre le filtre et le contrôleur. La mise à l'échelle de la commande par un scalaire unique est l'analogue articulaire de la surveillance de vitesse et de séparation normalisée en robotique collaborative~\cite{Iso2016Robots}. La plus grande racine admissible de l'inéquation du second degré en $\alpha$ restitue l'extrapolation linéaire $\alpha_l = (h_l-h_{\mathrm{stop}})/(-\dot h_l\,T_{\mathrm{rfx}})$ lorsque $L\to 0$, et la dérive mesurée depuis l'instant de résolution est comptée dans la borne.
+Le frein réflexe forme avec le solveur une architecture multi-cadence au sens de~\cite{Rosolia2022Unified} : la décision lourde (sélection des points critiques, gradients, projection) demeure à la cadence du solveur, tandis que le frein, quelques opérations vectorielles par ligne, tourne à ${\sim}1$~kHz entre le filtre et le contrôleur. La mise à l'échelle de la commande par un scalaire unique est l'analogue articulaire de la surveillance de vitesse et de séparation normalisée en robotique collaborative~\cite{Iso2016Robots}. La plus grande racine admissible de l'inéquation du second degré en $\alpha$ restitue, lorsque $L\to 0$, l'extrapolation linéaire $\alpha_l = \kappa_{\mathrm{rfx}}\,h_l/(-\dot h_l)$, où l'horizon se simplifie entre le budget de décroissance et le taux commandé : le frein autorise la fraction de commande dont la décroissance de barrière tient dans ce budget. La dérive mesurée depuis l'instant de résolution est comptée dans la borne.
 
-Le frein s'engage instantanément ($\alpha$ adopte sans délai toute valeur inférieure) et se relâche par filtre exponentiel de constante $\tau_{\mathrm{rel}}$, l'asymétrie reflétant celle des coûts : freiner tard est une erreur de sécurité, relâcher tard un simple coût de performance. Les lignes déjà en violation et commandées en sortie ne sont jamais freinées, un frein pur ne devant pas annuler une vitesse de récupération. Enfin, la constante $L$ est surveillée en ligne par un estimateur empirique publié à chaque mise à jour, dont les dépassements transitoires signent les commutations de point critique (voir plus bas).
+Le frein s'engage instantanément ($\alpha$ adopte sans délai toute valeur inférieure) et se relâche par filtre exponentiel de constante $\tau_{\mathrm{rel}}$, l'asymétrie reflétant celle des coûts : freiner tard est une erreur de sécurité, relâcher tard un simple coût de performance. Les lignes déjà en violation ne sont pas exemptées du frein mais certifiées à la hausse : leur inéquation y exige une vitesse de sortie valant la moitié de la loi de récupération du solveur, ce qui laisse passer la commande de retrait sans la soustraire au certificat. L'exemption pure, elle, ne s'applique qu'au veto de poursuite (Annexe~\ref{annexe:surveillance}). Enfin, la constante $L$ est surveillée en ligne par un estimateur empirique publié à chaque mise à jour, dont les dépassements transitoires signent les commutations de point critique (voir plus bas).
 
 \section*{La quantité requise est la courbure négative, non la norme}
 
@@ -834,22 +807,22 @@ Trois observations structurent les résultats. D'abord, la hiérarchie est forte
 \begin{tabular}{lccccc}
 \hline
 \textbf{Lien} & $n$ & $L_l^{\mathrm{ana}}$ [m/rad$^2$] & sup éch. & p99 éch. & $L_l$ \textbf{retenu} \\ \hline
-lien 2        & $12$ & $1{,}38\times10^{3}$ & $2{,}2$   & $1{,}0$   & $5$ \\
-lien 3        & $12$ & $2{,}14\times10^{3}$ & $15{,}3$  & $4{,}3$   & $35$ \\
-lien 4        & $12$ & $3{,}07\times10^{3}$ & $20{,}0$  & $4{,}7$   & $25$ \\
-lien 5        & $12$ & $4{,}69\times10^{3}$ & $25{,}9$  & $9{,}6$   & $30$ \\
-lien 6        & $12$ & $6{,}18\times10^{3}$ & $79{,}3$  & $21{,}8$  & $85$ \\
-lien 7        & $12$ & $9{,}37\times10^{3}$ & $77{,}0$  & $32{,}0$  & $85$ \\
-main          & $12$ & $5{,}54\times10^{3}$ & $44{,}3$  & $19{,}7$  & $50$ \\
-doigt droit   & $12$ & $2{,}15\times10^{4}$ & $423{,}5$ & $116{,}4$ & $600$ \\
-doigt gauche  & $12$ & $2{,}05\times10^{4}$ & $508{,}1$ & $110{,}7$ & $600$ \\
+lien 2        & $12$ & $1{,}38\times10^{3}$ & $2{,}2$   & $1{,}0$   & $1{,}0$ \\
+lien 3        & $12$ & $2{,}14\times10^{3}$ & $15{,}3$  & $4{,}3$   & $4{,}3$ \\
+lien 4        & $12$ & $3{,}07\times10^{3}$ & $20{,}0$  & $4{,}7$   & $4{,}7$ \\
+lien 5        & $12$ & $4{,}69\times10^{3}$ & $25{,}9$  & $9{,}6$   & $9{,}6$ \\
+lien 6        & $12$ & $6{,}18\times10^{3}$ & $79{,}3$  & $21{,}8$  & $21{,}8$ \\
+lien 7        & $12$ & $9{,}37\times10^{3}$ & $77{,}0$  & $32{,}0$  & $32{,}0$ \\
+main          & $12$ & $5{,}54\times10^{3}$ & $44{,}3$  & $19{,}7$  & $19{,}7$ \\
+doigt droit   & $12$ & $2{,}15\times10^{4}$ & $423{,}5$ & $116{,}4$ & $20$ \\
+doigt gauche  & $12$ & $2{,}05\times10^{4}$ & $508{,}1$ & $110{,}7$ & $20$ \\
 \hline
 \end{tabular}
 \end{table}
 
 \section*{Constantes retenues, surveillance en ligne et limites}
 
-Chaque constante retenue arrondit par excès le supremum échantillonné de son lien. La validité de l'hypothèse est surveillée en ligne par un estimateur empirique publié à chaque mise à jour du filtre, $\hat{L} = \|\Delta\nabla h_l\|/\|\Delta\mathbf{q}_0\|$ différencié entre états consécutifs du solveur ; les paires d'états chevauchant une mise à jour de la sélection de points critiques en sont exclues, une commutation de sélection changeant la fonction barrière et non sa courbure, ce que signale un compteur de génération publié avec l'état. Un dépassement persistant sur des paires d'une même génération signalerait donc une courbure réelle excédant la constante, et non un artefact de commutation.
+Les constantes retenues sont les $99^{\text{e}}$ centiles échantillonnés, et non les suprema. Ce choix suit la logique déjà adoptée pour la borne de poursuite $\varepsilon_{\mathrm{p}}$ : une valeur calibrée sur la statistique mesurée et érigée en hypothèse surveillée, plutôt qu'un majorant global démontré. Il est imposé par le coût du conservatisme, le recul commandé croissant linéairement avec $L_l$ : retenir le supremum immobiliserait dans la marge une réserve que le fonctionnement observé ne consomme jamais. Les doigts font l'objet d'une réduction supplémentaire, à $20$~m/rad$^2$ pour le frein réflexe et à $5$ pour le resserrement échantillonné du solveur, en deçà de leur propre centile : leur courbure négative n'est pas géométrique, la distance exacte d'un doigt convexe étant convexe à l'extérieur, mais tient à l'oscillation du polynôme autour des arêtes vives, concentrée dans la coquille de $10$ à $40$~mm que le frein ne visite qu'en frôlement. Les liens du bras conservent en revanche exactement leur centile dans les deux couches. La validité de l'hypothèse est surveillée en ligne par un estimateur empirique publié à chaque mise à jour du filtre, $\hat{L} = \|\Delta\nabla h_l\|/\|\Delta\mathbf{q}_0\|$ différencié entre états consécutifs du solveur ; les paires d'états chevauchant une mise à jour de la sélection de points critiques en sont exclues, une commutation de sélection changeant la fonction barrière et non sa courbure, ce que signale un compteur de génération publié avec l'état. Un dépassement persistant sur des paires d'une même génération signalerait donc une courbure réelle excédant la constante, et non un artefact de commutation.
 
 Deux limites délimitent le domaine de validité. La branche de prolongement hors domaine est continue et différentiable par morceaux, non continûment différentiable (Annexe~\ref{annexe:gradient_details}) : aucune constante finie ne borne la variation du gradient à travers ses raccords, et les échantillons qui les chevauchent produisent des valeurs de plusieurs milliers. Ces raccords ne sont toutefois observés qu'à plus de $40$~mm de dégagement, où le certificat dispose d'une réserve largement supérieure au reste quadratique ; ils constituent la frontière d'hypothèse documentée du certificat, au même titre que la commutation de sélection. Enfin, les constantes valent pour les modèles de distance déployés : tout réentraînement d'un lien invalide sa ligne du Tableau~\ref{tab:lipschitz_links} et exige de relancer la campagne, entièrement automatisée et d'un coût de quelques minutes.
 
@@ -868,7 +841,7 @@ soit exactement la quantité que le resserrement $\varepsilon_{\mathrm{p}}\|\nab
 
 Le critère de dépassement $\hat{\varepsilon}_k > \varepsilon_{\mathrm{p}}$ n'est évalué que sur les cycles où la commande s'exécute effectivement ($\alpha_k > 0{,}9$). Pendant un freinage, le retard d'asservissement garantit un écart transitoire entre la vitesse mesurée, encore en décélération, et la commande atténuée : un critère aveugle à ce régime s'auto-entretiendrait, chaque veto prolongeant l'écart qui l'a déclenché. Les cycles de freinage sont couverts par le certificat propre du frein réflexe (Annexe~\ref{annexe:lipschitz}) et leur statistique demeure enregistrée.
 
-Sur dépassement, le frein réflexe applique un veto : $\alpha = 0$ pendant une fenêtre de retenue $t_{\mathrm{veto}} = 50$~ms, renouvelée tant que le dépassement persiste. L'exemption des lignes en récupération s'applique au veto comme au frein : si toutes les lignes en violation ($h_l<0$) reçoivent une commande sortante ($\nabla h_l^{\top}\dot{\mathbf{q}}\geq 0$), le veto est suspendu, un arrêt ne devant jamais immobiliser le bras à l'intérieur de la marge qu'il est chargé de protéger.
+Sur dépassement, le frein réflexe applique un veto : $\alpha = 0$ pendant une fenêtre de retenue $t_{\mathrm{veto}} = 50$~ms, renouvelée tant que le dépassement persiste. L'exemption des lignes en récupération est propre au veto, le frein les certifiant quant à lui à la hausse : si toutes les lignes en violation ($h_l<0$) reçoivent une commande sortante ($\nabla h_l^{\top}\dot{\mathbf{q}}\geq 0$), le veto est suspendu, un arrêt ne devant jamais immobiliser le bras à l'intérieur de la marge qu'il est chargé de protéger.
 
 \section*{Identification de la borne : campagne et estimateur}
 
