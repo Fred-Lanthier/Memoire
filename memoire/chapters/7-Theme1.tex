@@ -2,7 +2,7 @@
 \Chapter{MOTIVATION DE RECHERCHE ET OBJECTIFS}\label{sec:Metho}
 % =================================================================
 
-Ce chapitre présente la motivation de la recherche proposée, en dérive le but général et les objectifs spécifiques, puis délimite la portée et les exclusions qui ont encadré le développement du système.
+Ce chapitre présente la motivation de la recherche proposée, en dérive le but général et les objectifs spécifiques, énonce les contributions qui en découlent, puis délimite la portée et les exclusions qui ont encadré le développement du système.
 
 %------------------------------------------------------------------
 \section{Positionnement de recherche et motivation}
@@ -34,9 +34,7 @@ Concevoir, implémenter et valider en simulation une architecture découplée qu
     \item \textbf{\acs{SO}5 :} Valider la transférabilité de l'architecture par son déploiement sur un second manipulateur à sept degrés de liberté, du Franka Emika Panda au UFactory xArm7, seuls la cinématique et les champs de distance par lien étant adaptés.
 \end{itemize}
 
-S'y ajoute une exigence transversale de temps réel : la chaîne complète doit tenir la fréquence de commande visée, le filtre de sécurité résolvant sa projection à la cadence de la boucle de commande, complété d'une couche de freinage à plus haute cadence qui re-certifie la commande maintenue entre deux résolutions, pendant que la génération se poursuit en parallèle.
-
-Le Tableau~\ref{tab:criteres_validation} rend ces objectifs mesurables en associant à l'évaluation de \acs{SO}4 ses métriques, sa condition de comparaison et son critère d'acceptation ; les valeurs mesurées sont rapportées en regard de ces critères au Chapitre~\ref{sec:Theme3}.
+S'y ajoute une exigence transversale de temps réel : la chaîne complète doit tenir la fréquence de commande visée, le filtre de sécurité résolvant sa projection à la cadence de la boucle de commande, complété d'une couche de freinage à plus haute cadence qui re-certifie la commande maintenue entre deux résolutions, pendant que la génération se poursuit en parallèle. Le Tableau~\ref{tab:criteres_validation} rend ces objectifs mesurables en associant à l'évaluation de \acs{SO}4 ses métriques, sa condition de comparaison et son critère d'acceptation ; les valeurs mesurées sont rapportées en regard de ces critères au Chapitre~\ref{sec:Theme3}.
 
 \begin{table}[htbp]
 \centering
@@ -47,7 +45,7 @@ Le Tableau~\ref{tab:criteres_validation} rend ces objectifs mesurables en associ
 \hline
 \textbf{Critère} & \textbf{Métriques} & \textbf{Comparaison} & \textbf{Critère d'acceptation} \\ \hline
 Sécurité & Collisions (contact au maillage exact), distance minimale de séparation, durée cumulée des violations de marge & Filtre actif contre inactif, scénarios appariés & Aucune collision avec filtre dans les scénarios où le nominal en produit ; réduction de la durée de violation \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Préservation de la tâche & Taux de réussite ; norme des interventions ; déviation de la trajectoire exécutée vis-à-vis de la nominale & Filtre actif contre inactif, scénarios appariés & Dégradation du taux de réussite d'au plus 10 points de pourcentage en l'absence d'obstacle interférent ; intervention strictement nulle hors de la bande d'activation \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+Préservation de la tâche & Taux de réussite ; norme des interventions ; déviation de la trajectoire exécutée vis-à-vis de la nominale & Filtre actif contre inactif, scénarios appariés & Dégradation du taux de réussite inférieur à 10\% en l'absence d'obstacle interférent ; intervention strictement nulle hors de la bande d'activation \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Persistance & Rappel des points d'obstacle sous occlusion ; issue de sécurité de l'épisode & Carte persistante contre perception instantanée & Contrainte d'évitement maintenue pendant toute l'occlusion, sans perte de l'obstacle \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Temps réel & Temps de calcul par sous-système (médiane, p95) ; fraction de cycles au-delà de la période & Budget de période par module & Médiane sous la période de commande ; dépassements de queue quantifiés et couverts par l'analyse de marge du Chapitre~\ref{sec:Theme2} \\ \hline
 \end{tabular}
