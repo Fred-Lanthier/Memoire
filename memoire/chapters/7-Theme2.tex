@@ -815,29 +815,15 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
 
   Le choix de la métrique $\mathbf{W}$ détermine la répartition des corrections articulaires lors d'un évitement. Avec une métrique euclidienne classique ($\mathbf{W}=\mathbf{I}$), la correction s'effectue directement selon le gradient articulaire $\nabla_{\mathbf{q}} h_l$. Les articulations proches de la base possédant un grand bras de levier cinématique, cette métrique sollicite préférentiellement les premiers axes du robot. Ainsi, l'évitement d'un obstacle par un lien intermédiaire (comme le coude) entraîne une déviation importante au niveau de l'effecteur, perturbant la tâche principale.
 
-  La métrique de tâche
-  retenue mesure au contraire le coût d'une vitesse articulaire par le déplacement qu'elle inflige au lien contrôlé. Elle s'inspire de la
-  cinématique inverse par moindres carrés amortis~\cite{Sugihara2009Solvability}, où le hessien approché du coût de tâche pondéré est
-  associé à un amortissement de Tikhonov sous la forme $\mathbf{J}^{\top}\mathbf{W}_e\mathbf{J} + \lambda_{\mathbf{W}}\mathbf{I}$. Le filtre
-  de sécurité en fait toutefois un usage distinct : cette même forme quadratique y définit non pas la matrice d'un système à inverser, mais
-  la métrique de l'objectif d'optimisation. En explicitant
-  $\mathbf{W}_e = \operatorname{diag}(\mathbf{I}_3,\, w_{\mathrm{rot}}\mathbf{I}_3)$ sur les blocs linéaire et angulaire de la Jacobienne du
-  lien contrôlé, la métrique prend la forme
+  La métrique de tâche retenue mesure au contraire le coût d'une vitesse articulaire par le déplacement cartésien qu'elle inflige au lien contrôlé (l'effecteur). Elle s'inspire de la forme quadratique des moindres carrés amortis introduits à la Section~\ref{subsec:ik}, associant le hessien de tâche à un amortissement de Tikhonov sous la forme $\mathbf{J}^{\top}\mathbf{W}_e\mathbf{J} + \lambda_{\mathbf{W}}\mathbf{I}$. Le filtre de sécurité en fait toutefois un usage distinct : cette forme quadratique y définit non pas la matrice d'un système à inverser, mais la métrique du problème d'optimisation. En explicitant $\mathbf{W}_e = \operatorname{diag}(\mathbf{I}_3,\, w_{\mathrm{rot}}\mathbf{I}_3)$ sur les blocs linéaire et angulaire de la Jacobienne du lien contrôlé, la métrique s'écrit :
   \begin{equation}
   \mathbf{W} = \mathbf{J}_p^{\top}\mathbf{J}_p + w_{\mathrm{rot}}\,\mathbf{J}_o^{\top}\mathbf{J}_o + \lambda_{\mathbf{W}}\,\mathbf{I},
   \qquad
-  \|\dot{\mathbf{q}}\|_{\mathbf{W}}^2 = \|\mathbf{J}_p\dot{\mathbf{q}}\|^2 + w_{\mathrm{rot}}\|\mathbf{J}_o\dot{\mathbf{q}}\|^2
-  + \lambda_{\mathbf{W}}\|\dot{\mathbf{q}}\|^2,
+  \|\dot{\mathbf{q}}\|_{\mathbf{W}}^2 = \|\mathbf{J}_p\dot{\mathbf{q}}\|^2 + w_{\mathrm{rot}}\|\mathbf{J}_o\dot{\mathbf{q}}\|^2 + \lambda_{\mathbf{W}}\|\dot{\mathbf{q}}\|^2,
   \end{equation}
-  où $\mathbf{J}_p$ et $\mathbf{J}_o$ sont les blocs linéaire et angulaire de la Jacobienne géométrique du lien contrôlé. Parmi toutes les
-  vitesses satisfaisant le même demi-espace, la projection retient alors celle qui déplace le moins le lien contrôlé. La correction se
-  résout, autant que la cinématique le permet, dans le noyau de la Jacobienne de tâche : c'est le levier de redondance que la cinématique
-  inverse exploite déjà pour sa tâche secondaire (correction dirigée selon $\mathbf{W}^{-1}\nabla h_l$ plutôt que colinéaire à $\nabla h_l$,
-  Figure~\ref{fig:projection_cbf}). Le poids $w_{\mathrm{rot}}=0{,}01$ règle l'arbitrage position--orientation (un radian de rotation
-  du repère de tâche y coûte autant que dix centimètres de translation) et la régularisation $\lambda_{\mathbf{W}}=0{,}01$ maintient
-  $\mathbf{W}$ strictement définie positive en attribuant un coût résiduel aux mouvements du noyau, faible devant le coût de tâche. Elle est
-  distincte, en valeur comme en rôle, de l'amortissement $\lambda$ de la pseudo-inverse de tâche de la Section~\ref{subsec:ik}, qui agit dans
-  l'espace de tâche et non dans l'espace articulaire.
+  où $\mathbf{J}_p$ et $\mathbf{J}_o$ désignent respectivement les matrices Jacobiennes linéaire et angulaire du lien contrôlé.
+
+  Parmi l'ensemble des vitesses satisfaisant la contrainte de sécurité, la projection retient celle qui perturbe le moins l'effecteur. La correction s'effectue ainsi préférentiellement dans le noyau de la Jacobienne de tâche, exploitant la redondance cinématique du bras (la correction étant orientée selon $\mathbf{W}^{-1}\nabla h_l$ plutôt que colinéaire à $\nabla h_l$, Figure~\ref{fig:projection_cbf}). Le poids $w_{\mathrm{rot}}=0{,}01$ règle le compromis position-orientation (un radian de rotation équivaut à dix centimètres de translation), tandis que la régularisation $\lambda_{\mathbf{W}}=0{,}01$ maintient $\mathbf{W}$ strictement définie positive en attribuant un coût résiduel faible aux mouvements du noyau. Cette régularisation est distincte, en valeur comme en rôle, de l'amortissement $\lambda$ de la cinématique inverse (Section~\ref{subsec:ik}), qui agit dans l'espace de tâche.
 
 \begin{figure}[htbp!]
     \centering
@@ -918,122 +904,62 @@ puis saturée aux limites de vitesse articulaire et annulée sous un seuil de ma
   La métrique est un préconditionneur lentement variable, rafraîchi à une cadence inférieure à celle de la boucle de commande et lu sans
   synchronisation, son obsolescence demeurant sans effet mesurable sur la projection (Annexe~\ref{annexe:cbf_details}).
 
-\label{subsubsec:dykstra}Avec plusieurs liens actifs, l'intersection des demi-espaces n'admet plus de solution analytique directe. La résolution s'appuie sur la projection analytique $P_l$ associée à chaque demi-espace individuel (déplaçant la vitesse le long de $\mathbf{W}^{-1}\nabla h_l$, Annexe~\ref{annexe:cbf_details}), répétée de manière itérative. Pour être capturée sous forme de graphe CUDA à structure de calcul fixe sans branchements dynamiques, le filtre emploie la variante de Dykstra des projections cycliques~\cite{Dykstra1983Restricted,Boyle1986Method}, équivalente à la méthode duale de Hildreth~\cite{Hildreth1957Quadratic}. Chaque contrainte y conserve un vecteur de correction mémorisé, réinjecté avant chaque
-  nouvelle projection, ce qui fait converger la suite vers la projection \emph{exacte} au sens de $\mathbf{W}$, indépendante de l'ordre de
-  balayage. Les projections cycliques simples, elles, conservent un excès de correction permanent.
+\paragraph{Algorithme de projection de Dykstra.}\label{subsubsec:dykstra} Lorsque plusieurs contraintes de sécurité sont actives simultanément, l'intersection des demi-espaces n'admet plus de solution analytique directe. La résolution procède alors par projections itératives en s'appuyant sur l'opérateur individuel $P_l$ (qui déplace la vitesse selon $\mathbf{W}^{-1}\nabla h_l$, Annexe~\ref{annexe:cbf_details}).
 
-Le choix de cette variante face à un solveur
-  quadratique générique, sa quantification hors ligne et ses conditions d'implémentation sont justifiés à l'Annexe~\ref{annexe:cbf_details}.
-  Les corrections mémorisées sont de plus conservées d'un cycle au suivant, lien par lien : chaque résolution reprend là où la précédente
-  s'est arrêtée, au lieu de repartir de zéro à chaque cycle.
-  La boucle demeure tronquée à $N_{\mathrm{it}}$ balayages : l'admissibilité en sortie n'est qu'approchée, et la sécurité de la commande émise
-  repose non sur cette convergence, mais sur la réévaluation finale de la sous-section suivante.
+Le filtre emploie la variante de Dykstra des projections cycliques~\cite{Dykstra1983Restricted,Boyle1986Method}, équivalente à la méthode duale de Hildreth~\cite{Hildreth1957Quadratic}. Contrairement aux projections cycliques ordinaires qui accumulent un excès de conservatisme, l'algorithme de Dykstra mémorise un vecteur de correction pour chaque contrainte active et le réinjecte à chaque itération. Ce mécanisme fait converger la suite vers la projection QP exacte au sens de la métrique $\mathbf{W}$, indépendamment de l'ordre de balayage. Les corrections mémorisées sont de plus conservées d'un cycle au suivant.
+
+De plus, sa structure de calcul itérative à nombre de cycles fixe et sans branchements dynamiques permet son exécution sous forme de graphe CUDA sur GPU à 100~Hz. En pratique, la boucle est tronquée à $N_{\mathrm{it}}$ balayages, et l'admissibilité stricte de la commande finale est vérifiée en bout de chaîne (Section~\ref{subsec:commande}). Le choix de cette variante et sa quantification hors ligne sont détaillés à l'Annexe~\ref{annexe:cbf_details}.
 
 \subsection{De la solution du solveur à la commande publiée}\label{subsec:commande}
-  La vitesse issue de la projection n'est pas encore exécutable. Elle doit être lissée, saturée aux limites articulaires, puis transmise au
-  contrôleur ; or chacune de ces étapes agit \emph{après} le solveur et peut défaire ce qu'il vient d'établir. Le fil de cette sous-section
-  est donc celui de la vérification : chaque modification en aval de la projection est suivie d'un contrôle de l'admissibilité, et c'est ce
-  contrôle en bout de chaîne, non la convergence du solveur, qui fonde la sécurité de la commande émise.
+La vitesse issue de la projection $\dot{\mathbf{q}}_{\mathrm{proj}}$ n'est pas directement exécutable. Elle doit être lissée, saturée aux limites articulaires, puis transmise au contrôleur ; or chacune de ces étapes agit après le solveur et peut défaire ce qu'il vient d'établir. Le fil de cette sous-section est donc celui de la vérification : chaque modification en aval de la projection est suivie d'un contrôle de l'admissibilité, et c'est ce contrôle en bout de chaîne, non la convergence du solveur, qui fonde la sécurité de la commande émise.
 
-  Le lissage temporel de la commande est réalisé \emph{dans} la projection plutôt qu'en aval. La mémoire exponentielle du filtre passe-bas
-  (constante $\tau_{\mathrm{safe}}$) est reportée dans l'objectif du problème, dont le centre devient
-  $(1-\gamma_{\mathrm{safe}})\,\dot{\mathbf{q}}_{\mathrm{final},k-1} + \gamma_{\mathrm{safe}}\,\dot{\mathbf{q}}_{\mathrm{base}}$ : la
-  vitesse lissée demeure ainsi admissible par construction sur les lignes actives, sans la couture entre filtrage et réparation qu'introduirait un
-  lissage appliqué après coup.
+Le lissage temporel de la commande est réalisé dans la projection plutôt qu'en aval. La mémoire exponentielle du filtre passe-bas (constante $\tau_{\mathrm{safe}}$) est reportée dans l'objectif du problème QP, dont la vitesse cible devient :
+\begin{equation}
+\mathbf{v}_{\mathrm{cible},k} = (1-\gamma_{\mathrm{safe}})\,\dot{\mathbf{q}}_{\mathrm{final},k-1} + \gamma_{\mathrm{safe}}\,\dot{\mathbf{q}}_{\mathrm{base},k},
+\end{equation}
+où $\mathbf{v}_{\mathrm{cible},k}$ est la vitesse cible lissée de l'objectif d'optimisation et $\dot{\mathbf{q}}_{\mathrm{final},k-1}$ la commande finale effectivement publiée au cycle précédent $k-1$. La vitesse lissée demeure ainsi admissible par construction sur les lignes actives, sans la rupture entre filtrage et réparation qu'introduirait un lissage appliqué après coup.
 
-  La vitesse projetée est ensuite saturée aux limites articulaires. Cette saturation, comme la troncature des
-  balayages de Dykstra, pouvant réintroduire une violation, la contrainte est réévaluée sur la vitesse résultante $\dot{\mathbf{q}}_{f}$, avec le même second membre
-  resserré complet $r_l$, et toute violation résiduelle est corrigée par une réparation $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$. Celle-ci est une
-  projection corrective dans la même métrique $\mathbf{W}$, qui répartit sa correction comme le solveur au lieu de défaire, par un pas
-  euclidien, la préférence pour le noyau de tâche.
+La vitesse projetée $\dot{\mathbf{q}}_{\mathrm{proj}}$ est ensuite saturée aux limites de vitesse articulaire du robot, produisant la vitesse saturée $\dot{\mathbf{q}}_{f} = \operatorname{sat}_{\mathrm{lim}}(\dot{\mathbf{q}}_{\mathrm{proj}})$. Cette saturation, comme la troncature des balayages de Dykstra, pouvant réintroduire une violation, la contrainte est réévaluée sur la vitesse résultante $\dot{\mathbf{q}}_{f}$ avec le même second membre resserré complet $r_l$. Toute violation résiduelle est corrigée par une réparation $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$, définie comme une projection corrective dans la même métrique $\mathbf{W}$, qui répartit sa correction comme le solveur au lieu de défaire la préférence pour le noyau de tâche par un pas euclidien.
 
-  Elle est bornée en norme, et les lignes dont le gradient tombe sous le seuil $g_{\min}$
-  en sont exclues plutôt qu'atténuées, les projections de Dykstra devant être exactes pour converger. Ce seuil ne corrige pas un mauvais
-  conditionnement : la projection étant invariante par remise à l'échelle du couple $(\nabla h_l, r_l)$, normaliser le gradient laisserait
-  la correction inchangée. La norme $\|\nabla h_l\|$ mesure le taux de barrière accessible par unité de vitesse articulaire, et son
-  effondrement rend la ligne inactionnable : sous $g_{\min}$, la vitesse articulaire maximale ne produit plus que $2$~cm/s de $\dot h$,
-  moins que la vitesse de sortie qu'exige une ligne en violation. Cet effondrement provient d'une annulation, entre gradients par point
-  opposés lorsque des points dominants encadrent le lien, ou entre les termes cinématiques lorsque le point dominant approche l'axe de
-  rotation du lien. La direction qui en résulte n'étant que le résidu de cette annulation, elle est dominée par l'erreur du modèle de
-  distance : le filtre retire donc la ligne plutôt que de commander une grande vitesse mal orientée. Formes closes et garde-fous figurent
-  à l'Annexe~\ref{annexe:cbf_details}.
+Pour éviter qu'une mise à jour brutale ne commande une vitesse violente en un seul cycle (notamment lors de l'apparition soudaine d'un obstacle), la norme de cette réparation est plafonnée à $\Delta v_{\max} = 0{,}50\text{ rad/s}$ lorsque $h \ge 0$, et à un plafond de récupération $\Delta v_{\max}^{\mathrm{rec}} = 0{,}50\text{ rad/s}$ lorsque $h < 0$. Les contraintes dont la norme de gradient s'effondre sous le seuil $g_{\min}$ en sont exclues plutôt qu'atténuées, afin de préserver l'exactitude des projections de Dykstra. En effet, la norme $\|\nabla h_l\|$ mesure l'efficacité physique de la vitesse articulaire sur le taux de variation de la barrière $\dot{h}_l$. Sous $g_{\min}$, même la vitesse articulaire maximale ne produit plus qu'un dégagement dérisoire (inférieur à $2$~cm/s, calcul détaillé à l'Annexe~\ref{annexe:cbf_details}), rendant l'action sur cette contrainte inefficace.
 
-  Hors de ces régimes dégradés,
-  l'admissibilité de la commande émise est une propriété \emph{vérifiée en bout de chaîne}, non une conséquence supposée de la convergence
-  des balayages. La vitesse finale envoyée à la commande est donc
-  \begin{equation}
-  \dot{\mathbf{q}}_{\mathrm{final}}
-  =
-  \operatorname{sat}
-  \left(
-  \dot{\mathbf{q}}_{f}
-  +
-  \Delta\dot{\mathbf{q}}_{\mathrm{rep}}
-  \right).
-  \end{equation}
-  Cette saturation finale peut à son tour écrêter la réparation ; le résidu de contrainte est donc réévalué une dernière fois sur la commande
-  effectivement publiée, \emph{après} saturation et écrêtage aux limites articulaires, comme le \emph{pire} résidu sur l'ensemble des lignes
-  actives, non celui de la seule ligne critique (le signal \texttt{constr\_final} du Chapitre~\ref{sec:Theme3} ; justification à
-  l'Annexe~\ref{annexe:cbf_details}). Une violation résiduelle est ainsi mesurée plutôt que supposée absente, et sa résorption s'opère aux cycles
-  suivants.
+Pour corriger cet effondrement du gradient, une simple normalisation de la contrainte $(\nabla h_l, r_l)$ s'avérerait inefficace : la projection étant invariante par changement d'échelle, diviser par la norme ne modifierait pas le demi-espace. Ce phénomène survient lorsque deux obstacles entourent un même lien (leurs gradients opposés s'annulant dans l'agrégation soft-min) ou lorsqu'un obstacle s'approche d'un axe de rotation. La direction du gradient n'est alors plus qu'un résidu dominé par le bruit de mesure. Le filtre retire donc temporairement la contrainte concernée plutôt que de commander un mouvement articulaire brusque et mal orienté (Annexe~\ref{annexe:cbf_details}).
 
-  La vitesse vérifiée est transmise au robot par une interface de vitesse réalisée en servocommande de position. Le contrôleur bas niveau
-  intègre la commande en une référence de position qu'un asservissement articulaire poursuit. Cette référence est bornée à une avance maximale
-  $\Delta q_{\mathrm{lead}}$ sur la position mesurée, afin qu'une consigne retenue par le filtre ne s'accumule pas en rattrapage différé, et
-  retenue à sa dernière valeur si les commandes cessent, l'arrêt restant ainsi soutenu contre la gravité. La vitesse exécutée n'est donc pas
-  identiquement la vitesse commandée : c'est précisément l'écart que le modèle $\dot{\mathbf{q}} = \dot{\mathbf{q}}_{\mathrm{cmd}} + \mathbf{d}$
-  et le resserrement $\varepsilon_{\mathrm{p}}\|\nabla h_l\|$ de la Section~\ref{subsec:contrainte} couvrent, et que le moniteur associé mesure
-  en ligne. La garantie en temps discret se réduit alors au maintien de la commande pendant une période (bloqueur d'ordre zéro), comptabilisé
-  dans la marge $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}) et surveillé entre les résolutions par le frein réflexe décrit ci-dessous
-  (Section~\ref{subsubsec:reflexe}).
+Hors de ces régimes dégradés, l'admissibilité de la commande émise est une propriété vérifiée en bout de chaîne. La vitesse finale envoyée au robot s'écrit donc :
+\begin{equation}
+\dot{\mathbf{q}}_{\mathrm{final}} = \operatorname{sat}\!\left(\dot{\mathbf{q}}_{f} + \Delta\dot{\mathbf{q}}_{\mathrm{rep}}\right).
+\end{equation}
+Comme la saturation finale peut à son tour amputer la réparation, le filtre réévalue une dernière fois l'admissibilité sur la vitesse réellement transmise $\dot{\mathbf{q}}_{\mathrm{final}}$. Le pire résidu parmi l'ensemble des lignes actives est alors extrait et enregistré sous le signal de télémétrie \texttt{constr\_final} (Chapitre~\ref{sec:Theme3}). Ainsi, une éventuelle violation résiduelle est empiriquement mesurée en direct plutôt que supposée nulle, et sa résorption s'effectue automatiquement lors des cycles suivants (Annexe~\ref{annexe:cbf_details}).
 
-\paragraph{Barrière de limites articulaires et garde de singularité.} Une dernière contrainte, indépendante des obstacles, s'applique à la vitesse finale : chaque articulation freine à l'approche de sa butée de position \ac{URDF}, sa vitesse admissible décroissant proportionnellement à sa distance à une bande de garde (facteur $\kappa_{\mathrm{art}}$), et reçoit une poussée bornée de rappel si elle y pénètre. Sur le Panda, ce mécanisme tient aussi lieu de garde de singularité. Le coude tendu correspond à $q_4$ contre sa borne supérieure, et le poignet aligné à $q_6$ contre sa borne inférieure : une marge de $0{,}15$~rad éloigne le bras de ces deux configurations singulières quelle que soit l'origine du mouvement (intention du modèle, correction de sécurité, réparation ou dégagement postural). Cette contrainte agit toutefois sur la commande finale, en aval de la projection d'évitement : la réduction qu'elle impose à une articulation modifie $\nabla h_l^\top\dot{\mathbf{q}}$ et peut donc rouvrir une ligne d'obstacle, en particulier une vitesse de sortie exigée en récupération. Elle ne saurait être supposée préserver l'admissibilité, et c'est l'une des modifications que la réévaluation finale décrite plus haut est chargée de rattraper.
+La vitesse réelle exécutée n'est donc pas strictement identique à la vitesse commandée. Cet écart dynamique est précisément pris en compte par le modèle de perturbation $\dot{\mathbf{q}} = \dot{\mathbf{q}}_{\mathrm{cmd}} + \boldsymbol{\delta}$ et le resserrement $\varepsilon_{\mathrm{p}}\|\nabla h_l\|$ (Section~\ref{subsec:contrainte}), puis surveillé en ligne par le moniteur. Toutefois, la garantie de cette commande entre deux instants de calcul successifs nécessite un contrôle continu, présenté ci-après.
 
 \subsection{Frein réflexe entre les instants de résolution}\label{subsubsec:reflexe}
-  Le certificat du filtre est instantané : la projection garantit $\nabla h_l^\top\dot{\mathbf{q}} \geq r_l$ à l'instant de résolution,
-  puis la commande est maintenue par le bloqueur d'ordre zéro pendant toute la période suivante, durant laquelle $h$ évolue sans surveillance.
-  Loin de la frontière, la marge $d_{\mathrm{safe}}$ absorbe cette érosion ; en revanche, les phases où la tâche impose de \emph{longer} la
-  frontière ($h$ de quelques millimètres pendant plusieurs secondes, régime typique du transport d'objet près d'une paroi) le consomment à chaque maintien, d'autant plus que la cadence effective de résolution fléchit sous la charge du \ac{GPU} partagé. Plutôt que
-  d'immobiliser en permanence cette réserve dans la marge, une seconde couche, le \emph{frein réflexe}, re-vérifie la commande maintenue
-  \emph{entre} les résolutions, en quelques opérations vectorielles par ligne à ${\sim}1$~kHz entre le filtre et le contrôleur. Dans la
-  configuration déployée, cette re-vérification est portée par le contrôleur bas niveau lui-même : le frein s'exécute en C++ à l'intérieur de
-  la boucle temps réel dur \texttt{ros\_control} à ${\sim}1$~kHz, consommant à chaque tique un paquet atomique (commande et certificat) publié
-  par le filtre à $100$~Hz, ce qui affranchit la garantie inter-échantillons de la latence de l'ordonnanceur Python et du \ac{GPU} partagé ; le
-  calcul du scalaire $\alpha$ demeure celui décrit ci-dessous.
+Le certificat délivré par le filtre QP est instantané : il garantit la contrainte $\nabla h_l^\top\dot{\mathbf{q}} \geq r_l$ à l'instant précis de la résolution ($100$~Hz). Durant la période d'échantillonnage suivante, la commande est maintenue par un bloqueur d'ordre zéro, intervalle pendant lequel la valeur de barrière $h$ évolue sans surveillance directe du solveur.
 
-  À chaque tique, le frein met à l'échelle la commande maintenue par un unique scalaire $\alpha\in[0,1]$,
-  $\dot{\mathbf{q}}_{\mathrm{exec}} = \alpha\,\dot{\mathbf{q}}_{\mathrm{final}}$ : un frein pur, qui préserve le chemin articulaire et n'en
-  module que la cadence de parcours, sans jamais amplifier ni dévier la commande. Le scalaire retenu est le plus grand qui demeure sûr
-  sur l'horizon de maintien $T_{\mathrm{rfx}}$, que le frein mesure comme sa propre période de décision plutôt que de la fixer a priori : il re-décide à chaque tique, de sorte que la garantie ne dépend d'aucune latence supposée du solveur. Une résolution tardive ne détend pas l'horizon, elle vieillit l'état, et ce vieillissement est traité séparément, la barrière étant ré-extrapolée à la configuration mesurée, reste de courbure compris, avant toute décision. Dans l'esprit des conditions \ac{CBF} échantillonnées de Breeden et
-  al.~\cite{Breeden2022Sampled} : chaque ligne de gradient étant supposée $L$-lipschitzienne en $\mathbf{q}$, la borne de Taylor
-  \begin{equation}
-  h(\mathbf{q}_0+\mathbf{d}) \;\geq\; h(\mathbf{q}_0) + \nabla h^\top\mathbf{d} - \tfrac{L}{2}\|\mathbf{d}\|^2,
-  \qquad
-  \mathbf{d}=\alpha\,\dot{\mathbf{q}}_{\mathrm{final}}\,t,\quad t\in[0,T_{\mathrm{rfx}}],
-  \end{equation}
-  minore la barrière le long du segment rectiligne que parcourt, en commande de vitesse, l'état sous bloqueur d'ordre zéro ; cette minorante
-  étant concave le long du segment, sa vérification à l'extrémité certifie l'intervalle entier.
+Loin des obstacles, la marge statique $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}) absorbe cette dérive inter-échantillon. En revanche, lorsque la tâche impose de longer une frontière de près (à quelques millimètres pendant plusieurs secondes, régime typique du transport d'objet près d'une paroi), cette marge s'érode à chaque maintien, d'autant plus si la cadence effective du filtre fléchit sous la charge du \ac{GPU} partagé. 
 
-  Le frein ne certifie pas $h \geq 0$ mais une décroissance admissible, $h(T_{\mathrm{rfx}}) \geq h - \kappa_{\mathrm{rfx}}\,h\,T_{\mathrm{rfx}}$,
-  condition de classe $\mathcal{K}$ linéaire emboîtée sous celle du solveur~\cite{Rosolia2022Unified}. C'est ce qui permet aux deux couches de
-  coexister. La bande d'activation laisse la barrière décroître à la pente $v_{\mathrm{in}}/h_{\mathrm{act}} = 6{,}25$~s$^{-1}$, et le solveur
-  sature sa contrainte dès que l'intention pousse contre l'obstacle : sa commande décroît $h$ à cette pente exactement. Si le frein exigeait la
-  même pente, il n'aurait aucune réserve, et les charges qu'il compte en plus, dérive mesurée depuis la résolution, resserrement de poursuite
-  sur l'intervalle et courbure sur le tique, rendraient négative toute commande pourtant admissible pour le solveur. Avec
-  $\kappa_{\mathrm{rfx}} = 25$~s$^{-1}$, l'écart entre les deux pentes est la réserve dans laquelle ces charges sont prises. Le seuil d'arrêt
-  $h_{\mathrm{stop}}$ demeure quant à lui nul : le recul du bras vient des resserrements du solveur, jamais d'un plancher réglé
-  sur $h$.
+Plutôt que d'agrandir de manière conservatrice la marge $d_{\mathrm{safe}}$, une seconde couche de sécurité appelée le frein réflexe réévalue la commande maintenue entre les résolutions principales. Cette vérification s'exécute à très haute fréquence en C++ au sein du contrôleur temps réel dur (\texttt{ros\_control} à $1$~kHz). À chaque tique, le frein consomme le paquet atomique (commande et certificat) publié à $100$~Hz par le filtre Python, s'affranchissant ainsi de la latence de l'ordonnanceur et du \ac{GPU} partagé. Le calcul du scalaire d'atténuation $\alpha$ s'effectue comme suit.
 
-  Il en résulte, par ligne active, une inéquation
-  du second degré en $\alpha$ dont l'ensemble admissible est un intervalle. Le frein retient la plus grande valeur commune à toutes les
-  lignes, et déclare l'infaisabilité ($\alpha=0$) si leur intersection est vide. Les bornes inférieures de ces intervalles ne sont pas vides
-  de sens : une ligne en violation exige une vitesse de sortie, que le frein certifie à la hausse au lieu de l'exempter, sa demande y valant
-  la moitié de la loi de récupération du solveur, de sorte que la commande de retrait passe sans en être soustraite.
+À chaque micro-cycle du contrôleur temps réel, le frein adapte l'amplitude de la commande par un unique scalaire $\alpha \in [0, 1]$ :
+\begin{equation}
+\dot{\mathbf{q}}_{\mathrm{exec}} = \alpha\,\dot{\mathbf{q}}_{\mathrm{final}}.
+\end{equation}
+Il agit ainsi comme un frein purement cinématique, qui préserve la trajectoire articulaire tout en modulant sa vitesse d'exécution, sans jamais dévier la direction du mouvement. Le scalaire retenu est la plus grande valeur garantissant la sécurité sur l'horizon $T_{\mathrm{rfx}}$, mesuré à chaque micro-cycle C++ comme le temps réellement écoulé depuis la publication du paquet QP (période de la boucle temps réel de $1$~ms augmentée de la dérive de transmission). Une éventuelle latence du solveur n'altère donc pas l'horizon de prédiction, mais se traduit par un vieillissement de l'état, pris en compte par la ré-extrapolation de la barrière à partir de la configuration mesurée.
 
-  Le frein
-  s'engage instantanément et se relâche par filtre exponentiel de constante $\tau_{\mathrm{rel}}$, l'asymétrie reflétant celle des coûts entre
-  freiner tard et relâcher tard. L'architecture multi-cadence, la comptabilisation de la dérive mesurée et le traitement des lignes en
-  récupération sont détaillés à l'Annexe~\ref{annexe:lipschitz}.
+Inspirée des conditions \ac{CBF} échantillonnées~\cite{Breeden2022Sampled}, la formulation s'appuie sur la régularité du gradient $\nabla h_l$ (supposé $L$-lipschitzien en $\mathbf{q}$). La variation de la barrière le long du déplacement $\Delta\mathbf{q}(t) = \alpha\,\dot{\mathbf{q}}_{\mathrm{final}}\,t$ est alors bornée inférieurement par la minorante quadratique :
+\begin{equation}
+h(\mathbf{q}_0+\Delta\mathbf{q}(t)) \;\geq\; h(\mathbf{q}_0) + \nabla h^\top\Delta\mathbf{q}(t) - \tfrac{L}{2}\|\Delta\mathbf{q}(t)\|^2,
+\qquad t\in[0,T_{\mathrm{rfx}}].
+\end{equation}
+Cette minorante concave garantit que sa vérification à l'échéance $t = T_{\mathrm{rfx}}$ suffit à certifier la sécurité sur l'ensemble du segment parcouru sous bloqueur d'ordre zéro.
+
+Plutôt que d'exiger $h \geq 0$, le frein certifie une décroissance admissible de la barrière à l'échéance de l'horizon :
+\begin{equation}
+h(\mathbf{q}_0 + \Delta\mathbf{q}(T_{\mathrm{rfx}})) \;\geq\; h(\mathbf{q}_0)\,\big(1 - \kappa_{\mathrm{rfx}}\,T_{\mathrm{rfx}}\big).
+\end{equation}
+Cette condition de classe $\mathcal{K}$ linéaire s'emboîte naturellement sous celle du solveur~\cite{Rosolia2022Unified}. Alors que le solveur impose une décroissance macrologique conservatrice ($v_{\mathrm{in}}/h_{\mathrm{act}} = 6{,}25\text{ s}^{-1}$), le frein réflexe tolère un taux de décroissance instantané plus élevé ($\kappa_{\mathrm{rfx}} = 25\text{ s}^{-1}$). Cet écart de pente crée la réserve de marge nécessaire pour absorber les incertitudes inter-échantillons (dérive mesurée, resserrement de poursuite et courbure locale) sans rejeter inutilement des commandes valides.
+
+En injectant $\Delta\mathbf{q}(T_{\mathrm{rfx}}) = \alpha\,\dot{\mathbf{q}}_{\mathrm{final}}\,T_{\mathrm{rfx}}$ dans cette condition, chaque contrainte active se traduit par une inéquation du second degré en $\alpha$. Résoudre le frein à chaque micro-cycle revient donc à trouver le plus grand facteur d'atténuation $\alpha \in [0, 1]$ commun à toutes les lignes actives, et à déclencher un arrêt ($\alpha=0$) si l'intersection de leurs intervalles admissibles est vide. Enfin, l'engagement du frein est instantané pour parer au danger, tandis que son relâchement est lissé par un filtre exponentiel de constante $\tau_{\mathrm{rel}}$ afin d'éviter tout phénomène de broutement (l'architecture multi-cadence, la mesure de la dérive et le traitement des lignes en récupération sont détaillés à l'Annexe~\ref{annexe:lipschitz}).
 
   Le certificat vaut sous quatre hypothèses explicites : suivi de la vitesse entre les tiques, validité locale de la constante $L$
   (déterminée hors ligne par la campagne de l'Annexe~\ref{annexe:lipschitz}, puis surveillée en ligne), exactitude de la valeur de barrière
@@ -1047,47 +973,68 @@ Le choix de cette variante face à un solveur
   voulu de cette sécurité active ; l'analyse des résultats du Chapitre~\ref{sec:Theme3} évalue donc la fidélité de poursuite par rapport à la
   commande atténuée réellement transmise.
 
-\subsection{Évitement des minima locaux du filtre}\label{subsec:minima}
-La projection est minimale par construction : elle annule exactement la composante de vitesse que la borne interdit, et ne recherche jamais davantage de dégagement que la contrainte n'en exige. Cependant, le modèle génératif étant aveugle aux obstacles, une trajectoire nominale générée alors que le robot est pris dans un minimum local réémet le même ordre à chaque replanification. L'équilibre entre cette intention et la correction qui l'annule immobilise alors le robot sur la frontière $h\approx 0$ : la sécurité est préservée, mais la tâche ne progresse plus.
+\subsection{Évitement des minima locaux du filtre : dégagement postural}\label{subsec:minima}
+La projection est minimale par construction : elle annule uniquement la composante de vitesse interdite par la contrainte, sans rechercher un dégagement inutile. Cependant, la politique générative étant aveugle aux obstacles, une consigne nominale générée au voisinage d'un obstacle réémet le même ordre à chaque replanification. L'équilibre entre cette intention et la correction de sécurité immobilise alors le robot sur la frontière $h \approx 0$ : la sécurité est garantie, mais la tâche n'avance plus.
 
-Deux situations de blocage sont distinguées, selon que la contrainte active porte sur un lien du corps ou sur le lien contrôlé lui-même. Seule la première est traitée activement, par le dégagement postural ci-dessous, ajouté à la vitesse nominale en amont de la projection : chaque demi-espace actif le filtre au même titre que l'intention du modèle, de sorte qu'il ne peut pas dégrader la sécurité. La seconde situation de blocage (portant sur l'effecteur ou le lien contrôlé lui-même) correspond à une impasse topologique globale. Conformément à la répartition des rôles de l'architecture proposée, aucun mécanisme heuristique de déblocage local n'est implanté à ce niveau ; le système adopte alors un comportement d'arrêt sécurisé intrinsèque (Section~\ref{subsec:garanties}), documenté et analysé au Chapitre~\ref{sec:Theme3}.
+Deux situations de blocage sont distinguées selon le lien concerné :
+\begin{enumerate}
+    \item \textbf{Blocage de l'effecteur} : Lorsque la contrainte porte sur le lien contrôlé lui-même, la situation correspond à une impasse topologique globale. Conformément à la répartition des rôles de l'architecture, aucun déblocage heuristique n'est implanté à ce niveau : le robot adopte un comportement d'arrêt sécurisé intrinsèque (Section~\ref{subsec:garanties}), analysé au Chapitre~\ref{sec:Theme3}.
+    \item \textbf{Blocage du corps du bras} : Les contraintes portées par les liens intermédiaires sont traitées activement par un dégagement postural. Injectée dans la vitesse nominale en amont du problème QP, cette vitesse complémentaire est filtrée par les demi-espaces actifs au même titre que la consigne nominale, ce qui garantit qu'elle ne peut en aucun cas compromettre la sécurité.
+\end{enumerate}
 
-Le dégagement postural traite les contraintes portées par le corps du bras en exploitant la même redondance que la métrique de tâche : le manipulateur disposant d'un noyau de dimension un autour de la Jacobienne 6D du lien contrôlé, la posture peut se déformer sans que la tâche n'en souffre. La vitesse injectée pousse le corps dans la direction du noyau qui accroît la barrière critique,
+Le dégagement postural exploite la redondance cinématique du manipulateur (noyau de dimension 1 de la Jacobienne 6D de l'effecteur). La vitesse injectée oriente le corps du bras dans la direction du noyau qui accroît la barrière critique :
 \begin{equation}
 \dot{\mathbf{q}}_{\mathrm{clear}}
 = k_{\mathrm{clear}}\;\rho(h)\,a\;\frac{\mathbf{N}\nabla h}{\|\mathbf{N}\nabla h\|},
 \qquad
 \mathbf{N} = \mathbf{I}-\mathbf{J}^{+}\mathbf{J},
 \end{equation}
-où $\mathbf{N}$ est le projecteur amorti sur le noyau de la Jacobienne complète du lien contrôlé, $\rho(h)=\operatorname{clip}\!\big((h_{\mathrm{ns}}-h)/h_{\mathrm{ns}},\,0,\,1\big)$ une rampe de proximité active dans la bande $h < h_{\mathrm{ns}}$ et $a = \min\!\big(\|\mathbf{N}\nabla h\|/(0{,}3\,\|\nabla h\|),\,1\big)$ une rampe d'autorité proportionnelle à la fraction du gradient contenue dans le noyau. Le bras s'écarte ainsi de l'obstacle par pivot du coude, à pose du lien contrôlé inchangée au premier ordre, \emph{tout en continuant de suivre} la trajectoire de tâche au lieu de se garer contre la frontière. La rampe $a$ éteint le terme précisément lorsque la contrainte porte sur le lien contrôlé et qu'aucune déformation posturale ne peut la desserrer.
+où $\mathbf{N}$ est le projecteur amorti sur le noyau de la Jacobienne du lien contrôlé, $\rho(h)=\operatorname{clip}\!\big((h_{\mathrm{ns}}-h)/h_{\mathrm{ns}},\,0,\,1\big)$ une rampe de proximité active pour $h < h_{\mathrm{ns}}$, et $a = \min\!\big(\|\mathbf{N}\nabla h\|/(\sigma_{\mathrm{clear}}\,\|\nabla h\|),\,1\big)$ une rampe d'autorité. Le seuil $\sigma_{\mathrm{clear}} = 0{,}30$ permet à l'autorité de saturer à pleine puissance ($a=1$) dès que $30\,\%$ de la norme du gradient est disponible dans le noyau, puis de décroître linéairement vers zéro si la composante dans le noyau devient négligeable. 
+
+Le bras s'écarte ainsi de l'obstacle par un pivot naturel du coude, à pose de l'effecteur inchangée au premier ordre, tout en continuant de suivre la trajectoire de tâche au lieu de se bloquer contre la frontière. La rampe $a$ s'éteint automatiquement lorsque la contrainte touche l'effecteur, désactivant le terme lorsqu'aucune déformation posturale ne peut la desserrer.
 
 \begin{table}[htpb]
 \centering
 \caption{Paramètres du filtre de sécurité \acs{SDF}-\ac{CBF}.}
 \label{tab:cbf_params}
+\small
 \begin{tabular}{lll}
 \hline
 \textbf{Symbole} & \textbf{Description} & \textbf{Valeur} \\ \hline
-$d_{\mathrm{safe}}$ & marge de sécurité du \ac{SDF} & $15$~mm \\
-$\alpha$ & température du soft-min & $0{,}002$ \\
-$K$ & points critiques sélectionnés & $64$ \\
-$h_{\mathrm{act}}$ & bande d'activation de la contrainte & $80$~mm \\
-$v_{\mathrm{in}}$ & vitesse d'approche normale maximale ($\dot h$) & $0{,}50$~m/s \\
-$v_{\mathrm{rec}}$ & vitesse de sortie exigée en violation ($\dot h$) & $0{,}05$~m/s \\
-$d_{\mathrm{rec}}$ & profondeur de saturation en récupération & $15$~mm \\
-$\Delta v_{\max}$ & correction de projection et de réparation maximale & $0{,}50$~rad/s \\
-$\Delta v_{\max}^{\mathrm{rec}}$ & réparation maximale en violation ($h<0$) & $0{,}50$~rad/s \\
-$g_{\min}$ & seuil de fiabilité du gradient de réparation & $0{,}03$ \\
-$K_p$, $\dot{q}_{\mathrm{fb,max}}$ & suivi proportionnel et saturation & $5$, $0{,}5$~rad/s \\
-$\kappa_{\mathrm{art}}$, $\Delta q_{\mathrm{lim}}$ & barrière de limites articulaires : gain, bande de garde & $3{,}0$, $0{,}15$~rad \\
-$\tau_{\mathrm{nom}}$, $\tau_{\mathrm{safe}}$ & constantes des filtres passe-bas & $0{,}08$~s, $0{,}1$~s \\
-$\Delta q_{\mathrm{lead}}$ & avance maximale de la référence & $0{,}05$~rad \\
-$K_a$, $N_{\mathrm{it}}$, $\omega$ & liens contraints, balayages de Dykstra, relaxation & $9$, $6$, $1{,}0$ \\
-$f_{\mathrm{rfx}}$, $h_{\mathrm{stop}}$ & frein réflexe : cadence, seuil d'arrêt & $1$~kHz, $0$ \\
-$\varepsilon_{\mathrm{p}}$, $t_{\mathrm{veto}}$ & borne de poursuite surveillée ; retenue du veto & $0{,}025$~rad/s, $50$~ms \\
-$\lambda_{\mathbf{W}}$, $w_{\mathrm{rot}}$ & métrique de tâche : régularisation, poids de rotation & $0{,}01$, $0{,}01$ \\
-$k_{\mathrm{clear}}$, $h_{\mathrm{ns}}$ & dégagement postural : gain, bande d'activation & $0{,}3$~rad/s, $50$~mm \\
-$\tau_{\mathrm{env}}$, $\varepsilon_{\mathrm{env}}$, $\eta_{\max}$ & resserrement temporel : filtre, zone morte, plafond & $0{,}05$~s, $0{,}05$~m/s, $0{,}5$~m/s \\
+$d_{\mathrm{safe}}$ & Marge de sécurité du \ac{SDF} & $15$~mm \\
+$\alpha$ & Température du soft-min & $0{,}002$ \\
+$K$ & Nombre de points critiques sélectionnés & $64$ \\
+$h_{\mathrm{act}}$ & Bande d'activation de la contrainte & $80$~mm \\
+$v_{\mathrm{in}}$ & Vitesse d'approche normale maximale ($\dot{h}$) & $0{,}50$~m/s \\
+$v_{\mathrm{rec}}$ & Vitesse de sortie exigée en violation ($\dot{h}$) & $0{,}05$~m/s \\
+$d_{\mathrm{rec}}$ & Profondeur de saturation en récupération & $15$~mm \\
+$\Delta v_{\max}$ & Correction maximale de projection & $0{,}50$~rad/s \\
+$\Delta v_{\max}^{\mathrm{rec}}$ & Réparation maximale en violation ($h<0$) & $0{,}50$~rad/s \\
+$g_{\min}$ & Seuil de fiabilité du gradient & $0{,}03$ \\
+$K_p$ & Gain du suivi proportionnel & $5$ \\
+$\dot{q}_{\mathrm{fb,max}}$ & Saturation de la vitesse de suivi & $0{,}5$~rad/s \\
+$\kappa_{\mathrm{art}}$ & Gain de la barrière de limites articulaires & $3{,}0$ \\
+$\Delta q_{\mathrm{lim}}$ & Bande de garde des limites articulaires & $0{,}15$~rad \\
+$\tau_{\mathrm{nom}}$ & Constante du filtre passe-bas nominal & $0{,}08$~s \\
+$\tau_{\mathrm{safe}}$ & Constante du filtre passe-bas de sécurité & $0{,}1$~s \\
+$\Delta q_{\mathrm{lead}}$ & Avance maximale de la référence & $0{,}05$~rad \\
+$K_a$ & Nombre de liens contraints & $9$ \\
+$N_{\mathrm{it}}$ & Nombre de balayages de Dykstra & $6$ \\
+$\omega$ & Facteur de relaxation de Dykstra & $1{,}0$ \\
+$f_{\mathrm{rfx}}$ & Cadence du frein réflexe & $1$~kHz \\
+$\kappa_{\mathrm{rfx}}$ & Pente de décroissance du frein réflexe & $25$~s$^{-1}$ \\
+$\tau_{\mathrm{rel}}$ & Constante de relâchement du frein réflexe & $0{,}05$~s \\
+$h_{\mathrm{stop}}$ & Seuil d'arrêt du frein réflexe & $0$ \\
+$\varepsilon_{\mathrm{p}}$ & Borne de poursuite surveillée & $0{,}025$~rad/s \\
+$t_{\mathrm{veto}}$ & Temps de retenue du veto & $50$~ms \\
+$\lambda_{\mathbf{W}}$ & Régularisation de la métrique de tâche & $0{,}01$ \\
+$w_{\mathrm{rot}}$ & Poids de rotation dans la métrique de tâche & $0{,}01$ \\
+$k_{\mathrm{clear}}$ & Gain du dégagement postural & $0{,}3$~rad/s \\
+$h_{\mathrm{ns}}$ & Bande d'activation du dégagement postural & $50$~mm \\
+$\sigma_{\mathrm{clear}}$ & Seuil d'autorité du dégagement postural & $0{,}30$ \\
+$\tau_{\mathrm{env}}$ & Constante du filtre de resserrement temporel & $0{,}05$~s \\
+$\varepsilon_{\mathrm{env}}$ & Zone morte du resserrement temporel & $0{,}05$~m/s \\
+$\eta_{\max}$ & Plafond du resserrement temporel & $0{,}5$~m/s \\
 \hline
 \end{tabular}
 \end{table}
