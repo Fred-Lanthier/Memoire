@@ -50,6 +50,8 @@ RERUN    = "(There were undefined (references|citations)|Rerun to get (cross-ref
 RERUNBIB = "No file.*\.bbl|Citation.*undefined"
 
 
+TARGET_PDF = MemoireMaitrise_FrederickLanthier_2026.pdf
+
 $(SRC:%.tex=%.pdf): $(SRC) $(SRC:%.tex=%.bib) images $(shell ls -1 images/*.eps 2> /dev/null)
 	$(COPY); $(PDFLATEX) $(SRC)
 	@egrep -c $(RERUNBIB) $(SRC:%.tex=%.log) && ($(BIBTEX) $(SRC:%.tex=%); $(COPY); $(PDFLATEX) $(SRC)); true
@@ -58,6 +60,8 @@ $(SRC:%.tex=%.pdf): $(SRC) $(SRC:%.tex=%.bib) images $(shell ls -1 images/*.eps 
 	@if cmp -s $(SRC:%.tex=%.toc) $(SRC:%.tex=%.toc.bak); then true; else $(PDFLATEX) $(SRC); fi
 	@rm -f $(SRC:%.tex=%.toc.bak)
 	@egrep -i "(Reference|Citation).*undefined" $(SRC:%.tex=%.log); true
+	@cp Document.pdf $(TARGET_PDF)
+	@echo "PDF créé et copié vers $(TARGET_PDF)"
 
 $(SRC:%.tex=%.dvi): $(SRC) $(SRC:%.tex=%.bib) images $(shell ls -1 images/*.eps 2> /dev/null)
 	$(COPY); $(LATEX) $(SRC)
@@ -82,7 +86,7 @@ pdf: $(SRC:%.tex=%.pdf)
 
 clean:
 	@rm -f *.aux *~ chapters/*.aux chapters/*~
-	@rm -f Document.dvi Document.pdf Document.bbl Document.blg Document.log Document.out Document.lof Document.lot Document.loa Document.toc Document.app
+	@rm -f Document.dvi Document.pdf $(TARGET_PDF) Document.bbl Document.blg Document.log Document.out Document.lof Document.lot Document.loa Document.toc Document.app
 
 all_clean: clean
 	@if [ -d dia ]; then cd dia; ${MAKE} clean; fi
