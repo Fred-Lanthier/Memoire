@@ -3,17 +3,20 @@
 \babel@toc {french}{}
 \babel@toc {english}{}
 \babel@toc {french}{}
-\contentsline {table}{\numberline {2.1}{\ignorespaces Tableau comparatif des frameworks de planification et de sécurité de l'état de l'art.\relax }}{23}{table.caption.11}%
-\contentsline {table}{\numberline {3.1}{\ignorespaces Critères de validation associés aux objectifs de recherche.\relax }}{27}{table.caption.12}%
-\contentsline {table}{\numberline {4.1}{\ignorespaces Hiérarchie des mécanismes du système selon leur rôle vis-à-vis des objectifs de recherche.\relax }}{32}{table.caption.13}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Paramètres du filtre de sécurité \acs {SDF}-\ac {CBF}.\relax }}{62}{table.caption.26}%
-\contentsline {table}{\numberline {4.3}{\ignorespaces Hypothèses séparant le certificat théorique de l'exécution réelle, avec leur surveillance en ligne et le comportement du filtre en cas de violation.\relax }}{64}{table.caption.29}%
-\contentsline {table}{\numberline {5.1}{\ignorespaces Temps d'évaluation conjointe des barrières $h_l$ et de la Jacobienne de contrainte complète ($L\times 7$) pour $100$ points obstacles, en fonction du nombre $L$ de liens protégés inclus : gradient analytique en forme close contre différentiation automatique (moyenne $\pm $ écart-type en ms, $100$ répétitions), avec l'erreur absolue maximale entre les deux Jacobiennes.\relax }}{70}{table.caption.37}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Bancs d'essai utilisés pour la validation expérimentale.\relax }}{75}{table.caption.43}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Matrice des scénarios évalués par banc d'essai ($N$ essais par cellule).\relax }}{75}{table.caption.44}%
-\contentsline {table}{\numberline {5.4}{\ignorespaces Comparaison avec et sans filtre \ac {SDF}-\ac {CBF}, agrégée sur $N$ essais par cellule : taux de succès, collisions, marge minimale $h_{\qopname \relax m{min}}$ et déviation de trajectoire (métriques de la Section~\ref {subsec:res_metriques}).\relax }}{77}{table.caption.45}%
-\contentsline {table}{\numberline {5.5}{\ignorespaces Comparaison Panda et xArm7 sur les scénarios communs de la tâche de saisie et dépôt ($N$ essais par cellule, métriques de la Section~\ref {subsec:res_metriques}).\relax }}{85}{table.caption.57}%
-\contentsline {table}{\numberline {5.6}{\ignorespaces Statistiques descriptives des temps de calcul par étape du pipeline (durées en millisecondes).\relax }}{88}{table.caption.58}%
-\contentsline {table}{\numberline {B.1}{\ignorespaces Hyperparamètres d'entraînement du modèle de Flow Matching.\relax }}{114}{table.caption.86}%
-\contentsline {table}{\numberline {D.1}{\ignorespaces Hyperparamètres d'entraînement du modèle de distance du robot.\relax }}{118}{table.caption.94}%
-\contentsline {table}{\numberline {G.1}{\ignorespaces Constantes de Lipschitz par lien protégé : majorant analytique, statistiques échantillonnées de la courbure négative $({-}\lambda _{\qopname \relax m{min}})_+$ ($8\tmspace +\thinmuskip {.1667em}192$ configurations, double précision) et constante retenue.\relax }}{131}{table.caption.113}%
+\contentsline {table}{\numberline {2.1}{\ignorespaces Tableau comparatif des frameworks de planification et de sécurité de l'état de l'art.\relax }}{24}{table.caption.11}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Critères de validation associés aux objectifs de recherche.\relax }}{28}{table.caption.12}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Hiérarchie des mécanismes du système selon leur rôle vis-à-vis des objectifs de recherche.\relax }}{33}{table.caption.13}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Paramètres du filtre de sécurité \acs {SDF}-\ac {CBF}.\relax }}{64}{table.caption.26}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Hypothèses séparant le certificat théorique de l'exécution réelle, avec leur surveillance en ligne et le comportement du filtre en cas de violation.\relax }}{66}{table.caption.29}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Temps d'évaluation conjointe des barrières $h_l$ et de la Jacobienne de contrainte complète ($L\times 7$) pour $100$ points obstacles, en fonction du nombre $L$ de liens protégés inclus : gradient analytique en forme close contre différentiation automatique (moyenne $\pm $ écart-type en ms, $100$ répétitions), avec l'erreur absolue maximale entre les deux Jacobiennes.\relax }}{73}{table.caption.37}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Performances de classification et d'action de la pince Franka sur la tâche de saisie et dépôt ($64\tmspace +\thinmuskip {.1667em}000$ échantillons d'évaluation).\relax }}{76}{table.caption.41}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Bancs d'essai utilisés pour la validation expérimentale.\relax }}{78}{table.caption.44}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Matrice des scénarios évalués par banc d'essai ($N$ essais par cellule).\relax }}{79}{table.caption.45}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Comparaison avec et sans filtre \ac {SDF}-\ac {CBF}, agrégée sur $N$ essais par cellule : taux de succès, collisions, marge minimale de l'essai $h^{\star }$ et déviation de trajectoire (métriques de la Section~\ref {subsec:res_metriques}).\relax }}{80}{table.caption.46}%
+\contentsline {table}{\numberline {5.6}{\ignorespaces Comparaison Panda et xArm7 sur les scénarios communs de la tâche de saisie et dépôt ($N$ essais par cellule, métriques de la Section~\ref {subsec:res_metriques}).\relax }}{90}{table.caption.58}%
+\contentsline {table}{\numberline {5.7}{\ignorespaces Statistiques descriptives des temps de calcul par étage du système intégré (durées en millisecondes). Les maxima correspondent au cycle d'amorçage et sont exclus de l'analyse.\relax }}{91}{table.caption.59}%
+\contentsline {table}{\numberline {5.8}{\ignorespaces Cadences spécifiées au Chapitre~\ref {sec:Theme2} et vérification expérimentale.\relax }}{92}{table.caption.60}%
+\contentsline {table}{\numberline {A.1}{\ignorespaces Vue d'ensemble des trois jeux de démonstrations collectés.\relax }}{107}{table.caption.73}%
+\contentsline {table}{\numberline {B.1}{\ignorespaces Hyperparamètres d'entraînement du modèle de Flow Matching.\relax }}{121}{table.caption.104}%
+\contentsline {table}{\numberline {D.1}{\ignorespaces Hyperparamètres d'entraînement du modèle de distance du robot.\relax }}{128}{table.caption.118}%
+\contentsline {table}{\numberline {G.1}{\ignorespaces Constantes de Lipschitz par lien protégé : majorant analytique, statistiques échantillonnées de la courbure négative $({-}\lambda _{\qopname \relax m{min}})_+$ ($8\tmspace +\thinmuskip {.1667em}192$ configurations, double précision) et constante retenue.\relax }}{146}{table.caption.158}%

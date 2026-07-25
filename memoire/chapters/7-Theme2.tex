@@ -22,7 +22,7 @@ L'ensemble logiciel repose sur \ac{ROS}~1 Noetic sous Ubuntu 20.04, la scène é
 
 Au sein de cet environnement, tous les modules sont implémentés en Python, à l'exception de la lecture d'état du robot, de la cinématique inverse (écrites en C++ avec la bibliothèque \texttt{Pinocchio}~\cite{Carpentier2019Pinocchio}) et du frein réflexe (intégré en C++ dans la boucle temps réel \texttt{ros\_control} à ${\sim}1$~kHz, Section~\ref{subsubsec:reflexe}), afin d'en minimiser la latence. Les composantes d'apprentissage (modèle de Flow Matching, \ac{SDF} de Bernstein, bouclier \ac{CBF}) s'appuient sur \texttt{PyTorch}~2.10 avec CUDA~12.6 et s'exécutent sur un unique \ac{GPU} NVIDIA RTX~3090 (24~Go), partagé par l'ensemble des modules. Le serveur de segmentation \ac{SAM}~3, qui charge un modèle de fondation volumineux, demeure un nœud dédié, exposé au reste du système comme un service \ac{ROS} et invoqué à la demande (Section~\ref{subsec:SAM2_tracking}). Les démonstrations simulées sont collectées avec la bibliothèque \textit{ManiSkill~3} (Section~\ref{subsec:Protocol}) et la visualisation s'effectue dans RViz.
 
-\subsection{Architecture modulaire du système}
+\subsection{Architecture modulaire du système}\label{subsec:architecture_modulaire}
 La Figure~\ref{fig:architecture_systeme_final_v12} illustre l'architecture modulaire du système et le trajet des données, des images \ac{RGB-D} jusqu'à la commande de vitesse articulaire. Le flux se sépare en deux chemins dès la perception. Le premier conditionne la génération de trajectoire : la cible, détectée par \ac{SAM}~3 puis suivie par \ac{SAM}~2, est projetée en un nuage de points 3D, fusionnée au maillage de l'outil, et le nuage résultant conditionne le modèle de \textit{Flow Matching}, qui replanifie la trajectoire nominale en boucle fermée. Le second garantit la sécurité : les pixels restants forment le nuage d'obstacles qui, nettoyé puis accumulé dans la carte persistante, alimente le bouclier \ac{CBF}. Celui-ci corrige à la fréquence de commande la trajectoire nominale interpolée par l'exécuteur, puis le frein réflexe re-vérifie la commande maintenue entre deux résolutions avant de l'envoyer au contrôleur de vitesse du robot.
 
 Deux liaisons secondaires ferment le système. Le nœud de saisie soude la cible à l'outil au moment du contact et publie le nuage saisi, que le bouclier protège dès lors comme un lien supplémentaire du robot. L'état articulaire mesuré revient par ailleurs à tous les modules par le bus de retour de droite, la boucle physique se refermant à travers la simulation.
@@ -397,7 +397,7 @@ dont la vitesse conditionnelle vaut $\dot{X}_t = X_1-X_0$ ; l'objectif d'entraî
   \label{eq:Loss}
   \mathcal{L}(\theta) = \mathbb{E}_{t,X_0,(X_1,c)}\bigl\lVert u_t^{\theta}(X_t \mid c)-(X_1-X_0)\bigr\rVert^2
 \end{equation}
-où $t\sim\mathcal{U}[0,1]$, $X_0\sim\mathcal{N}(\mathbf{0},\mathbf{I})$ et $(X_1,c)\sim\mathcal{D}$, $\mathcal{D}$ étant le jeu de démonstrations et $c$ l'observation associée à chaque segment, décrite plus bas. Ce simple objectif conditionnel possède les mêmes gradients que la régression du champ marginal exact \cite{Lipman2023Flow}, et les chemins quasi rectilignes qu'induit l'interpolation linéaire autorisent une intégration précise en peu de pas \cite{lipman2024flowmatchingguidecode}, l'argument décisif face aux modèles de diffusion pour la replanification en temps réel (Chapitre~\ref{sec:RevLitt}).
+où $t\sim\mathcal{U}[0,1]$, $X_0\sim\mathcal{N}(\mathbf{0},\mathbf{I})$ et $(X_1,c)\sim\mathcal{D}$, $\mathcal{D}$ étant le jeu de démonstrations et $c$ l'observation associée à chaque segment, décrite plus bas. Ce simple objectif conditionnel possède les mêmes gradients que la régression du champ marginal exact \cite{Lipman2023Flow}, et l'interpolation linéaire du chemin conditionnel favorise des flots dont les trajectoires demeurent proches de la droite, ce qui autorise une intégration précise en peu de pas \cite{lipman2024flowmatchingguidecode}. Cette rectitude porte sur les trajectoires du champ marginal et ne découle pas formellement de l'interpolation conditionnelle, la procédure de \textit{reflow} de~\cite{Liu2023Rectified} existant précisément pour la renforcer ; elle est ici mesurée directement sur le modèle entraîné (Annexe~\ref{annexe:resultats_complementaires}). C'est l'argument décisif face aux modèles de diffusion pour la replanification en temps réel (Chapitre~\ref{sec:RevLitt}).
 
 Dans le cadre de ce travail, un échantillon $X_1$ est un segment de trajectoire de l'outil sur un horizon de $H=16$ pas, $X_1=[\mathbf{a}_1,\dots,\mathbf{a}_H]\in\mathbb{R}^{H\times10}$, chaque action $\mathbf{a}_k$ regroupant la position de l'outil, son orientation en représentation 6D continue de Zhou et al.~\cite{Zhou2020Continuity}, exempte des discontinuités du quaternion, et l'état binaire de la pince (Section~\ref{subsec:pretraitement}). Le champ de vitesses est conditionné sur l'observation $c$ de la scène, de sorte que le modèle apprend la distribution conditionnelle des segments experts $p_1(X_1\mid c)$ plutôt que leur distribution marginale.
 
@@ -412,6 +412,8 @@ Le réseau de vitesse qui consomme ce conditionnement est le U-Net 1D conditionn
   X_{t+\Delta t} = X_t + \Delta t\, u_t^{\theta}(X_t \mid c), \qquad \Delta t = 1/N.
 \end{equation}
 Le segment est ensuite dénormalisé et converti en consignes exécutables : positions absolues par inversion du centrage, matrices de rotation par orthonormalisation de Gram--Schmidt des six composantes d'orientation~\cite{Zhou2020Continuity}, état de la pince par seuillage. Le résultat, une séquence de $H=16$ poses de l'outil et de commandes de pince, est transmis à la chaîne de la Section~\ref{sec:Conversion}. La génération est répétée en boucle fermée, à $5$~Hz pour l'alimentation et $3$~Hz pour la saisie et dépôt : chaque segment est régénéré depuis l'observation courante et remplace le précédent, l'exécution reprenant à son premier point de passage, ce qui fait en sorte que seuls les premiers pas de l'horizon sont donc parcourus.
+
+Cette cadence n'est pas dictée par le coût de la génération, qui en autorise une bien supérieure (Section~\ref{sec:res_temps}), mais par la capacité de suivi du robot. Chaque regénération déplace la consigne et redéfinit la direction du feedforward ; au-delà de quelques hertz, ces sauts se succèdent plus vite que le contrôleur ne les rattrape, l'erreur de poursuite se creuse et la vitesse effectivement exécutée s'effondre par annulation entre consignes successives. La replanification est donc délibérément bridée à la cadence que le suivi tolère, la marge de calcul restante étant laissée aux modules qui partagent le \ac{GPU}.
 
 
 \subsection{Entraînement du modèle}
@@ -446,7 +448,7 @@ La résolution s'effectue, pour chaque point de passage, par une descente de Gau
   \qquad
   \mathbf{J}^{+}=\mathbf{J}^{\top}\big(\mathbf{J}\mathbf{J}^{\top}+\lambda\mathbf{I}\big)^{-1},
 \end{equation}
-où $\mathbf{J}(\mathbf{q})\in\mathbb{R}^{6\times7}$ est la Jacobienne géométrique du \ac{TCP}, exprimée dans son propre repère en cohérence avec l'erreur logarithmique locale~\eqref{eq:ik_error}. L'amortissement $\lambda=10^{-3}$ de la pseudo-inverse~\cite{Nakamura1986Singularity, Wampler1986Damped} borne l'incrément au voisinage des singularités : il y devient prépondérant dès que la plus petite valeur singulière de $\mathbf{J}$ passe sous $\sqrt{\lambda}\approx0{,}03$, là où une pseudo-inverse exacte produirait des incréments arbitrairement grands. La redondance est quant à elle résolue dans le noyau de $\mathbf{J}$ par un rappel vers une posture de référence $\mathbf{q}_{\mathrm{ref}}$ avec un gain $k_0$~\cite{Liegeois1977Redundancy}. Ce rappel s'effectue sans influence sur la tâche principale au premier ordre : c'est le même levier que la métrique de tâche et le dégagement postural du filtre de sécurité exploiteront à l'exécution (Section~\ref{sec:sdfcbf}). La référence $\mathbf{q}_{\mathrm{ref}}$ est prise égale à la configuration d'amorçage (\emph{warm-start}), propagée le long de l'horizon depuis la configuration mesurée pour garantir la continuité articulaire. Les bornes d'itération et les garde-fous numériques sont conservés à l'Annexe~\ref{annexe:chaine_nominale}.
+où $\mathbf{J}(\mathbf{q})\in\mathbb{R}^{6\times7}$ est la Jacobienne géométrique du \ac{TCP}, exprimée dans son propre repère en cohérence avec l'erreur logarithmique locale~\eqref{eq:ik_error}. L'amortissement $\lambda=10^{-3}$ de la pseudo-inverse~\cite{Nakamura1986Singularity, Wampler1986Damped} borne l'incrément au voisinage des singularités : il y devient prépondérant dès que la plus petite valeur singulière de $\mathbf{J}$ passe sous $\sqrt{\lambda}\approx0{,}03$, là où une pseudo-inverse exacte produirait des incréments arbitrairement grands. La redondance est quant à elle résolue dans le noyau de $\mathbf{J}$ par un rappel vers une posture de référence $\mathbf{q}_{\mathrm{ref}}$ avec un gain $k_0$~\cite{Liegeois1977Redundancy}. Ce rappel s'effectue sans influence sur la tâche principale au premier ordre : c'est le même levier que la métrique de tâche et le dégagement postural du filtre de sécurité exploiteront à l'exécution (Section~\ref{sec:sdfcbf}). La référence $\mathbf{q}_{\mathrm{ref}}$ est prise égale à la configuration d'amorçage (\textit{warm-start}), propagée le long de l'horizon depuis la configuration mesurée pour garantir la continuité articulaire. Les bornes d'itération et les garde-fous numériques sont conservés à l'Annexe~\ref{annexe:chaine_nominale}.
 
 Le solveur produit ainsi la trajectoire articulaire nominale $\mathbf{q}_{1:H}$, qui est la seule grandeur retenue en aval : elle est ré-échelonnée temporellement (Section~\ref{subsec:dqff}), publiée, puis interpolée à la fréquence de commande pour alimenter le filtre de sécurité.
 
@@ -464,7 +466,7 @@ où $v^{\star}=0{,}3$~rad/s est la vitesse cible et $\ell_{\min}$ un plancher de
 \end{equation}
 De norme approximativement constante et proche de $v^{\star}$ par construction, $\dot{\mathbf{q}}_{\mathrm{ff}}$ représente l'intention instantanée de la trajectoire générée. L'exécuteur publie ainsi, à chaque cycle, le couple formé de la position interpolée $\mathbf{q}_{\mathrm{nom}}$ et de cette vitesse : le filtre de sécurité consomme la première comme consigne de suivi et la seconde comme terme d'anticipation (Section~\ref{subsec:vitesse_nominale}). La vitesse feedforward étant constante par morceaux, ses discontinuités aux points de passage sont absorbées par le filtre passe-bas de la vitesse nominale, ce qui fournit au filtre de sécurité une référence régulière.
 
-L'exécuteur n'avance pas le long de cette trajectoire au rythme de l'horloge murale, mais d'une \emph{horloge de progression} : l'abscisse temporelle courante n'est incrémentée que si le robot suit effectivement la consigne, et son avancement est suspendu en cas de retard de poursuite excessif ou si le filtre de sécurité signale une violation de barrière ($h<0$). Sans ce gel, la consigne nominale continuerait de défiler pendant qu'une déviation de sécurité retient le robot, creusant l'erreur de suivi ; avec lui, la trajectoire planifiée reprend exactement là où elle a été interrompue.
+L'exécuteur n'avance pas le long de cette trajectoire au rythme de l'horloge murale, mais d'une horloge de progression : l'abscisse temporelle courante n'est incrémentée que si le robot suit effectivement la consigne, et son avancement est suspendu en cas de retard de poursuite excessif ou si le filtre de sécurité signale une violation de barrière ($h<0$). Sans ce gel, la consigne nominale continuerait de défiler pendant qu'une déviation de sécurité retient le robot, creusant l'erreur de suivi ; avec lui, la trajectoire planifiée reprend exactement là où elle a été interrompue.
 % =================================================================
 \section{Modèle de distance du robot appris hors ligne}\label{subsec:sdf_robot}
 % =================================================================
@@ -472,7 +474,7 @@ Le modèle génératif est entraîné sur des démonstrations sans obstacle et e
 
 Un tel filtre suppose résolue une question préalable, celle que la revue de littérature identifie comme le verrou de cette famille d'approches : disposer d'une distance signée entre le corps complet du robot et son environnement, interrogeable avec son gradient, pour des milliers de points simultanément et en quelques millisecondes. Cette section construit ce modèle de distance, appris hors ligne, lien par lien.
 
-Suivant l'approche \emph{Robot Distance Fields}~\cite{Li2024rdf}, également exploitée pour l'évitement réactif de collisions dans un cadre de commande à priorité de tâches~\cite{Govoni2026rdf}, le \ac{SDF} de chaque lien $l$ est approximé par une base tensorielle de polynômes de Bernstein dans un repère normalisé propre au lien. La géométrie maillée du lien est d'abord centrée et mise à l'échelle :
+Suivant l'approche \textit{Robot Distance Fields}~\cite{Li2024rdf}, également exploitée pour l'évitement réactif de collisions dans un cadre de commande à priorité de tâches~\cite{Govoni2026rdf}, le \ac{SDF} de chaque lien $l$ est approximé par une base tensorielle de polynômes de Bernstein dans un repère normalisé propre au lien. La géométrie maillée du lien est d'abord centrée et mise à l'échelle :
 \begin{equation}\label{eq:norm_dataset_SDF}
   \bar{\mathbf{x}} = \frac{\mathbf{x}-\mathbf{o}_l}{s_l},
 \qquad
@@ -491,11 +493,11 @@ et la distance métrique s'en déduit par $d_l = s_l\,\bar{d}_l$. Les polynômes
 
 Chacun des neuf liens protégés (liens 2 à 7, la main et les deux doigts de la pince) utilise $n=12$ fonctions par axe, soit $1728$ coefficients par lien. Trois propriétés motivent ce choix de représentation : le modèle est polynomial, donc $\mathcal{C}^\infty$ et de gradient analytique exact ; il est linéaire en ses paramètres $\mathbf{w}_l$, ce qui rend l'ajustement convexe ; et son évaluation se réduit à des produits tensoriels, massivement parallélisables sur \ac{GPU}. La cinématique directe qui place ces liens dans l'espace utilise la configuration mesurée complète. Les deux articulations prismatiques des doigts, non commandées par le filtre, sont lues dans l'état mesuré de la pince et incluses dans la pose des liens de la main et des doigts, l'ouverture de la pince déplaçant leurs surfaces jusqu'à $4$~cm. Le gradient articulaire demeure pris par rapport aux sept articulations commandées.
 
-L'apprentissage des poids procède en deux étapes par lien. La première reproduit le protocole original de~\cite{Li2024rdf} : un jeu d'étiquettes de distance signée exacte est généré sur le maillage (points concentrés près de la surface et points uniformes dans le cube normalisé), puis, la sortie du modèle étant linéaire en $\mathbf{w}_l$, les poids sont ajustés par \emph{moindres carrés récursifs} avec régularisation de type \emph{ridge}. Cette étape n'est pas une contribution de ce mémoire ; son protocole d'échantillonnage, ses équations de mise à jour et ses hyperparamètres sont reproduits à l'Annexe~\ref{annexe:sdf_training}. La régression de valeur qui en résulte fournit une distance précise, mais ne contraint pas le gradient : près de la surface, sa direction reste bruitée et sa norme s'écarte de l'unité.
+L'apprentissage des poids procède en deux étapes par lien. La première reproduit le protocole original de~\cite{Li2024rdf} : un jeu d'étiquettes de distance signée exacte est généré sur le maillage (points concentrés près de la surface et points uniformes dans le cube normalisé), puis, la sortie du modèle étant linéaire en $\mathbf{w}_l$, les poids sont ajustés par moindres carrés récursifs avec régularisation de type \textit{ridge}. Cette étape n'est pas une contribution de ce mémoire ; son protocole d'échantillonnage, ses équations de mise à jour et ses hyperparamètres sont reproduits à l'Annexe~\ref{annexe:sdf_training}. La régression de valeur qui en résulte fournit une distance précise, mais ne contraint pas le gradient : près de la surface, sa direction reste bruitée et sa norme s'écarte de l'unité.
 
-Or le filtre de sécurité consomme précisément ce gradient : $\nabla h$ fixe la \emph{direction} de la correction de la projection~\eqref{eq:cbf_qp} et sa \emph{norme} en fixe l'amplitude. Une seconde étape de raffinement géométrique, propre à ce mémoire, est donc appliquée.
+Or le filtre de sécurité consomme précisément ce gradient : $\nabla h$ fixe la direction de la correction de la projection~\eqref{eq:cbf_qp} et sa norme en fixe l'amplitude. Une seconde étape de raffinement géométrique, propre à ce mémoire, est donc appliquée.
 
-Un jeu de supervision dédié de $20\,000$ \emph{rayons normaux vérifiés} est construit. Des points de surface y sont déplacés le long de la normale de leur facette d'un décalage $\delta$ tiré aléatoirement, concentré dans la coquille critique autour de la marge de sécurité $d_{\mathrm{safe}}$. Chaque candidat n'est retenu qu'après vérification contre le maillage exact, sur l'extériorité, la distance recalculée et l'alignement de la direction, ce qui élimine les rayons corrompus par l'axe médian ou la courbure. Chaque rayon fournit ainsi un triplet exact (point, distance, direction sortante $\hat{\mathbf{n}}$) ; la répartition des décalages et les tolérances de vérification sont détaillées à l'Annexe~\ref{annexe:sdf_training}. Les poids sont alors affinés par descente de gradient sur la fonction de coût
+Un jeu de supervision dédié de $20\,000$ rayons normaux vérifiés est construit. Des points de surface y sont déplacés le long de la normale de leur facette d'un décalage $\delta$ tiré aléatoirement, concentré dans la coquille critique autour de la marge de sécurité $d_{\mathrm{safe}}$. Chaque candidat n'est retenu qu'après vérification contre le maillage exact, sur l'extériorité, la distance recalculée et l'alignement de la direction, ce qui élimine les rayons corrompus par l'axe médian ou la courbure. Chaque rayon fournit ainsi un triplet exact (point, distance, direction sortante $\hat{\mathbf{n}}$) ; la répartition des décalages et les tolérances de vérification sont détaillées à l'Annexe~\ref{annexe:sdf_training}. Les poids sont alors affinés par descente de gradient sur la fonction de coût
 \begin{equation}\label{eq:loss_refinement}
   \begin{split}
     \mathcal{L} &= \mathcal{L}_{\text{près}} + \mathcal{L}_{\mathrm{unif}} + \lambda_{\mathrm{ray}}\,\mathcal{L}_{\mathrm{ray}}
@@ -543,11 +545,12 @@ Ce prolongement assure une sous-estimation systématique de la distance vraie à
 \end{equation}
 Cette sélection est recalculée à chaque cycle du filtre de sécurité ($100$~Hz, soit une période de $10$~ms). L'ensemble actif transmis aux contraintes présente ainsi une obsolescence maximale de $10$~ms, un délai garanti qui est explicitement pris en compte dans le budget de la marge de sécurité $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}).
 
-Afin de soutenir cette cadence sans latence d'allocation, l'enchaînement de la cinématique directe, de l'évaluation du \ac{SDF} et de la sélection TopK est exécuté au sein d'un unique graphe CUDA. Pour satisfaire les exigences de capture du graphe, le traitement s'effectue à dimension fixe en complétant au besoin la sélection par des points fictifs lointains.
+Afin de soutenir cette cadence sans latence d'allocation, l'enchaînement de la cinématique directe, de l'évaluation du \ac{SDF} et de la sélection TopK est exécuté au sein d'un unique graphe CUDA. Pour satisfaire les exigences de capture du graphe, le traitement s'effectue à dimension fixe en complétant au besoin la sélection par des points fictifs lointains. L'effectif $N$ demeure ainsi constant, ce dont dépend l'égalité des gradients invoquée par le certificat (Section~\ref{subsec:garanties}).
 
-Les distances $d_{l,i}$ des points retenus sont alors agrégées, lien par lien, en une barrière scalaire. Le minimum sur les points obstacles y est approché par un soft-min de température $\alpha$, formulé de manière numériquement stable autour de $m_l=\min_i d_{l,i}$ :
+Les distances $d_{l,i}$ des points retenus sont alors agrégées, lien par lien, en une barrière scalaire. Le minimum sur les points obstacles y est approché par un soft-min de température $\alpha$, formulé de manière numériquement stable autour de ce minimum, noté $m_l$ :
 \begin{equation}
-h_l(\mathbf{q}) = m_l -\alpha\log\!\left[ \sum_{i=1}^{N} \exp\!\left( -\frac{d_{l,i}-m_l}{\alpha} \right) \right] -d_{\mathrm{safe}}.
+h_l(\mathbf{q}) = m_l -\alpha\log\!\left[ \sum_{i=1}^{N} \exp\!\left( -\frac{d_{l,i}-m_l}{\alpha} \right) \right] -d_{\mathrm{safe}},
+\qquad m_l = \min_i d_{l,i}.
 \end{equation}
 Chaque lien protégé possède ainsi sa propre barrière $h_l$ et son propre ensemble admissible $\{\mathbf{q}\mid h_l(\mathbf{q})\geq 0\}$ ; l'ensemble sûr du robot en est l'intersection,
 \begin{equation}
@@ -556,7 +559,9 @@ Chaque lien protégé possède ainsi sa propre barrière $h_l$ et son propre ens
 
 Réduire cette famille à la seule barrière minimale ne contraindrait que le lien instantanément le plus proche et laisserait les autres liens libres de progresser vers leurs propres obstacles, au prix d'une commutation brutale du lien sélectionné dès qu'un second lien devient critique. Le filtre conserve donc les $K_a$ liens de plus faible $h_l$ et traite chacun comme une contrainte distincte ; leur assemblage et leur résolution conjointe sont détaillés à la Section~\ref{subsec:projection}.
 
-Bien qu'analytiquement lisse, le soft-min introduit un biais conservateur borné par $\alpha\log N$, qui tend à consommer artificiellement la marge de sécurité en présence de nuages de points denses. Pour éliminer ce biais d'encombrement sans sacrifier la régularité du mouvement, le filtre déployé adopte une formulation découplée : il transmet au second membre de l'optimisation~\eqref{eq:cbf_qp} la valeur exacte du pire obstacle $h_{\min,l} = \min_i d_{l,i} - d_{\mathrm{safe}}$, tout en conservant le gradient du soft-min pour garantir la continuité spatiale lors des commutations d'obstacles (Section~\ref{subsec:gradient}). Le statut formel de ce biais et la comparaison avec la variante utilisant le soft-min complet sont détaillés à la Section~\ref{subsec:garanties} et évalués au Chapitre~\ref{sec:Theme3}.
+Bien qu'analytiquement lisse, le soft-min sous-estime la distance vraie d'un biais borné par $\alpha\log N$, d'autant plus marqué que le nuage est dense au voisinage du lien. Ce biais joue du côté sûr, puisqu'il conduit le filtre à freiner plus tôt que la géométrie ne l'exige, mais il se paie en espace de travail exploitable : le robot s'arrête à une distance supérieure à la marge retenue, et une trajectoire pourtant admissible peut être refusée dans un passage serré. Pour éliminer ce biais d'encombrement sans sacrifier la régularité du mouvement, le filtre déployé adopte une formulation découplée : il transmet au second membre de l'optimisation~\eqref{eq:cbf_qp} la valeur exacte du pire obstacle $h_{\min,l} = \min_i d_{l,i} - d_{\mathrm{safe}}$, tout en conservant le gradient du soft-min pour garantir la continuité spatiale lors des commutations d'obstacles (Section~\ref{subsec:gradient}). Le statut formel de ce biais et la comparaison avec la variante utilisant le soft-min complet sont détaillés à la Section~\ref{subsec:garanties} et évalués au Chapitre~\ref{sec:Theme3}.
+
+La cible saisie, protégée comme un lien supplémentaire (Section~\ref{subsec:architecture_modulaire}), forme une contrainte distincte dotée de sa propre partition du nuage : les points sélectionnés sont répartis entre le groupe du robot et celui de la cible, et aucune ligne n'agrège les points de l'autre groupe. L'effectif $N$ qui intervient dans l'agrégation et dans la compensation est donc celui du groupe concerné, et non le nombre total de points sélectionnés.
 
 \subsection{Gradient analytique de la contrainte}\label{subsec:gradient}
 La projection~\eqref{eq:cbf_qp} repose entièrement sur le gradient articulaire $\nabla_{\mathbf{q}}h$, qui fixe la direction et l'amplitude de la correction de sécurité. Contrairement aux approches par différentiation automatique ou différences finies sur la cinématique directe~\cite{Li2024rdf}, ce gradient est obtenu ici en forme close par dérivation analytique exacte de la chaîne de composition :
@@ -610,94 +615,87 @@ b(h) =
       annot/.style={font=\scriptsize, inner sep=1.5pt, align=center},
       ticklab/.style={font=\small, inner sep=2pt},
     ]
-    % ----- (a) champ de distance du lien protégé (le corps grisé à gauche) :
-    %       les bandes sont ses niveaux d = cte, les points obstacles y sont
-    %       évalués, et la contrainte agit sur le mouvement du lien
-    \begin{scope}[x=0.082cm, y=5cm]
-      % légende au-dessus du panneau (même convention que les autres figures)
-      \draw[->, okOrange, line width=1.1pt] (-3,1.09) -- (2,1.09);
-      \node[annot, okOrange, anchor=west] at (3,1.09)
+    % ----- (a) champ de distance du lien protégé : échelle vraie,
+    %       d_safe = 15 mm, h_act = 80 mm (frontière h=0 à d = 15 mm,
+    %       bande d'activation jusqu'à d = 95 mm)
+    \begin{scope}[x=0.055cm, y=5cm]
+      \draw[->, okOrange, line width=1.1pt] (-4,1.24) -- (4,1.24);
+      \node[annot, okOrange, anchor=west] at (6,1.24)
         {vitesse d'approche};
-      \draw[->, okBlue, line width=1.1pt] (38,1.09) -- (43,1.09);
-      \node[annot, okBlue, anchor=west] at (44,1.09)
+      \draw[->, okBlue, line width=1.1pt] (52,1.24) -- (60,1.24);
+      \node[annot, okBlue, anchor=west] at (62,1.24)
         {recul selon $\nabla_{\mathbf{q}} h$};
-      \fill[okGrey!45]   (-14,0) rectangle (0,1);
+      \fill[okGrey!45]   (-16,0) rectangle (0,1);
       \fill[okOrange!18] (0,0)   rectangle (15,1);
-      \fill[okSky!18]    (15,0)  rectangle (55,1);
+      \fill[okSky!18]    (15,0)  rectangle (95,1);
       \draw[okGrey, line width=1.4pt] (0,0)  -- (0,1);
       \draw[okBlue, line width=1.8pt] (15,0) -- (15,1);
-      \node[annot, rotate=90] at (-7,0.60)
+      \node[annot, rotate=90] at (-8,0.60)
         {lien protégé $l$\\(surface : $d = 0$)};
-      \node[annot, rotate=90, okOrange] at (7.5,0.60)
-        {zone de récupération\\($d_{\mathrm{rec}} = 15$~mm)};
-      \node[annot, rotate=90, okBlue] at (18.5,0.60)
+      \node[annot, rotate=90, okOrange] at (7.5,0.58)
+        {récupération\\($d_{\mathrm{rec}} = 15$~mm)};
+      \node[annot, rotate=90, okBlue] at (19.5,0.60)
         {frontière $h = 0$};
-      \node[annot] at (37,0.90)
-        {bande d'activation\\($h \leq h_{\mathrm{act}}$)};
-      \node[annot, rotate=90, okGrey] at (63,0.50) {contrainte inactive};
+      \node[annot] at (62,0.90)
+        {bande d'activation ($h \leq h_{\mathrm{act}} = 80$~mm)};
+      \node[annot, rotate=90, okGrey] at (103,0.50) {contrainte\\inactive};
       \draw[<->, line width=0.8pt] (0,0.07) -- (15,0.07);
-      \node[annot, anchor=west] at (16.5,0.07)
+      \node[annot, anchor=west] at (17,0.07)
         {marge $d_{\mathrm{safe}} = 15$~mm};
-      % points obstacles observés, évalués dans le champ du lien ;
-      % le plus proche (aligné sur la flèche d'approche) fixe h
-      \foreach \px/\py in {36/0.46, 41/0.32, 46/0.60, 52/0.42, 57/0.30}
+      \foreach \px/\py in {46/0.46, 55/0.32, 64/0.60, 74/0.42, 84/0.30}
         \fill[okGrey] (\px,\py) circle[radius=1.1pt];
-      \node[annot, okGrey] at (46,0.74) {points obstacles $\mathbf{p}_i$};
-      \fill[okGrey] (30,0.26) circle[radius=1.7pt];
-      % gradient spatial du SDF du lien, évalué AU point le plus proche :
-      % il pointe dans le sens des d croissants (s'éloignant du lien)
-      \draw[->, okGrey, line width=1.0pt] (31.5,0.26) -- (40,0.26);
-      \node[annot, okGrey] at (36.5,0.185) {$\nabla_{\mathbf{x}} d$};
-      % le lien se déplace : approche vers le point le plus proche,
-      % bornée par la contrainte ; recul le long de grad_q(h)
-      \draw[->, okOrange, line width=1.1pt] (0.5,0.26) -- (11,0.26);
-      \draw[->, okBlue, line width=1.1pt] (-0.5,0.26) -- (-10,0.26);
-      \draw[line width=0.6pt] (-14,0) -- (71,0);
-      \foreach \x in {0,15,55} {
+      \node[annot, okGrey] at (66,0.74) {points obstacles $\mathbf{p}_i$};
+      \fill[okGrey] (34,0.26) circle[radius=1.7pt];
+      \draw[->, okGrey, line width=1.0pt] (36,0.26) -- (50,0.26);
+      \node[annot, okGrey] at (43,0.175) {$\nabla_{\mathbf{x}} d$};
+      \draw[->, okOrange, line width=1.1pt] (0.8,0.26) -- (13,0.26);
+      \draw[->, okBlue, line width=1.1pt] (-0.8,0.26) -- (-13,0.26);
+      \draw[line width=0.6pt] (-16,0) -- (118,0);
+      \foreach \x in {0,15,95} {
         \draw[line width=0.6pt] (\x,0) -- +(0,-3.5pt);
         \node[ticklab, anchor=north] at ($(\x,0)+(0,-4pt)$) {\x};
       }
-      \node[annot, anchor=north] at ($(28.5,0)+(0,-18pt)$)
+      \node[annot, anchor=north] at ($(51,0)+(0,-18pt)$)
         {distance au lien $d$~[mm]};
-      \node[font=\small\bfseries, anchor=south west] at (-14,1.04) {(a)};
+      \node[font=\small\bfseries, anchor=south west] at (-16,1.16) {(a)};
     \end{scope}
-    % ----- (b) second membre saturé b(h), échelle vraie
-    \begin{scope}[shift={(10cm,2.375cm)}, x=0.082cm, y=6.25cm]
-      \fill[okGrey!45]   (-25,-0.38) rectangle (-15,0.42);
-      \fill[okOrange!18] (-15,-0.38) rectangle (0,0.42);
-      \fill[okSky!18]    (0,-0.38)   rectangle (40,0.42);
-      \fill[black!5]     (40,-0.38)  rectangle (60,0.42);
-      \foreach \x in {-15,0,20,40}
-        \draw[black!20, line width=0.4pt] (\x,-0.38) -- (\x,0.42);
-      \foreach \y in {-0.30,-0.15,0,0.15,0.30}
-        \draw[black!20, line width=0.4pt] (-25,\y) -- (60,\y);
-      \draw[okLightGrey, dashed, line width=0.7pt] (-25,-0.30) -- (60,-0.30);
-      \draw[okLightGrey, dashed, line width=0.7pt] (-25,0.30)  -- (60,0.30);
-      \node[annot, okGrey, anchor=south west] at (-24.5,0.30)
-        {$+v_{\mathrm{rec}}$};
-      \node[annot, okGrey, anchor=south east] at (59.5,-0.30)
-        {$-v_{\mathrm{in}}$};
-      \draw[okBlue, line width=1.4pt] (0,-0.38) -- (0,0.42);
-      \node[annot, okGrey] at (50,0.05) {non\\évaluée};
-      \draw[okGreen, line width=1.5pt] (-25,0.301) -- (-15,0.301) -- (0,0.001);
-      \draw[okBlue,  line width=1.5pt] (0,0.001) -- (40,-0.299);
-      \fill[okBlue] (40,-0.299) circle[radius=1.8pt];
-      \draw[line width=0.6pt] (-25,-0.38) -- (60,-0.38);
-      \draw[line width=0.6pt] (-25,-0.38) -- (-25,0.42);
-      \foreach \x/\xlab in {-15/{$-15$}, 0/{$0$}, 20/{$20$}, 40/{$40$}, 60/{$60$}} {
-        \draw[line width=0.6pt] (\x,-0.38) -- +(0,-3.5pt);
-        \node[ticklab, anchor=north] at ($(\x,-0.38)+(0,-4pt)$) {\xlab};
+    % ----- (b) second membre saturé b(h) : échelle vraie sur les deux axes,
+    %       v_in = v_rec = 0,50 m/s, h_act = 80 mm, d_rec = 15 mm.
+    \begin{scope}[shift={(10.4cm,2.5cm)}, x=0.058cm, y=4.31cm]
+      \fill[okGrey!45]   (-24,-0.58) rectangle (-15,0.58);
+      \fill[okOrange!18] (-15,-0.58) rectangle (0,0.58);
+      \fill[okSky!18]    (0,-0.58)   rectangle (80,0.58);
+      \fill[black!5]     (80,-0.58)  rectangle (104,0.58);
+      \foreach \x in {-15,0,40,80}
+        \draw[black!20, line width=0.4pt] (\x,-0.58) -- (\x,0.58);
+      \foreach \y in {-0.50,-0.25,0,0.25,0.50}
+        \draw[black!20, line width=0.4pt] (-24,\y) -- (104,\y);
+      \draw[okLightGrey, dashed, line width=0.7pt] (-24,0.50)  -- (104,0.50);
+      \draw[okLightGrey, dashed, line width=0.7pt] (-24,-0.50) -- (104,-0.50);
+      \node[annot, okGrey, anchor=south] at (46,0.505)
+        {$+v_{\mathrm{rec}} = 0{,}50$~m/s};
+      \node[annot, okGrey, anchor=north] at (46,-0.505)
+        {$-v_{\mathrm{in}} = 0{,}50$~m/s};
+      \draw[okBlue, line width=1.4pt] (0,-0.58) -- (0,0.58);
+      \node[annot, okGrey] at (92,-0.25) {non\\évaluée};
+      \draw[okGreen, line width=1.5pt] (-24,0.5005) -- (-15,0.5005) -- (0,0.001);
+      \draw[okBlue,  line width=1.5pt] (0,0.001) -- (80,-0.499);
+      \fill[okBlue] (80,-0.499) circle[radius=1.8pt];
+      \draw[line width=0.6pt] (-24,-0.58) -- (104,-0.58);
+      \draw[line width=0.6pt] (-24,-0.58) -- (-24,0.58);
+      \foreach \x/\xlab in {-15/{$-15$}, 0/{$0$}, 40/{$40$}, 80/{$80$}} {
+        \draw[line width=0.6pt] (\x,-0.58) -- +(0,-3.5pt);
+        \node[ticklab, anchor=north] at ($(\x,-0.58)+(0,-4pt)$) {\xlab};
       }
-      \foreach \y/\ylab in {-0.30/{$-0{,}30$}, -0.15/{$-0{,}15$}, 0/{$0$},
-                            0.15/{$0{,}15$}, 0.30/{$0{,}30$}} {
-        \draw[line width=0.6pt] (-25,\y) -- +(-3.5pt,0);
-        \node[ticklab, anchor=east] at ($(-25,\y)+(-4pt,0)$) {\ylab};
+      \foreach \y/\ylab in {-0.50/{$-0{,}50$}, -0.25/{$-0{,}25$}, 0/{$0$},
+                            0.25/{$0{,}25$}, 0.50/{$0{,}50$}} {
+        \draw[line width=0.6pt] (-24,\y) -- +(-3.5pt,0);
+        \node[ticklab, anchor=east] at ($(-24,\y)+(-4pt,0)$) {\ylab};
       }
-      \node[anchor=north] at ($(17.5,-0.38)+(0,-18pt)$) {barrière $h$~[mm]};
-      \node[rotate=90, anchor=south] at ($(-25,0.02)+(-38pt,0)$)
-        {$b(h)$~[m/s]};
+      \node[anchor=north] at ($(40,-0.58)+(0,-18pt)$) {barrière $h$~[mm]};
+      \node[rotate=90, anchor=south] at ($(-24,0)+(-32pt,0)$) {$b(h)$~[m/s]};
       \node[font=\small\bfseries, anchor=south east]
-        at ($(-25,0.44)+(-24pt,0)$) {(b)};
+        at ($(-24,0.60)+(-20pt,0)$) {(b)};
     \end{scope}
   \end{tikzpicture}%
   }
@@ -708,7 +706,7 @@ b(h) =
   $\nabla_{\mathbf{x}} d$, évalué au point, se rabat par la Jacobienne du lien en
   $\nabla_{\mathbf{q}} h$, qui commande le recul du lien ; (b) second membre
   saturé $b(h)$ de la contrainte, borné à $-v_{\mathrm{in}}$ en approche et à
-  $+v_{\mathrm{rec}}$ en récupération, et s'annulant à la frontière.}
+  $+v_{\mathrm{rec}}$ en récupération, et s'annulant à la frontière. Les deux panneaux sont à l'échelle, aux valeurs du Tableau~\ref{tab:cbf_params} : $d_{\mathrm{safe}} = d_{\mathrm{rec}} = 15$~mm, $h_{\mathrm{act}} = 80$~mm et $v_{\mathrm{in}} = v_{\mathrm{rec}} = 0{,}50$~m/s. Les deux plateaux ont donc la même amplitude, mais des pentes distinctes : la récupération est plus de cinq fois plus raide que l'approche, $v_{\mathrm{rec}}/d_{\mathrm{rec}} = 33{,}3$~s$^{-1}$ contre $v_{\mathrm{in}}/h_{\mathrm{act}} = 6{,}25$~s$^{-1}$.}
   \label{fig:cbf_geometrie}
 \end{figure}
 
@@ -741,15 +739,15 @@ Au lieu d'imposer un majorant théorique pessimiste, la borne $\varepsilon_{\mat
 
 \paragraph{Régime échantillonné.} Entre deux résolutions, la commande est maintenue par un bloqueur d'ordre zéro et l'état parcourt un segment rectiligne à vitesse constante. La condition instantanée ne garantit donc la sécurité qu'aux instants d'échantillonnage, et non en continu sur toute la période. Suivant l'approche des CBF échantillonnés de Breeden et al.~\cite{Breeden2022Sampled}, chaque demi-espace actif est resserré d'un terme dépendant de la vitesse :
 \begin{equation}\label{eq:sampled_margin}
-m_l(\dot{\mathbf{q}}) = \tfrac{1}{2}\,L_l\,\|\dot{\mathbf{q}}\|^{2}\,T,
+\mu_l(\dot{\mathbf{q}}) = \tfrac{1}{2}\,L_l\,\|\dot{\mathbf{q}}\|^{2}\,T,
 \end{equation}
-où $T$ est la période de commande et $L_l$ est la constante de Lipschitz du gradient du lien $l$ (Annexe~\ref{annexe:lipschitz}).
+où $L_l$ est la constante de Lipschitz du gradient du lien $l$ (Annexe~\ref{annexe:lipschitz}) et $T$ la durée de maintien de la commande. Cette durée intervient ici comme un majorant : le resserrement doit couvrir l'intervalle réellement parcouru sous bloqueur d'ordre zéro, de sorte que toute période effective inférieure à $T$ rend la contrainte plus conservatrice que nécessaire, jamais plus permissive. La valeur retenue, $T = 10$~ms, est la période nominale de la boucle de commande ; la période effectivement mesurée à l'exécution lui demeure inférieure (Section~\ref{sec:res_temps}), et le certificat n'est mis en défaut que si elle la dépasse.
 
 La contrainte effectivement résolue dans le QP rassemble alors l'ensemble des trois resserrements :
 \begin{equation}\label{eq:constraint_full}
-\nabla h_l^{\top}\dot{\mathbf{q}}_{\mathrm{cmd}} \;\geq\; b(h_l) + \eta_l + \varepsilon_{\mathrm{p}}\,\|\nabla h_l\| + m_l(\dot{\mathbf{q}}).
+\nabla h_l^{\top}\dot{\mathbf{q}}_{\mathrm{cmd}} \;\geq\; b(h_l) + \eta_l + \varepsilon_{\mathrm{p}}\,\|\nabla h_l\| + \mu_l(\dot{\mathbf{q}}).
 \end{equation}
-En notant $r_l = b(h_l) + \eta_l + \varepsilon_{\mathrm{p}}\,\|\nabla h_l\| + m_l$ ce second membre resserré complet, les trois correctifs étant positifs par construction ($\eta_l \ge 0$, $\varepsilon_{\mathrm{p}}\|\nabla h_l\| \ge 0$, $m_l \ge 0$), le second membre complet vérifie $r_l \geq -\gamma(h_l)$. La contrainte résolue est donc strictement plus forte que la condition CBF standard :
+En notant $r_l = b(h_l) + \eta_l + \varepsilon_{\mathrm{p}}\,\|\nabla h_l\| + \mu_l$ ce second membre resserré complet, les trois correctifs étant positifs par construction ($\eta_l \ge 0$, $\varepsilon_{\mathrm{p}}\|\nabla h_l\| \ge 0$, $\mu_l \ge 0$), le second membre complet vérifie $r_l \geq -\gamma(h_l)$. La contrainte résolue est donc strictement plus forte que la condition CBF standard :
 \begin{equation}\label{eq:implication_cbf}
 \nabla h_l^{\top}\dot{\mathbf{q}} \geq r_l
 \;\;\Longrightarrow\;\;
@@ -757,10 +755,10 @@ En notant $r_l = b(h_l) + \eta_l + \varepsilon_{\mathrm{p}}\,\|\nabla h_l\| + m_
 \end{equation}
 ce qui préserve le certificat d'invariance d'Ames et al. Ce renforcement garantit la sécurité au prix d'un risque d'infaisabilité à la frontière si $r_l > 0$ exige une vitesse de sortie supérieure aux limites articulaires du robot (Section~\ref{subsec:garanties}).
 
-Le terme $m_l(\dot{\mathbf{q}})$ étant quadratique en $\dot{\mathbf{q}}$, son intégration directe imposerait une contrainte quadratique (QCQP) au lieu d'une contrainte affine (QP). Pour conserver un problème d'optimisation affine (QP) résolvable en temps réel, ce terme n'est pas remplacé par sa tangente (ce qui minorerait la fonction convexe au second membre et relâcherait dangereusement la contrainte), mais évalué à une enveloppe de vitesse $v_{\mathrm{env}}$ majorant la vitesse réelle sur la période de maintien. Le resserrement $m_l = \tfrac{1}{2}L_l\,v_{\mathrm{env}}^2\,T$ garantit ainsi la période sous l'hypothèse surveillée $\|\dot{\mathbf{q}}_{\text{réel}}\| \leq v_{\mathrm{env}}$. Sous cette hypothèse, le filtre calcule de manière proactive la vitesse de frôlement maximale admissible au lieu d'émettre une vitesse excessive que le contrôleur bas niveau devrait interrompre. Ce recul, proportionnel au carré de la vitesse, s'annule au repos et se trouve donc ajusté au mouvement. Le frein réflexe (Section~\ref{subsubsec:reflexe}) re-vérifie cette même condition échantillonnée en aval pour intercepter tout dépassement imprévu de l'enveloppe $v_{\mathrm{env}}$.
+Le terme $\mu_l(\dot{\mathbf{q}})$ étant quadratique en $\dot{\mathbf{q}}$, son intégration directe imposerait une contrainte quadratique (QCQP) au lieu d'une contrainte affine (QP). Pour conserver un problème d'optimisation affine (QP) résolvable en temps réel, ce terme n'est pas remplacé par sa tangente (ce qui minorerait la fonction convexe au second membre et relâcherait dangereusement la contrainte), mais évalué à une enveloppe de vitesse $v_{\mathrm{env}}$ majorant la vitesse réelle sur la période de maintien. Le resserrement $\mu_l = \tfrac{1}{2}L_l\,v_{\mathrm{env}}^2\,T$ garantit ainsi la période sous l'hypothèse surveillée $\|\dot{\mathbf{q}}_{\text{réel}}\| \leq v_{\mathrm{env}}$. Sous cette hypothèse, le filtre calcule de manière proactive la vitesse de frôlement maximale admissible au lieu d'émettre une vitesse excessive que le contrôleur bas niveau devrait interrompre. Ce recul, proportionnel au carré de la vitesse, s'annule au repos et se trouve donc ajusté au mouvement. Le frein réflexe (Section~\ref{subsubsec:reflexe}) re-vérifie cette même condition échantillonnée en aval pour intercepter tout dépassement imprévu de l'enveloppe $v_{\mathrm{env}}$.
 
 \subsection{Vitesse nominale filtrée}\label{subsec:vitesse_nominale}
-La seconde entrée du problème~\eqref{eq:cbf_qp} est la vitesse que le système \emph{souhaite} exécuter, la \emph{vitesse nominale filtrée}. Celle-ci combine le feedforward retimé $\dot{\mathbf{q}}_{\mathrm{ff}}$ (Section~\ref{subsec:dqff}) et une correction de suivi proportionnelle saturée :
+La seconde entrée du problème~\eqref{eq:cbf_qp} est la vitesse que le système souhaite exécuter, la vitesse nominale filtrée. Celle-ci combine le feedforward retimé $\dot{\mathbf{q}}_{\mathrm{ff}}$ (Section~\ref{subsec:dqff}) et une correction de suivi proportionnelle saturée :
 \begin{equation}
 \dot{\mathbf{q}}_{\mathrm{fb}}^{\,0} = \operatorname{sat}\!\big( K_p(\mathbf{q}_{\mathrm{nom}}-\mathbf{q}_{\mathrm{cur}}),\; \dot{q}_{\mathrm{fb,max}} \big).
 \end{equation}
@@ -1006,7 +1004,7 @@ $\alpha$ & Température du soft-min & $0{,}002$ \\
 $K$ & Nombre de points critiques sélectionnés & $64$ \\
 $h_{\mathrm{act}}$ & Bande d'activation de la contrainte & $80$~mm \\
 $v_{\mathrm{in}}$ & Vitesse d'approche normale maximale ($\dot{h}$) & $0{,}50$~m/s \\
-$v_{\mathrm{rec}}$ & Vitesse de sortie exigée en violation ($\dot{h}$) & $0{,}05$~m/s \\
+$v_{\mathrm{rec}}$ & Vitesse de sortie exigée en violation ($\dot{h}$) & $0{,}50$~m/s \\
 $d_{\mathrm{rec}}$ & Profondeur de saturation en récupération & $15$~mm \\
 $\Delta v_{\max}$ & Correction maximale de projection & $0{,}50$~rad/s \\
 $\Delta v_{\max}^{\mathrm{rec}}$ & Réparation maximale en violation ($h<0$) & $0{,}50$~rad/s \\
@@ -1048,7 +1046,7 @@ Le filtre de sécurité est désormais entièrement formulé. Cette section éta
 En temps continu, la formulation \ac{CBF} garantit l'invariance avant de l'ensemble sûr défini par la barrière apprise $h(\mathbf{q}) \geq 0$ (dont les preuves formelles pour les modes soft-min et compensé figurent à l'Annexe~\ref{annexe:cbf_details}). Cette garantie découle de la structure même du filtre et non du réglage d'une marge : la sécurité étant formulée sous forme de contraintes strictes dans le problème QP~\eqref{eq:cbf_qp}, l'intention du modèle génératif n'entre que dans la fonction coût. Aucune consigne nominale ne peut donc violer un demi-espace de sécurité, quelle que soit son intensité.
 
 \paragraph{Ce que l'implémentation en retranche.} 
-Sept hypothèses séparent toutefois ce théorème continu idéalisé de l'exécution réelle sur le robot. Le Tableau~\ref{tab:hypotheses_certificat} énonce chacune de ces hypothèses, la quantité télémétrique qui la surveille en ligne, et l'action corrective appliquée en cas de violation. Aucune hypothèse n'est laissée sous-entendue : c'est la condition pour que le certificat désigne un objet vérifiable plutôt qu'un idéal théorique.
+Huit hypothèses séparent toutefois ce théorème continu idéalisé de l'exécution réelle sur le robot. Le Tableau~\ref{tab:hypotheses_certificat} énonce chacune de ces hypothèses, la quantité télémétrique qui la surveille en ligne, et l'action corrective appliquée en cas de violation. Aucune hypothèse n'est laissée sous-entendue : c'est la condition pour que le certificat désigne un objet vérifiable plutôt qu'un idéal théorique.
 
 \begin{table}[htbp]
 \centering
@@ -1062,7 +1060,8 @@ Sélection constante & La sélection des points critiques et leur effectif $N$ d
 Faisabilité & L'intersection des demi-espaces actifs et des limites de vitesse articulaire est non vide & Résidu de contrainte sur la commande publiée (\texttt{constr\_final}) & Résidu mesuré plutôt que supposé nul ; le frein réflexe retient la commande lorsque sa propre condition est infaisable \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Poursuite de la commande & La vitesse exécutée suit la commande à une perturbation près bornée par $\varepsilon_{\mathrm{p}}$ dans la direction de chaque gradient actif, couverte par~\eqref{eq:issf_tightening} & Perturbation projetée, mesurée à chaque cycle sur les lignes actives & Veto du frein réflexe ($\alpha=0$) jusqu'au retour de la mesure sous la borne \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Fiabilité du gradient & Le gradient de ligne porte une direction exploitable & Norme $\|\nabla h_l\|$ comparée au seuil $g_{\min}$ (Section~\ref{subsec:commande}) & Ligne exclue de la réparation ; violation résiduelle mesurée puis résorbée aux cycles suivants \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-État initial & L'état initial appartient à l'ensemble sûr & Signe de $h_{\min}$ & Régime de récupération exigeant une vitesse de sortie croissant avec la pénétration (attractivité au lieu d'invariance) \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+État initial & L'état initial appartient à l'ensemble sûr & Signe de $h_{\min,l}$ & Régime de récupération exigeant une vitesse de sortie croissant avec la pénétration (attractivité au lieu d'invariance) \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+Régularité de la barrière & Le raccord du prolongement hors domaine est différentiable, alors qu'il ne l'est que par morceaux (Annexe~\ref{annexe:gradient_details}) & Distance au domaine d'approximation & Raccords situés au-delà de $40$~mm de dégagement, où la réserve excède le reste quadratique \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Temps continu & La commande s'applique en temps continu, alors qu'elle est maintenue par bloqueur d'ordre zéro sur la période & Re-vérification de la commande maintenue par le frein réflexe à ${\sim}1$~kHz & Resserrement échantillonné~\eqref{eq:sampled_margin} réinjectant le reste dépendant de l'état ; commande retenue si le frein échoue \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Environnement immobile & Les obstacles demeurent fixes entre deux mises à jour de leur représentation & Résidu temporel $\bar{d}_l$ estimé par lien & Resserrement $\eta_l$ (Section~\ref{subsec:contrainte}) ; garantie formelle quasi statique, apport dynamique validé au Chapitre~\ref{sec:Theme3} \\ \hline
 \end{tabular}
@@ -1076,13 +1075,15 @@ La marge $d_{\mathrm{safe}}$ ne génère pas l'évitement, elle le robustifie : 
 Son dimensionnement ($d_{\mathrm{safe}} = 15$~mm) est adapté au cadre d'évaluation retenu :
 \begin{itemize}
     \item \textbf{Absence de bruit perceptif} : En simulation, les nuages d'obstacles synthétiques sont échantillonnés sur la surface exacte des objets et les repères sont parfaitement connus. Les incertitudes de profondeur, de calibration ou de quantification de carte y sont donc nulles.
-    \item \textbf{Rôle de la réserve} : La marge n'a qu'à absorber le résidu de discrétisation non couvert par le resserrement échantillonné, le retard d'obsolescence des points critiques ($10$~ms), l'erreur d'approximation du \ac{SDF} appris, ainsi que le biais $\alpha\log(N/M_{\mathrm{eff}})$ en mode déployé.
+    \item \textbf{Rôle de la réserve} : La marge n'a qu'à absorber le résidu de discrétisation non couvert par le resserrement échantillonné, le retard d'obsolescence des points critiques ($10$~ms), ainsi que l'erreur d'approximation du \ac{SDF} appris.
 \end{itemize}
 
 Le résidu de discrétisation pèse peu sur cette marge grâce à la formulation de la contrainte instantanée, qui coïncide avec la linéarisation de la condition en temps discret de Agrawal et al.~\cite{Agrawal2017Discrete} et Breeden et al.~\cite{Breeden2022Sampled} : son terme d'erreur dépendant de l'état est directement réinjecté dans le second membre de la contrainte, au lieu d'être provisionné au pire cas dans la marge. Les alternatives écartées et leur coût figurent à l'Annexe~\ref{annexe:cbf_details}.
 
 \paragraph{Barrière apprise et géométrie réelle.} 
-Il convient de souligner que le certificat théorique s'applique à la barrière apprise $h(\mathbf{q})$, et non à la géométrie physique réelle. La distance physique réelle hérite directement de l'erreur d'approximation du \ac{SDF}. En régime permanent, le filtre maintient $h_{\min} \geq 0$, correspondant à une distance apprise d'au moins $d_{\mathrm{safe}}$, de laquelle il faut soustraire l'erreur d'approximation du modèle pour obtenir le dégagement physique effectif.
+Il convient de souligner que le certificat théorique s'applique à la barrière apprise $h(\mathbf{q})$, et non à la géométrie physique réelle. La distance physique réelle hérite directement de l'erreur d'approximation du \ac{SDF}. En régime permanent, le filtre maintient $h_{\min,l} \geq 0$, correspondant à une distance apprise d'au moins $d_{\mathrm{safe}}$, de laquelle il faut soustraire l'erreur d'approximation du modèle pour obtenir le dégagement physique effectif.
+
+Une seconde distinction, de nature différente, sépare la contrainte appliquée de l'ensemble certifié. Le filtre contraint la valeur exacte $h_{\min,l}$ mais emploie le gradient du soft-min, et la seule fonction cohérente en valeur comme en gradient est la barrière compensée $h_{\mathrm{corr}} = h_{\mathrm{soft}} + \alpha\log N$ : c'est donc l'invariance de $\{h_{\mathrm{corr}} \geq 0\}$ que le théorème délivre (Annexe~\ref{annexe:cbf_details}). Comme $h_{\min,l} \leq h_{\mathrm{corr}}$ et que le second membre est décroissant, la contrainte appliquée est strictement plus forte que celle qu'exigerait $h_{\mathrm{corr}}$ : l'implémentation est donc plus conservatrice que le certificat qu'elle invoque. L'écart entre les deux, borné par $\alpha\log N \approx 8{,}3$~mm, n'est pas une réserve consommée en fonctionnement mais la distance entre ce que le théorème garantit et ce que le filtre tient.
 
 Cette distinction est assumée : l'invariance est rigoureusement exacte vis-à-vis de la barrière apprise, tandis que la sécurité physique réelle est validée empiriquement au Chapitre~\ref{sec:Theme3} par la mesure de la distance minimale au maillage exact du robot et des obstacles.
 
