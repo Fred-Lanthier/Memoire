@@ -239,9 +239,11 @@ Les deux derniers scénarios sondent chacun une limite ou un mécanisme dédié.
 \centering
 \caption{Matrice des scénarios évalués par banc d'essai ($N$ essais par cellule).}
 \label{tab:res_scenarios}
+\small
 \begin{tabular}{lccc}
 \toprule
-\textbf{Scénario} & \textbf{Alimentation} & \textbf{Saisie--dépôt (Panda)} & \textbf{Saisie--dépôt (xArm7)} \\
+\textbf{Scénario} & \textbf{Alimentation} & \textbf{Saisie et dépôt} & \textbf{Saisie et dépôt} \\
+ & & \textbf{(Panda)} & \textbf{(xArm7)} \\
 \midrule
 Sans obstacle critique        & $N=$ \ldots & $N=$ \ldots & $N=$ \ldots \\
 Obstacle(s) statique(s)    & $N=$ \ldots & $N=$ \ldots & $N=$ \ldots \\
@@ -585,7 +587,8 @@ La colonne des maxima demande une précaution de lecture. Chaque étage y attein
 \centering
 \caption{Statistiques descriptives des temps de calcul par étage du système intégré (durées en millisecondes). Les maxima correspondent au cycle d'amorçage et sont exclus de l'analyse.}
 \label{tab:stage_stats}
-\small
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{llcccccc}
 \toprule
 \textbf{Étage} & \textbf{Module du Chapitre~\ref{sec:Theme2}} & \textbf{n} & \textbf{Moy.} & \textbf{É.-t.} & \textbf{Méd.} & \textbf{p95} & \textbf{Max} \\

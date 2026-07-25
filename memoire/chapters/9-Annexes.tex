@@ -106,7 +106,7 @@ La grille de la Section~\ref{subsec:Protocol} (Figure~\ref{fig:protocole_echanti
   \item \texttt{step\_number} : indice de l'échantillon dans la trajectoire ;
   \item \texttt{time\_step} : instant de la prise de données depuis le début de la trajectoire ;
   \item \texttt{rgb} : nom du fichier de l'image couleur, nommé par convention \\ \texttt{ee\_rgb\_step\_\{step\_number\}.png} ;
-  \item \texttt{depth\_npy} : nom du fichier de la carte de profondeur, nommé par convention \texttt{ee\_depth\_step\_\{step\_number\}.npy}.
+  \item \texttt{depth\_npy} : nom du fichier de la carte de profondeur, nommé par convention \\ \texttt{ee\_depth\_step\_\{step\_number\}.npy}.
 \end{itemize}
 Les images et cartes de profondeur sont écrites dans un sous-dossier dédié ; le fichier \ac{JSON} n'en contient que les noms.
 
@@ -139,7 +139,9 @@ Les images et cartes de profondeur sont écrites dans un sous-dossier dédié ; 
 \label{fig:dir_tree}
 \end{figure}
 
-Le prétraitement décrit plus bas produit un second dossier racine, miroir du premier : les nuages de points conditionnels fusionnés y sont enregistrés sous le nom \texttt{Merged\_\{step\_number\}.npy} dans un sous-dossier \texttt{Merged\_Trajectory\_X}, et le fichier \ac{JSON} de la trajectoire y est copié, augmenté de la pose de l'outil dans le repère de base (Figure~\ref{fig:preprocess_dir_tree}).
+Le prétraitement décrit plus bas produit un second dossier racine, miroir du premier : chaque trajectoire y reçoit un sous-dossier
+\texttt{Merged\_Trajectory\_X} contenant les nuages de points conditionnels fusionnés, nommés
+\texttt{Merged\_\{step\_number\}.npy}, et le fichier \ac{JSON} de la trajectoire y est copié, augmenté de la pose de l'outil dans le repère de base (Figure~\ref{fig:preprocess_dir_tree}).
 
 \begin{figure}[H]
 \centering

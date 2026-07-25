@@ -68,7 +68,7 @@ ce qui réduit le champ cible $u_t$ au vecteur constant reliant le point initial
 \begin{equation}
 u_t(X_t \mid X_0, X_1) = X_1 - X_0.
 \end{equation}
-Lorsque $\sigma_{\min}=0$, le chemin se réduit à l'interpolation déterministe $X_t = t\,X_1 + (1-t)\,X_0$ ; une variance résiduelle $\sigma_{\min}>0$ régularise l'entraînement, au prix d'atteindre non pas la cible exacte mais sa convolution par un bruit gaussien d'écart-type $\sigma_{\min}$. Cette formulation linéaire favorise des trajectoires d'intégration quasi rectilignes, permettant d'intégrer l'\ac{ODE} en un nombre réduit d'étapes de discrétisation tout en préservant la qualité des trajectoires ; l'intégration est déterministe conditionnellement à l'échantillon initial $X_0$, la génération demeurant stochastique à travers son tirage.
+Lorsque $\sigma_{\min}=0$, le chemin se réduit à l'interpolation déterministe $X_t = t\,X_1 + (1-t)\,X_0$ ; une variance résiduelle $\sigma_{\min}>0$ régularise l'entraînement, au prix d'atteindre non pas la cible exacte mais sa convolution par un bruit gaussien d'écart-type $\sigma_{\min}$. Cette formulation rend rectiligne le chemin \textit{conditionnel} ; les trajectoires du champ marginal, elles, ne le sont qu'approximativement, et Liu et al. proposent une procédure de rectification itérative (\textit{reflow}) qui les redresse davantage en recouplant les extrémités puis en réentraînant. La quasi-rectitude obtenue dès le premier entraînement suffit néanmoins, en pratique, à intégrer l'\ac{ODE} en un nombre réduit d'étapes de discrétisation tout en préservant la qualité des trajectoires ; l'intégration est déterministe conditionnellement à l'échantillon initial $X_0$, la génération demeurant stochastique à travers son tirage.
 
 Pour adapter ce formalisme à la robotique, il suffit de conditionner le champ $u_t^{\theta}(X \mid c)$ sur une observation sémantique ou géométrique $c$, ce qui permet d'obtenir un planificateur de trajectoire réactif, comme l'illustre le framework PointFlowMatch~\cite{Chisari2024Manipulation}.
 
@@ -313,7 +313,7 @@ Cette hypothèse sert de clé de voûte au récit scientifique de ce mémoire. A
 \caption{Tableau comparatif des frameworks de planification et de sécurité de l'état de l'art.}
 \label{tab:etat_art}
 \footnotesize
-\setlength{\tabcolsep}{3pt}
+\setlength{\tabcolsep}{2pt}
 \renewcommand{\arraystretch}{1.40}
 \begin{tabular}{>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}p{2.2cm}}
 \toprule
