@@ -1063,7 +1063,7 @@ Fiabilité du gradient & Le gradient de ligne porte une direction exploitable & 
 État initial & L'état initial appartient à l'ensemble sûr & Signe de $h_{\min,l}$ & Régime de récupération exigeant une vitesse de sortie croissant avec la pénétration (attractivité au lieu d'invariance) \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Régularité de la barrière & Le raccord du prolongement hors domaine est différentiable, alors qu'il ne l'est que par morceaux (Annexe~\ref{annexe:gradient_details}) & Distance au domaine d'approximation & Raccords situés au-delà de $40$~mm de dégagement, où la réserve excède le reste quadratique \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Temps continu & La commande s'applique en temps continu, alors qu'elle est maintenue par bloqueur d'ordre zéro sur la période & Re-vérification de la commande maintenue par le frein réflexe à ${\sim}1$~kHz & Resserrement échantillonné~\eqref{eq:sampled_margin} réinjectant le reste dépendant de l'état ; commande retenue si le frein échoue \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Environnement immobile & Les obstacles demeurent fixes entre deux mises à jour de leur représentation & Résidu temporel $\bar{d}_l$ estimé par lien & Resserrement $\eta_l$ (Section~\ref{subsec:contrainte}) ; garantie formelle quasi statique, apport dynamique validé au Chapitre~\ref{sec:Theme3} \\ \hline
+Environnement immobile & Les obstacles demeurent fixes entre deux mises à jour de leur représentation & Résidu temporel $\bar{d}_l$ estimé par lien & Resserrement $\eta_l$ (Section~\ref{subsec:contrainte}) ; apport validé au Chapitre~\ref{sec:Theme3} \\ \hline
 \end{tabular}
 \end{table}
 
