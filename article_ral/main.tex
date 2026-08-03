@@ -1,4 +1,4 @@
-\documentclass[journal,twoside]{IEEEtran}
+\documentclass[journal]{IEEEtran}
 
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
@@ -7,321 +7,456 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
-\usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{subcaption}
 \usepackage{bm}
 \usepackage{tikz}
+\usepackage[hidelinks]{hyperref}
 \usetikzlibrary{arrows.meta, positioning, calc, fit, backgrounds}
+
+\graphicspath{{figures/}}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\dbltopfraction}{0.92}
+\renewcommand{\textfraction}{0.06}
+\renewcommand{\floatpagefraction}{0.75}
+\renewcommand{\dblfloatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{dbltopnumber}{3}
+\setcounter{totalnumber}{5}
+\setlength{\textfloatsep}{9pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\dbltextfloatsep}{9pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{0pt}
+\setlength{\abovedisplayskip}{4pt plus 2pt minus 2pt}
+\setlength{\belowdisplayskip}{4pt plus 2pt minus 2pt}
+\setlength{\abovedisplayshortskip}{2pt plus 2pt}
+\setlength{\belowdisplayshortskip}{3pt plus 2pt minus 2pt}
+
+\newcommand{\qdot}{\dot{\mathbf{q}}}
+\newcommand{\dsafe}{d_{\mathrm{safe}}}
 
 \begin{document}
 
-\title{Decoupled Reactive Safety Filtering for Generative Trajectory Policies via Bernstein Robot Distance Fields and Control Barrier Functions}
+\title{Whole-Body Safety Filtering of Flow-Matching\\
+Policies with Geometrically Refined Distance Fields}
 
-\author{Fr\'ed\'erick Lanthier, Sofiane Achiche, and J\'er\^ome Le Ny
-\thanks{This work was supported by Polytechnique Montr\'eal.}
-\thanks{Fr\'ed\'erick Lanthier, Sofiane Achiche, and J\'er\^ome Le Ny are with the Department of Mechanical Engineering, Polytechnique Montr\'eal, QC H3T 1J4, Canada (e-mail: frederick.lanthier@polymtl.ca).}
+\author{Fr\'ed\'erick Lanthier, Sofiane Achiche, and J\'er\^ome Le~Ny%
+\thanks{Manuscript submitted \today. This work was supported by Polytechnique Montr\'eal.}%
+\thanks{F. Lanthier and S. Achiche are with the Department of Mechanical Engineering, and J. Le Ny is with the Department of Electrical Engineering, Polytechnique Montr\'eal, QC H3T 1J4, Canada (e-mail: frederick.lanthier@polymtl.ca).}%
 }
 
-\markboth{IEEE Robotics and Automation Letters}{Lanthier \MakeLowercase{\textit{et al.}}: Decoupled Reactive Safety Filtering for Generative Trajectory Policies}
+\markboth{IEEE Robotics and Automation Letters. Preprint version.}%
+{Lanthier \MakeLowercase{\textit{et al.}}: Whole-Body Safety Filtering of Flow-Matching Policies}
 
 \maketitle
 
 \begin{abstract}
-Generative trajectory policies based on Flow Matching (FM) exhibit strong performance in capturing multimodal expert demonstrations for robotic manipulation. However, when trained on obstacle-free demonstrations, they lack formal safety guarantees in unseen, cluttered environments. Retraining or constraining the generative sampling process introduces severe computational overhead and distributional shift. In this paper, we propose a fully decoupled architecture that decouples trajectory intent from real-time safety enforcement. A frozen, pre-trained FM policy generates nominal joint trajectories, while a downstream reactive Control Barrier Function (CBF) shield filters velocity commands at 100~Hz. To enable high-frequency, whole-body obstacle avoidance, we construct a Robot Distance Field (RDF) using 3D Bernstein polynomials refined via a two-stage training scheme that explicitly constrains distance values, Eikonal gradient norms, and surface-normal directional alignment on 20,000 verified rays. We derive an exact, closed-form analytical expression for the joint-space distance gradient using link geometric Jacobians, avoiding auto-differentiation overhead. The CBF formulation incorporates a three-layer tightening scheme covering discretization, low-level tracking error, and moving obstacles, supplemented by a 1~kHz C++ reflex brake. Validated in simulation on 7-DoF Franka Emika Panda and UFactory xArm7 manipulators for assisted feeding and pick-and-place tasks, our framework completely eliminates collisions without degrading task success, while maintaining sub-millisecond QP execution times and zero-shot transfer across robot embodiments.
+Flow Matching (FM) policies learn multimodal manipulation behaviour from a few dozen demonstrations, but a policy trained without obstacles has no notion of one and will drive straight through it. Constraining the sampling process or retraining on cluttered scenes pays for safety with distribution shift or with data. We filter execution instead: a frozen FM policy emits nominal trajectories at 3 to 5~Hz while a whole-body Control Barrier Function shield projects the velocity command at 100~Hz, backed by a 1~kHz reflex brake in the real-time controller. The enabling component is a robot distance field accurate in its \emph{gradient}: nine Bernstein tensor polynomials refined against 20\,000 verified surface normal rays under Eikonal and directional losses, reaching 1.96~mm mean distance error and $5.4^\circ$ median gradient direction error against exact meshes. We derive the exact closed-form joint-space gradient, which matches automatic differentiation to single-precision roundoff while running up to $1.75\times$ faster, and a monotone out-of-domain minorant that never inverts the correction direction. Every gap between the continuous-time certificate and sampled execution becomes an online-monitored assumption: a 26-trajectory campaign calibrates the tracking bound at 97.9\,\% coverage and shows a static worst-case bound would be 3.7 to 6.9 times larger.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Reactive safety filtering, Flow Matching, Control Barrier Functions, Robot Distance Fields, robotic manipulation.
+Collision avoidance, safety filtering, control barrier functions, learning from demonstration, distance fields.
 \end{IEEEkeywords}
 
 \section{Introduction}
-\IEEEPARstart{G}{enerative} behavior cloning models, notably Diffusion Policies \cite{ChiXXXXVisuomotor, Ho2020Denoising, Janner2022Planning} and Flow Matching (FM) \cite{Lipman2023Flow, Tong2024Conditional, Liu2023Rectified}, have emerged as powerful frameworks for robotic manipulation. By learning continuous velocity vector fields from expert demonstrations, FM planners generate smooth, multimodal trajectories in a small number of deterministic integration steps, enabling closed-loop replanning. 
+\IEEEPARstart{G}{enerative} behaviour cloning has changed how manipulation policies are built. Diffusion policies \cite{ChiXXXXVisuomotor} and Flow Matching (FM) \cite{Lipman2023Flow,Liu2023Rectified} recover the multimodality of human demonstrations instead of averaging it away, and FM adds a property that matters for control: because its conditional paths are close to straight, a trajectory segment is sampled in a handful of network evaluations, which puts closed-loop replanning within reach where diffusion remains too slow.
 
-Despite these advances, generative policies remain fundamentally constrained by their training data: when trained on obstacle-free demonstrations, they offer no safety guarantees when deployed in unobserved, cluttered environments. Traditional motion planners (e.g., RRT-Connect \cite{Kuffner2000Rrt}, OMPL \cite{Sucan2012Ompl}, CHOMP \cite{Zucker2013Chomp}, TrajOpt \cite{Schulman2014Trajopt}) can navigate around obstacles but lack the rich task multimodal priors captured by generative networks. Existing attempts to address safety in generative planners fall into two main paradigms, both carrying substantial drawbacks:
-\begin{enumerate}
-    \item \textit{Generative Constraining:} Modifying the sampling process itself via guided diffusion \cite{Dai2025Safeflow, Yang2026Safeflowmatcher} or constrained ODE integration causes distributional shift and incurs heavy computational latency at every sampling iteration.
-    \item \textit{Obstacle-Aware Retraining:} Teaching avoidance to the generative model requires massive dataset augmentation with cluttered scenes or human-in-the-loop corrections \cite{Welte2026Flowcorrect}, requiring retraining for every scene geometry.
-\end{enumerate}
+A generative policy is nonetheless an exact reflection of its data. Trained in a clear workspace, it has never met an obstacle and holds no mechanism for one: placed in front of a bowl or a hand absent from its training set, it produces a trajectory that goes through them. Two families of answers exist and both charge a price. Constraining the sampling process itself \cite{Dai2025Safeflow} pushes the model through states it never saw at training time, shifting the distribution and loading every integration step. Teaching avoidance to the model demands demonstrations enriched with obstacles far beyond the few dozen that suffice for the nominal task, repeated for every family of scenes; having an operator correct failures at deployment \cite{Welte2026Flowcorrect} displaces that effort rather than removing it.
 
-To overcome these limitations, we propose a third paradigm: \textit{filtering execution rather than generation} \cite{Rmer2026From, Wabersich2021Predictive}. As illustrated in Fig.~\ref{fig:architecture}, our framework completely decouples nominal task intention from safety enforcement. A pre-trained, frozen FM policy generates nominal joint trajectories at 3--5~Hz. Downstream of the model, a reactive Control Barrier Function (CBF) filter \cite{Ames2019Control, Ames2017Control} evaluates whole-body safety against a persistent scene map and projects velocity commands at 100~Hz to enforce prospective invariance of the safe set.
+The third answer filters execution rather than generation: the policy stays frozen and a safety layer corrects the command sent to the robot \cite{Rmer2026From,Wabersich2021Predictive}. This preserves both the learned intent and a formal guarantee, but its deployment runs into a rarely addressed prerequisite. Protecting an articulated robot requires a signed distance between its \emph{whole body} and its environment, queried together with its gradient, for thousands of measured points at control rate. Without it, existing implementations restrict themselves to the end effector, leaving the elbow and forearm free to hit what the gripper avoids, or assume obstacles described by primitives known in advance, which no sensed scene satisfies.
 
 \begin{figure}[t]
     \centering
     \begin{tikzpicture}[
         font=\sffamily\scriptsize,
-        node distance=0.45cm and 0.35cm,
-        box/.style={draw, rounded corners=2pt, thick, align=center, minimum height=0.65cm, fill=blue!5, draw=blue!60!black},
-        safe/.style={box, fill=red!8, draw=red!70!black},
-        map/.style={box, fill=cyan!8, draw=cyan!70!black},
-        gen/.style={box, fill=orange!10, draw=orange!80!black},
-        arr/.style={-{Stealth[scale=0.9]}, thick, draw=black!70}
+        node distance=0.38cm and 0.30cm,
+        box/.style={draw, rounded corners=2pt, semithick, align=center,
+                    minimum height=0.62cm, text width=2.35cm, inner sep=2.5pt},
+        per/.style={box, fill=green!8,  draw=green!55!black},
+        map/.style={box, fill=cyan!8,   draw=cyan!60!black},
+        gen/.style={box, fill=orange!10,draw=orange!75!black},
+        safe/.style={box, fill=red!8,   draw=red!65!black},
+        sim/.style={box, fill=gray!12,  draw=black!70},
+        arr/.style={-{Stealth[scale=0.85]}, semithick, draw=black!75},
+        fb/.style={-{Stealth[scale=0.8]}, semithick, draw=black!45, dashed},
+        rate/.style={font=\sffamily\tiny, inner sep=1pt}
     ]
-        \node[box] (cam) {Wrist RGB-D Cam\\(30 Hz)};
-        \node[map, right=of cam] (map) {Persistent Voxel Map\\(1 cm / 30 Hz)};
-        \node[gen, below=of cam] (fm) {Frozen Flow Matching\\Planner (3--5 Hz)};
-        \node[safe, right=of fm] (cbf) {Analytical SDF-CBF\\Filter (100 Hz)};
-        \node[safe, fill=red!18, right=of cbf] (rfx) {Reflex Brake\\(1 kHz C++)};
-        \node[box, fill=gray!15, draw=black!80, below=of cbf] (robot) {Robot Controller / Gazebo};
+        \node[sim]  (cam)  {RGB-D camera\\{\tiny 30~Hz}};
+        \node[per, below=of cam] (sam) {SAM~3 / SAM~2\\segmentation \& tracking\\{\tiny 5~Hz}};
+        \node[map, below=of sam] (vox) {persistent voxel map\\1~cm, free-space eviction\\{\tiny 30~Hz}};
+        \node[gen, right=1.15cm of sam] (fm) {frozen FM policy\\1D U-Net, $N{=}5$ steps\\{\tiny 3 to 5~Hz}};
+        \node[gen, below=of fm] (exe) {IK, retiming\\and executor\\{\tiny 100~Hz}};
+        \node[safe, below=of vox] (cbf) {whole-body SDF-CBF\\Dykstra projection\\{\tiny 100~Hz}};
+        \node[safe, below=of exe] (rfx) {reflex brake (C++)\\{\tiny 1~kHz}};
+        \node[sim, below=0.55cm of $(cbf)!0.5!(rfx)$] (ctl) {joint velocity controller / Gazebo};
 
-        \draw[arr] (cam) -- (map);
-        \draw[arr] (cam) -- (fm);
-        \draw[arr] (map) -- (cbf);
-        \draw[arr] (fm) -- (cbf);
-        \draw[arr] (cbf) -- (rfx);
-        \draw[arr] (rfx) |- (robot);
+        \draw[arr] (cam) -- (sam);
+        \draw[arr] (sam) -- (vox);
+        \draw[arr] (sam.east) -- node[rate, above] {target} (fm.west);
+        \draw[arr] (fm) -- (exe);
+        \draw[arr] (vox) -- node[rate, left] {obstacles} (cbf);
+        \draw[arr] (exe.west) -- node[rate, above] {$\qdot_{\mathrm{base}}$} (cbf.east);
+        \draw[arr] (cbf.east) |- ([yshift=-0.16cm]rfx.west);
+        \draw[arr] (rfx) -- (ctl.north east);
+        \draw[fb] (ctl.west) -| ([xshift=-0.20cm]cbf.west) ;
     \end{tikzpicture}
-    \caption{System architecture showing the 4-tier asynchronous control pipeline: 3--5~Hz Flow Matching trajectory generator, 30~Hz persistent voxel map, 100~Hz analytical SDF-CBF safety filter, and 1~kHz C++ reflex brake.}
+    \caption{Asynchronous pipeline. Task intent and safety are fully decoupled: the frozen FM policy never sees the obstacle map, and the shield never waits for the planner. A stale conditioning cloud degrades the nominal trajectory without ever suspending the 100~Hz command.}
     \label{fig:architecture}
 \end{figure}
 
-The primary bottleneck of whole-body CBF filtering lies in obtaining accurate, continuously differentiable signed distance fields (SDFs) of all robot links and their analytical joint-space gradients at control frequencies ($>100$~Hz). Standard Robot Distance Fields (RDF) \cite{Li2024rdf, Li2024Configuration} approximate link SDFs with Bernstein polynomials via recursive least squares (RLS), but fitting distance values alone produces noisy, magnitude-distorted spatial gradients near link surfaces---precisely where CBFs require exact directionality.
+We present a system in which intent and safety are decoupled end to end (Fig.~\ref{fig:architecture}), and, more importantly, in which every gap between the textbook certificate and sampled execution is named, tightened, and monitored online. Our contributions are:
 
-In this work, we resolve this bottleneck and present the following main contributions:
 \begin{itemize}
-    \item A fully decoupled, training-free safety architecture combining a frozen FM policy with a whole-body reactive SDF-CBF filter and a persistent voxel map.
-    \item A two-stage offline learning scheme for Bernstein RDFs combining RLS value regression with a multi-objective geometric refinement loss enforcing Eikonal gradient norms ($\|\nabla\bar{d}\|=1$) and directional alignment on 20,000 verified normal rays.
-    \item An exact, closed-form analytical joint-space distance gradient derived via rigid-body geometric Jacobians \cite{Carpentier2019Pinocchio}, eliminating automatic differentiation overhead.
-    \item A smooth, monotone out-of-domain minorant extension preserving physical gradient orientation outside the approximation domain.
-    \item A three-layer constraint tightening scheme (addressing zero-order hold discretization, tracking error, and moving obstacles) coupled with a nested 1~kHz C++ reflex brake.
-    \item Empirical validation in simulation on Franka Emika Panda and UFactory xArm7 manipulators, demonstrating zero collisions, task success preservation, and cross-embodiment transfer.
+\item A two-stage offline scheme for Bernstein robot distance fields that refines a value regression against 20\,000 \emph{verified} normal rays under Eikonal and directional-alignment losses, yielding a field whose gradient, not only whose value, is usable by a CBF (Sec.~\ref{sec:rdf}).
+\item An exact closed-form joint-space distance gradient obtained from link geometric Jacobians, whose cost is independent of the number of joints and which matches automatic differentiation to single-precision roundoff while running faster (Sec.~\ref{subsec:closedform}, Sec.~\ref{subsec:res_autograd}).
+\item A monotone out-of-domain minorant $\hat d=\sqrt{d(\mathbf{c})^2+\|\bar{\mathbf{x}}-\mathbf{c}\|^2}$ that under-estimates the true distance while preserving the outward gradient orientation, where the usual Lipschitz extension inverts it (Sec.~\ref{subsec:ood}).
+\item A shield carrying three additive tightenings, for sampled-data hold, tracking perturbation and environment motion, each paired with a telemetry channel that turns it into a monitored assumption rather than a postulate, plus a distribution-free calibration of the tracking bound (Sec.~\ref{sec:shield}, \ref{subsec:res_eps}).
+\item An honest treatment of the Lipschitz constants the sampled-data certificate consumes, including a valid analytic Bernstein-coefficient bound that we report and then reject as unusable, being about forty times the worst sampled case (Sec.~\ref{subsec:res_lip}).
 \end{itemize}
 
 \section{Related Work}
 
-\subsection{Generative Policies in Manipulation}
-Behavior cloning via generative modeling has revolutionized robot manipulation. Diffusion policies \cite{ChiXXXXVisuomotor, Ho2020Denoising} and Flow Matching models \cite{Lipman2023Flow, Tong2024Conditional, Liu2023Rectified} capture complex multimodal action distributions. Flow Matching models straight-line vector fields, enabling deterministic sampling via fast ODE numerical integrators. However, ensuring collision avoidance in test-time environments without retraining remains an open challenge \cite{Rmer2026From, Welte2026Flowcorrect}.
+\textbf{Generative policies and safety.} Behaviour cloning through generative modelling \cite{ChiXXXXVisuomotor} captures multimodal action distributions from small demonstration sets, and rectified flows \cite{Lipman2023Flow,Liu2023Rectified} make few-step deterministic sampling practical. Safety is then sought either inside generation, through guided or constrained sampling \cite{Dai2025Safeflow}, or outside it, through a downstream filter \cite{Rmer2026From,Wabersich2021Predictive}. We take the second route and, unlike \cite{Rmer2026From}, enforce the constraint on the whole kinematic chain against a sensed, non-parametric obstacle set.
 
-\subsection{Robot Distance Fields (RDF) and Scene Mapping}
-Whole-body collision avoidance requires rapid distance queries between all robot links and arbitrary environmental obstacles. While 3D mapping frameworks (e.g., Voxblox \cite{Oleynikova2017Voxblox}, nvblox \cite{Millane2024Nvblox}, iSDF \cite{Ortiz2022Isdf}) map the environment, querying distances against complex meshes is computationally demanding. Robot Distance Fields \cite{Li2024rdf, Li2024Configuration, Govoni2026rdf} model each link's SDF using 3D Bernstein tensor-product polynomials in a normalized local frame. However, standard RDFs rely on automatic differentiation (autograd) or numerical differences for joint gradients, and fitting values alone leads to degraded gradient fidelity near surfaces.
+\textbf{Distance fields for manipulators.} Mapping frameworks \cite{Oleynikova2017Voxblox} model the environment, but querying a robot against them at control rate remains the bottleneck. Robot Distance Fields \cite{Li2024rdf} represent each link SDF by a Bernstein tensor product in a normalised link frame, and \cite{Govoni2026rdf} uses them for reactive avoidance under task priority. These works fit \emph{values} by recursive least squares and obtain joint gradients by automatic differentiation or finite differences. Value-only fitting leaves the spatial gradient noisy in direction and off unit norm exactly where a CBF needs it, which is the gap our refinement stage closes.
 
-\subsection{Control Barrier Functions (CBFs) and Safety Filtering}
-Control Barrier Functions \cite{Ames2019Control, Ames2017Control} provide formal guarantees of forward invariance for safe sets $\mathcal{C} = \{\mathbf{q} \mid h(\mathbf{q}) \ge 0\}$. When paired with Quadratic Programs (QP), CBFs minimally modify nominal control inputs \cite{Wabersich2021Predictive, Wabersich2023Data}. In discrete-time real-time deployment, standard CBFs suffer from discretization errors, tracking delays, and local minima, requiring specialized tightening \cite{Agrawal2017Discrete, Kolathaya2019Input} and nullspace postural clearance.
+\textbf{Control barrier functions in practice.} CBFs \cite{Ames2019Control} give forward invariance of $\mathcal{C}=\{h\ge 0\}$ and, with a quadratic program, minimally alter a nominal input. Sampled deployment requires sampled-data treatments \cite{Breeden2022Sampled}, input-to-state safety for actuation error \cite{Kolathaya2019Input}, and multi-rate nesting of a cheap high-rate certificate under a slower solver \cite{Rosolia2022Unified}. We combine these three on a learned whole-body barrier and, rather than inflating a static margin, calibrate and monitor each at runtime.
 
-\section{System Architecture and Problem Formulation}
+\section{System Overview and Problem Statement}
 
-\subsection{Asynchronous Multi-Tier Control Pipeline}
-The proposed architecture operates across four asynchronous rate tiers:
-\begin{enumerate}
-    \item \textbf{Perception Tier (Asynchronous / 5~Hz):} Segment Anything Model 3 (SAM 3) \cite{Meta2025Sam3} initializes target segmentation from text prompts, while SAM 2 \cite{Ravi2024Sam2} tracks target masks in 512$\times$512 RGB-D images at 5~Hz.
-    \item \textbf{Mapping Tier (30~Hz):} A persistent 1~cm sparse voxel grid accumulates obstacle points, featuring free-space ray-casting eviction to remove cleared voxels within the moving wrist-camera field of view.
-    \item \textbf{Generative Tier (3--5~Hz):} A 1D conditional U-Net FM policy predicts nominal joint trajectory segments $\mathbf{X} \in \mathbb{R}^{H \times 7}$ conditioned on target point clouds.
-    \item \textbf{Reactive Control Shield (100~Hz / 1~kHz):} An analytical SDF-CBF filter solves a QP at 100~Hz, while a nested C++ reflex node re-certifies commands at 1~kHz within `ros\_control`.
-\end{enumerate}
+\subsection{Asynchronous tiers}
+Four tiers run at their own rate and communicate by message, never blocking downstream (Fig.~\ref{fig:architecture}). \emph{Perception} grounds the target from a text prompt with SAM~3 \cite{Meta2025Sam3} and propagates the mask at 5~Hz with SAM~2 \cite{Ravi2024Sam2}; pinhole back-projection and forward kinematics yield a target cloud and an obstacle cloud. \emph{Mapping} accumulates obstacles in a sparse 1~cm voxel grid. Outside the current field of view a voxel persists indefinitely, which is precisely what protects the arm from obstacles it can no longer see; inside it, a GPU free-space eviction re-projects each voxel along its pixel ray and discards it as soon as the measured depth exceeds its own by one voxel, so a removed obstacle disappears with no ageing delay. \emph{Generation} is a 1D conditional U-Net \cite{ChiXXXXVisuomotor} FM policy predicting $H=16$ tool poses (position, 6D rotation \cite{Zhou2020Continuity}, gripper state) conditioned on a 1024-point cloud encoded as in \cite{Ze2024Diffusion}, integrated with $N=5$ Euler steps and replanned at 3 to 5~Hz. \emph{Reactive control} solves the shield at 100~Hz and re-certifies the held command at 1~kHz inside \texttt{ros\_control}. No edge in Fig.~\ref{fig:architecture} carries obstacles into the planner, which is what makes the policy replaceable without touching the certificate.
 
-\subsection{Problem Statement}
-Let $\mathbf{q} \in \mathbb{R}^7$ be the joint configuration of a 7-DoF manipulator. Given a nominal velocity vector $\dot{\mathbf{q}}_{\mathrm{base}}$ generated by the frozen FM policy, the objective is to find a filtered velocity command $\dot{\mathbf{q}}^\star$ that minimally deviates from $\dot{\mathbf{q}}_{\mathrm{base}}$ while guaranteeing that no point on any protected link $l \in \{1,\dots,9\}$ intersects environmental obstacles $\mathbf{p}_i \in \mathcal{P}_{\mathrm{obs}}$:
-\begin{equation}
-    \min_{\dot{\mathbf{q}} \in \mathbb{R}^7} \frac{1}{2} \|\dot{\mathbf{q}} - \dot{\mathbf{q}}_{\mathrm{base}}\|_{\mathbf{W}}^2 \quad \text{s.t.} \quad \nabla h_l(\mathbf{q})^\top \dot{\mathbf{q}} \ge b(h_l(\mathbf{q})), \; \forall l
+\subsection{Problem statement}
+Let $\mathbf{q}\in\mathbb{R}^7$ be the measured configuration and $\qdot_{\mathrm{base}}$ the nominal joint velocity produced by the frozen policy after inverse kinematics, retiming and tracking feedback. For each of the nine protected links, namely links~2 to~7, the hand and the two fingers, let $h_l(\mathbf{q})$ be a barrier built from the whole-body distance field against the obstacle set $\mathcal{P}_{\mathrm{obs}}$. We seek the admissible command closest to the nominal one in a task metric $\mathbf{W}\succ 0$:
+\begin{equation}\label{eq:qp}
+\qdot^{\star}=\operatorname*{arg\,min}_{\qdot\in\mathbb{R}^7}\ \tfrac12\|\qdot-\qdot_{\mathrm{base}}\|_{\mathbf{W}}^2
+\quad\text{s.t.}\quad \nabla h_l^{\top}\qdot\ \ge\ r_l,\ \forall l\in\mathcal{A},
 \end{equation}
-where $\mathbf{W} \succ 0$ is a task-weighted metric and $h_l(\mathbf{q})$ is the link barrier function.
+where $\mathcal{A}$ is the active set and $r_l$ the tightened right-hand side of Sec.~\ref{subsec:tightening}. Safety lives in the constraints and intent lives in the cost, so no nominal command, however strong, can violate a safety half-space.
 
-\section{Bernstein Robot Distance Field with Geometric Refinement}
+\section{Geometrically Refined Bernstein Robot Distance Field}\label{sec:rdf}
 
-\subsection{Bernstein Tensor Polynomial SDF Representation}
-Each protected robot link $l$ is centered and scaled into the normalized unit cube $[-1,1]^3$:
-\begin{equation}
-    \bar{\mathbf{x}} = \frac{\mathbf{x} - \mathbf{o}_l}{s_l}, \quad \mathbf{u} = \frac{\bar{\mathbf{x}} + \mathbf{1}}{2} \in [0,1]^3
+\subsection{Representation}
+Following \cite{Li2024rdf}, each protected link mesh is centred on its bounding-box centre $\mathbf{o}_l$ and scaled by $s_l=\max_{\mathbf{v}\in\mathcal{V}_l}\|\mathbf{v}-\mathbf{o}_l\|$, so that $\bar{\mathbf{x}}=(\mathbf{x}-\mathbf{o}_l)/s_l$ lies in $[-1,1]^3$. On that cube the normalised field is a tensor product of Bernstein polynomials,
+\begin{equation}\label{eq:bernstein}
+\bar d_l(\bar{\mathbf{x}})=\!\!\sum_{a,b,c=0}^{n-1}\!\! w^{(l)}_{abc}B_a(u_x)B_b(u_y)B_c(u_z)=\boldsymbol{\Phi}(\bar{\mathbf{x}})\,\mathbf{w}_l,
 \end{equation}
-where $\mathbf{o}_l$ is the bounding box center and $s_l$ is the scaling factor. On $[0,1]^3$, the normalized SDF $\bar{d}_l(\bar{\mathbf{x}})$ is represented by a 3D tensor product of degree $n-1 = 11$ Bernstein polynomials ($12^3 = 1728$ weights $\mathbf{w}_l$):
-\begin{equation}
-    \bar{d}_l(\bar{\mathbf{x}}) = \sum_{a,b,c=0}^{n-1} w^{(l)}_{abc} B_a(u_x) B_b(u_y) B_c(u_z) = \boldsymbol{\Phi}(\bar{\mathbf{x}}) \mathbf{w}_l
-\end{equation}
-Metric distance is recovered via $d_l(\mathbf{x}) = s_l \bar{d}_l(\bar{\mathbf{x}})$.
+with $\mathbf{u}=(\bar{\mathbf{x}}+\mathbf{1})/2$ and $n=12$ basis functions per axis, that is 1728 coefficients per link; the metric distance is $d_l=s_l\bar d_l$. The representation is $\mathcal{C}^\infty$ with an exact analytic gradient, linear in its parameters, and parallelises on GPU.
 
-\subsection{Two-Stage Offline Training \& Geometric Refinement}
-Standard fitting optimizes distance values alone via Recursive Least Squares (RLS) with Ridge regularization:
-\begin{equation}
-    \mathcal{L}_{\mathrm{RLS}} = \mathbb{E}_{\mathbf{x}} \big[ (\bar{d}_l(\mathbf{x}) - y_{\mathrm{gt}})^2 \big] + \lambda_{\mathrm{ridge}} \|\mathbf{w}_l\|^2
-\end{equation}
-While RLS achieves low mean distance error, it produces noisy spatial gradients $\nabla_{\mathbf{x}} \bar{d}_l$ near surface boundaries. To resolve this, we introduce a second-stage geometric refinement fine-tuning stage using AdamW on a multi-objective loss:
-\begin{equation}
-    \begin{aligned}
-        \mathcal{L} &= \mathcal{L}_{\mathrm{val}} + \lambda_{\mathrm{eik}} \mathbb{E}\Big[ (\|\nabla \bar{d}_l\| - 1)^2 \Big] \\
-        &+ \mathbb{E}\Big[ \omega(d) \Big( \lambda_{\mathrm{dir}} (1 - \widehat{\nabla \bar{d}_l} \cdot \hat{\mathbf{n}}) + \lambda_{\mathrm{vec}} \|\nabla \bar{d}_l - \hat{\mathbf{n}}\|^2 \Big) \Big]
-    \end{aligned}
-\end{equation}
-where supervision is provided by $20,000$ verified normal rays generated by offsetting mesh surface points along face normals by random displacements $\delta \in [0, 30~\mathrm{mm}]$ and validating non-intersection against exact CAD geometry.
+\subsection{Two-stage training}
+Stage one reproduces the reference protocol \cite{Li2024rdf}: exact signed-distance labels are sampled near the surface and uniformly in the cube, and since \eqref{eq:bernstein} is linear in $\mathbf{w}_l$ the weights are fitted by ridge-regularised recursive least squares. This yields an accurate \emph{value} and says nothing about the gradient, whose direction stays noisy near the surface and whose norm drifts from unity, while the shield consumes exactly that gradient: its direction sets the correction direction in \eqref{eq:qp} and its norm the amplitude.
 
-\subsection{Monotone Out-of-Domain Extension}
-For points outside $[-1,1]^3$, clamping to the boundary point $\mathbf{c} = \mathrm{clamp}(\bar{\mathbf{x}}, -1, 1)$ with a standard Lipschitz bound $d(\mathbf{c}) - \|\bar{\mathbf{x}} - \mathbf{c}\|$ causes gradient direction reversal. We propose a smooth, monotone lower-bounding extension:
-\begin{equation}
-    \hat{d}(\bar{\mathbf{x}}) = \sqrt{d(\mathbf{c})^2 + \|\bar{\mathbf{x}} - \mathbf{c}\|^2}
+Stage two, the contribution here, refines those weights on a dedicated supervision set of 20\,000 \emph{verified} normal rays per link. A ray is built by displacing a surface point along its facet normal by an offset $\delta$, with 75\,\% of the offsets drawn in the critical shell $[1,10]$~mm consistent with $\dsafe=15$~mm. A displaced point does not necessarily keep its anchor as nearest neighbour, so each candidate is checked against the exact mesh and kept only if its recomputed exact distance matches $\delta$ within 0.25~mm and the exact gradient direction lies within $5^\circ$ of the anchor normal. This rejects rays corrupted by the medial axis and by local curvature, which would otherwise inject a wrong distance and a wrong direction at once. The weights are then optimised with Adam on
+\begin{equation}\label{eq:refinement}
+\begin{split}
+\mathcal{L}&=\mathcal{L}_{\mathrm{near}}+\mathcal{L}_{\mathrm{unif}}+\lambda_{\mathrm{ray}}\mathcal{L}_{\mathrm{ray}}
++\lambda_{\mathrm{eik}}\,\mathbb{E}\big[(\|\nabla\bar d\|-1)^2\big]\\
+&\quad+\mathbb{E}\Big[\omega\big(\lambda_{\mathrm{dir}}(1-\widehat{\nabla\bar d}\cdot\hat{\mathbf{n}})+\lambda_{\mathrm{vec}}\|\nabla\bar d-\hat{\mathbf{n}}\|^2\big)\Big],
+\end{split}
 \end{equation}
-Geometrically, for any surface point $\mathbf{s}$, $|x_j - s_j|^2 \ge |c_j - s_j|^2 + |x_j - c_j|^2$ holds along every bounded axis $j$, proving $d(\bar{\mathbf{x}})^2 \ge d(\mathbf{c})^2 + \|\bar{\mathbf{x}} - \mathbf{c}\|^2$. Thus $\hat{d}(\bar{\mathbf{x}}) \le d(\bar{\mathbf{x}})$ always holds, guaranteeing safe distance underestimation while maintaining outward-pointing gradients:
-\begin{equation}
-    \nabla \hat{d} = \frac{d(\mathbf{c}) \nabla d(\mathbf{c})|_{\mathrm{int}} + (\bar{\mathbf{x}} - \mathbf{c})}{\hat{d}}
-\end{equation}
+where the first three terms preserve value accuracy, the Eikonal term pushes $\|\nabla\bar d\|$ towards one, and the last two align the gradient with the exact outward direction under a proximity weight $\omega=1+4e^{-\bar d_{\mathrm{exact}}/\bar\delta_c}$ that concentrates the effort within roughly $\dsafe$ of the surface. The Eikonal term is a sampled quadratic penalty, not a constraint: the resulting Eikonal property is a measured property and is reported as such in Sec.~\ref{subsec:res_sdf}.
 
-\section{Closed-Form Analytical SDF-CBF Reactive Shield}
+\subsection{Monotone out-of-domain minorant}\label{subsec:ood}
+Queries fall outside $[-1,1]^3$ whenever an obstacle is far from a link. Clamping to $\mathbf{c}=\mathrm{clamp}(\bar{\mathbf{x}},-1,1)$ and applying the usual Lipschitz bound $d(\mathbf{c})-\|\bar{\mathbf{x}}-\mathbf{c}\|$ produces a minorant that \emph{decreases} with the excursion, so its gradient points back towards the link and the shield pushes the arm the wrong way. We use instead
+\begin{equation}\label{eq:ood}
+\hat d(\bar{\mathbf{x}})=\sqrt{d(\mathbf{c})^2+\|\bar{\mathbf{x}}-\mathbf{c}\|^2}.
+\end{equation}
+Every surface point $\mathbf{s}$ lies inside the cube, so along each clamped axis $j$ we have $|x_j-s_j|=|c_j-s_j|+|x_j-c_j|$, hence $\|\bar{\mathbf{x}}-\mathbf{s}\|^2\ge\|\mathbf{c}-\mathbf{s}\|^2+\|\bar{\mathbf{x}}-\mathbf{c}\|^2$ for every $\mathbf{s}$ and therefore $\hat d\le d$ always: the extension under-estimates the true distance, and being monotone in the excursion the correction direction never inverts. Its gradient,
+\begin{equation}
+\nabla\hat d=\frac{d(\mathbf{c})\,\nabla d(\mathbf{c})|_{\mathrm{int}}+(\bar{\mathbf{x}}-\mathbf{c})}{\hat d},
+\end{equation}
+joins the polynomial continuously at the boundary; the join is differentiable piecewise but not continuously differentiable, a limitation we return to in Sec.~\ref{subsec:res_lip}.
 
-\subsection{Closed-Form Analytical Joint Gradient}
-For a point $\mathbf{p}_i \in \mathcal{P}_{\mathrm{obs}}$, local position $\mathbf{x}_{l,i} = (\mathbf{R}_l^b)^\top (\mathbf{p}_i - \mathbf{d}_l^b)$ satisfies $\mathbf{p}_i = \mathbf{d}_l^b + \mathbf{R}_l^b \mathbf{x}_{l,i}$. Differentiating under stationary obstacle assumption ($\dot{\mathbf{p}}_i = \mathbf{0}$):
+\subsection{Exact closed-form joint-space gradient}\label{subsec:closedform}
+Let $\mathbf{R}^b_l(\mathbf{q})$ and $\mathbf{d}^b_l(\mathbf{q})$ be the pose of link $l$, and $\mathbf{x}_{l,i}=(\mathbf{R}^b_l)^{\top}(\mathbf{p}_i-\mathbf{d}^b_l)$ the obstacle point in the link frame. The obstacle is fixed in the base frame but appears to move in the link frame; differentiating the closure relation $\mathbf{p}_i=\mathbf{d}^b_l+\mathbf{R}^b_l\mathbf{x}_{l,i}$ with $\dot{\mathbf{p}}_i=\mathbf{0}$, substituting the linear and angular link Jacobians $\dot{\mathbf{d}}^b_l=\mathbf{J}^b_{L,l}\qdot$ and $\dot{\mathbf{R}}^b_l=[\mathbf{J}^b_{A,l}\qdot]_\times\mathbf{R}^b_l$, and applying the cross-product identities gives
 \begin{equation}
-    \mathbf{0} = \dot{\mathbf{d}}_l^b + \dot{\mathbf{R}}_l^b \mathbf{x}_{l,i} + \mathbf{R}_l^b \dot{\mathbf{x}}_{l,i}
+\mathbf{J}_{x_{l,i}}=-(\mathbf{R}^b_l)^{\top}\mathbf{J}^b_{L,l}+[\mathbf{x}_{l,i}]_\times(\mathbf{R}^b_l)^{\top}\mathbf{J}^b_{A,l}.
 \end{equation}
-Substituting linear and angular link Jacobians $\dot{\mathbf{d}}_l^b = \mathbf{J}_{L,l}^b \dot{\mathbf{q}}$ and $\dot{\mathbf{R}}_l^b = [\mathbf{J}_{A,l}^b \dot{\mathbf{q}}]_\times \mathbf{R}_l^b$, multiplying by $(\mathbf{R}_l^b)^\top$, and applying cross-product identities yields the local position Jacobian $\mathbf{J}_{x_{l,i}} = \partial \mathbf{x}_{l,i} / \partial \mathbf{q}$:
-\begin{equation}
-    \mathbf{J}_{x_{l,i}}(\mathbf{q}) = -(\mathbf{R}_l^b)^\top \mathbf{J}_{L,l}^b + [\mathbf{x}_{l,i}]_\times (\mathbf{R}_l^b)^\top \mathbf{J}_{A,l}^b
+Composing with the metric spatial gradient expressed in the base frame, $\mathbf{g}_{l,i}=\mathbf{R}^b_l\nabla_{\mathbf{x}}d_{l,i}$, and writing $\mathbf{r}_{l,i}=\mathbf{p}_i-\mathbf{d}^b_l$, the affine normalisation and the metric rescaling cancel and the joint-space gradient collapses to
+\begin{equation}\label{eq:gradq}
+\boxed{\;\nabla_{\mathbf{q}}d_{l,i}=-(\mathbf{J}^b_{L,l})^{\top}\mathbf{g}_{l,i}-(\mathbf{J}^b_{A,l})^{\top}\big(\mathbf{r}_{l,i}\times\mathbf{g}_{l,i}\big).\;}
 \end{equation}
-Chain-rule composition with spatial metric gradient $\mathbf{g}_{l,i} = \mathbf{R}_l^b \nabla_{\mathbf{x}} d_{l,i}$ yields the exact joint-space distance gradient:
-\begin{equation}
-    \boxed{\nabla_{\mathbf{q}} d_{l,i} = -(\mathbf{J}_{L,l}^b)^\top \mathbf{g}_{l,i} - (\mathbf{J}_{A,l}^b)^\top (\mathbf{r}_{l,i} \times \mathbf{g}_{l,i})}
-\end{equation}
-where $\mathbf{r}_{l,i} = \mathbf{p}_i - \mathbf{d}_l^b$. This closed-form evaluation requires only two matrix-vector products and one cross-product per obstacle point, completely avoiding automatic differentiation overhead.
+Evaluating \eqref{eq:gradq} costs two matrix-vector products and one cross product per obstacle point, is independent of the number of joints, and involves no numerical differentiation step. Its exactness is verified against automatic differentiation in Sec.~\ref{subsec:res_autograd}.
 
-\subsection{Soft-Min Aggregation and Saturated CBF}
-For link $l$, point distances $d_{l,i}$ are aggregated over Top-$K$ ($K=64$) critical points using Log-Sum-Exp soft-min of temperature $\alpha$:
-\begin{equation}
-    h_l(\mathbf{q}) = m_l - \alpha \log \sum_{i=1}^K \exp \left( -\frac{d_{l,i} - m_l}{\alpha} \right) - d_{\mathrm{safe}}
-\end{equation}
-where $m_l = \min_i d_{l,i}$ and $d_{\mathrm{safe}} = 15~\mathrm{mm}$. The smooth gradient is $\nabla_{\mathbf{q}} h_l = \sum_i \omega_i \nabla_{\mathbf{q}} d_{l,i}$ with weights $\omega_i = \mathrm{softmax}_i(-d_{l,i}/\alpha)$.
+\section{Whole-Body Reactive SDF-CBF Shield}\label{sec:shield}
 
+\subsection{Barrier assembly}
+The whole-body field is evaluated over the map and the $K=64$ points of smallest distance are kept. Forward kinematics, field evaluation and top-$K$ selection are fused into a single fixed-shape CUDA graph, padded with distant dummy points so the population $N$ stays constant, as the constant-selection assumption of Sec.~\ref{subsec:scope} requires. The selection is recomputed every 100~Hz cycle, so the active set carries at most 10~ms of staleness, a delay budgeted into $\dsafe$.
+
+Per-link distances are aggregated by a numerically stabilised soft-min of temperature $\alpha$,
+\begin{equation}\label{eq:softmin}
+h^{\mathrm{soft}}_l=m_l-\alpha\log\!\Big[\sum_{i=1}^{N}e^{-(d_{l,i}-m_l)/\alpha}\Big]-\dsafe,\quad m_l=\min_i d_{l,i},
+\end{equation}
+whose gradient is the convex combination $\nabla_{\mathbf{q}}h_l=\sum_i\omega_i\nabla_{\mathbf{q}}d_{l,i}$ with $\omega_i=\mathrm{softmax}_i(-d_{l,i}/\alpha)$. The soft-min under-estimates the true minimum by at most $\alpha\log N$, which is safe but costs usable workspace: the arm stops further out than the geometry requires and an admissible path through a tight passage can be refused. The deployed filter therefore decouples the two roles, sending the \emph{exact} worst-case value $h_{\min,l}=\min_i d_{l,i}-\dsafe$ to the right-hand side while keeping the soft-min gradient, whose weights act as a smooth selector preserving spatial continuity when the dominant obstacle switches; the consequence for the certificate is stated in Sec.~\ref{subsec:scope}. A grasped target is protected as an extra link with its own partition of the selected points, so $N$ in \eqref{eq:softmin} is the population of the relevant group. The $K_a=9$ links of smallest $h_l$ are retained as distinct constraints rather than collapsed into a single minimum, which would leave every other link free to advance towards its own obstacle and would switch abruptly as soon as a second link became critical.
+
+\subsection{Saturated class-$\mathcal{K}$ right-hand side}
+The textbook condition $\nabla h^{\top}\qdot\ge-\kappa h$ has two defects for a perceived barrier: far from obstacles it authorises arbitrarily large approach speeds, and under violation it demands a recovery speed proportional to penetration, which converts perception noise on $h$ into violent motor jerks. We saturate both regimes inside the activation band $h\le h_{\mathrm{act}}$:
+\begin{equation}\label{eq:bh}
+b(h)=
+\begin{cases}
+-v_{\mathrm{in}}\min(h/h_{\mathrm{act}},1), & h>0,\\[2pt]
+\ \ v_{\mathrm{rec}}\min(-h/d_{\mathrm{rec}},1), & h\le 0.
+\end{cases}
+\end{equation}
+Setting $\gamma(h)=-b(h)$ recovers $\nabla h^{\top}\qdot\ge-\gamma(h)$. Restricted to the operating band $[-d_{\mathrm{rec}},h_{\mathrm{act}}]$, $\gamma$ vanishes at zero, is strictly increasing and locally Lipschitz, hence extended class-$\mathcal{K}$ near the boundary, which is what the invariance theorem of \cite{Ames2019Control} requires; beyond that band the saturation adds two plateaus far from the boundary without altering the guarantee. With the deployed values the plateaus have equal amplitude but recovery is more than five times steeper than approach, $33.3$ against $6.25$~s$^{-1}$.
+
+\subsection{Three tightenings, each a monitored assumption}\label{subsec:tightening}
+Only $\gamma$ must be class-$\mathcal{K}$. The three terms below are added to $b(h)$ and are non-negative by construction, so they strengthen the constraint without changing the dynamics of $h$ at the boundary and need not themselves be class-$\mathcal{K}$.
+
+\textbf{Environment motion.} The classical right-hand side bounds only the robot's own contribution to $\dot h_l$, while an approaching obstacle consumes margin outside the robot's control. We estimate that contribution online and model-free, as the residual $\Delta h_l/\Delta t-\nabla h_l^{\top}\qdot$ between the measured total variation and the robot-induced part, smoothed by a first-order filter of constant $\tau_{\mathrm{env}}$ and reset on obstacle switching or recession. Each active half-space is tightened by
+\begin{equation}
+\eta_l=\mathrm{clip}\big(-\hat{\dot d}_l-\varepsilon_{\mathrm{env}},\,0,\,\eta_{\max}\big),
+\end{equation}
+so the robot yields in proportion to the approach speed. The dead zone $\varepsilon_{\mathrm{env}}$ keeps $\eta_l=0$ on static scenes and $\eta_{\max}$ avoids demanding unrealistic accelerations. Being per link, the estimate catches an obstacle approaching the elbow even when the end effector is still. This term is a robustification and we claim no formal guarantee against moving obstacles.
+
+\textbf{Tracking perturbation.} The low-level controller realises the commanded velocity only approximately, $\qdot=\qdot_{\mathrm{cmd}}+\bm{\delta}$. Following input-to-state safety \cite{Kolathaya2019Input} we tighten by the worst alignment of that perturbation with the gradient,
+\begin{equation}\label{eq:issf}
+\nabla h_l^{\top}\qdot_{\mathrm{cmd}}\ \ge\ b(h_l)+\eta_l+\varepsilon_{\mathrm{p}}\|\nabla h_l\|,
+\end{equation}
+which restores the original condition for the realised velocity as soon as $-\nabla h_l^{\top}\bm{\delta}/\|\nabla h_l\|\le\varepsilon_{\mathrm{p}}$. Bounding the full norm $\|\bm{\delta}\|$ instead would assume $\bm{\delta}$ exactly anti-aligned with $\nabla h_l$ at every cycle, which overloads the certificate without strengthening it. Rather than a pessimistic theoretical majorant, $\varepsilon_{\mathrm{p}}$ is calibrated on the measured distribution (Sec.~\ref{subsec:res_eps}) and enforced as a monitored assumption: the projected perturbation is recomputed every controller tick and any excursion triggers the reflex veto below.
+
+\textbf{Sampled-data hold.} Between two solves the command is held and the state travels a straight segment, so following \cite{Breeden2022Sampled} each active half-space is tightened by
+\begin{equation}\label{eq:zoh}
+\mu_l(\qdot)=\tfrac12 L_l\|\qdot\|^2 T,
+\end{equation}
+with $L_l$ the per-link constant of Sec.~\ref{subsec:res_lip} and $T=10$~ms the nominal period, entering as an upper bound so that any shorter effective period makes the constraint more conservative, never more permissive. Since \eqref{eq:zoh} is quadratic in $\qdot$, embedding it directly would turn the QP into a QCQP, and replacing it by its tangent would relax a convex right-hand side and is unsafe; it is therefore evaluated at a velocity envelope $v_{\mathrm{env}}$ upper bounding the realised speed over the hold. The recoil is proportional to the square of the speed and vanishes at rest.
+
+The constraint actually solved is therefore
+\begin{equation}\label{eq:rl}
+\nabla h_l^{\top}\qdot_{\mathrm{cmd}}\ \ge\ r_l\ \equiv\ b(h_l)+\eta_l+\varepsilon_{\mathrm{p}}\|\nabla h_l\|+\mu_l,
+\end{equation}
+and since all three additions are non-negative, $r_l\ge-\gamma(h_l)$, so \eqref{eq:rl} implies the standard CBF condition and preserves the invariance certificate.
+
+\subsection{Task-metric projection}
+With $\mathbf{W}=\mathbf{I}$ the correction follows $\nabla_{\mathbf{q}}h_l$ directly, loading the joints nearest the base because they have the largest kinematic lever, so avoiding an obstacle with the elbow throws the end effector off task. We instead measure the cost of a joint velocity by the Cartesian displacement it inflicts on the controlled link,
+\begin{equation}
+\mathbf{W}=\mathbf{J}_p^{\top}\mathbf{J}_p+w_{\mathrm{rot}}\mathbf{J}_o^{\top}\mathbf{J}_o+\lambda_{\mathbf{W}}\mathbf{I},
+\end{equation}
+so the correction is oriented along $\mathbf{W}^{-1}\nabla h_l$ rather than the gradient itself and lands preferentially in the task nullspace. The metric changes the distribution of the deviation, never the admissible set, so safety is untouched.
+
+Several simultaneously active half-spaces admit no closed-form projection, so \eqref{eq:qp} is solved by Dykstra's variant of cyclic projections \cite{Dykstra1983Restricted}. Unlike plain cyclic projections, which accumulate conservatism, Dykstra stores a correction vector per active constraint and re-injects it at each sweep, converging to the exact $\mathbf{W}$-projection independently of sweep order. Its fixed iteration count and branch-free structure are what allow capture as a CUDA graph; a generic QP solver would be exact but its data-dependent branching is not capturable. The loop is truncated at $N_{\mathrm{it}}=6$ sweeps.
+
+Output smoothing, joint-limit saturation and sweep truncation all act after the solver and can each re-introduce a violation. The smoothing is therefore folded into the QP objective rather than applied downstream, and the constraint is re-evaluated on the saturated velocity with the same $r_l$; any residual violation is corrected by a capped repair step in the same metric $\mathbf{W}$. Lines whose gradient norm collapses below $g_{\min}$ are dropped rather than attenuated, since below that threshold even the maximum joint velocity yields under 2~cm/s of clearance and the direction is dominated by noise. Admissibility of the \emph{published} command is finally re-measured every cycle and exported as \texttt{constr\_final}: it is observed, not assumed.
+
+\subsection{1~kHz reflex brake}
+The QP certificate is instantaneous, and between two solves the command is held. Instead of enlarging $\dsafe$ conservatively to absorb that hold, a second layer re-certifies the held command in C++ inside the 1~kHz \texttt{ros\_control} loop, consuming the atomic command-plus-certificate packet published at 100~Hz. It scales the command by a single scalar,
+\begin{equation}
+\qdot_{\mathrm{exec}}=\alpha\,\qdot_{\mathrm{final}},\qquad\alpha\in[0,1],
+\end{equation}
+acting as a purely kinematic brake that modulates speed without ever deviating direction. With $\nabla h_l$ assumed $L_l$-Lipschitz in $\mathbf{q}$, the quadratic lower bound
+\begin{equation}
+h(\mathbf{q}_0+\Delta\mathbf{q}(t))\ \ge\ h(\mathbf{q}_0)+\nabla h^{\top}\Delta\mathbf{q}(t)-\tfrac{L}{2}\|\Delta\mathbf{q}(t)\|^2
+\end{equation}
+is concave in $t$, so checking it at $t=T_{\mathrm{rfx}}$ certifies the whole held segment. Rather than requiring $h\ge0$, the brake certifies an admissible decay,
+\begin{equation}\label{eq:reflex}
+h\big(\mathbf{q}_0+\Delta\mathbf{q}(T_{\mathrm{rfx}})\big)\ \ge\ h(\mathbf{q}_0)\big(1-\kappa_{\mathrm{rfx}}T_{\mathrm{rfx}}\big),
+\end{equation}
+a linear class-$\mathcal{K}$ condition that nests under the solver's \cite{Rosolia2022Unified}. The brake tolerates a steeper instantaneous decay ($\kappa_{\mathrm{rfx}}=25$~s$^{-1}$) than the solver's macroscopic slope (6.25~s$^{-1}$), and that gap is exactly the reserve that absorbs inter-sample uncertainty without needlessly rejecting valid commands. Each active line yields a quadratic inequality in $\alpha$; the brake returns the largest $\alpha$ common to all lines and stops ($\alpha=0$) if their intervals do not intersect. $T_{\mathrm{rfx}}$ is the time actually elapsed since the packet was published, so solver latency ages the state rather than shortening the horizon. Engagement is instantaneous and release is smoothed by $\tau_{\mathrm{rel}}$: braking late is a safety error, releasing late only a performance cost. Lines already in violation are certified upwards rather than exempted, at half the solver's recovery law, so the outward command passes; a stop must never trap the arm inside the margin it protects.
+
+\begin{table}[t]
+\caption{Deployed shield parameters.}
+\label{tab:params}
+\centering
+\footnotesize
+\begin{tabular}{llc}
+\toprule
+\textbf{Symbol} & \textbf{Description} & \textbf{Value}\\
+\midrule
+$\dsafe$ & safety margin on the learned field & $15$~mm\\
+$\alpha$ & soft-min temperature & $0.002$\\
+$K$, $K_a$ & critical points / constrained links & $64$, $9$\\
+$h_{\mathrm{act}}$, $d_{\mathrm{rec}}$ & activation band / recovery depth & $80$, $15$~mm\\
+$v_{\mathrm{in}},v_{\mathrm{rec}}$ & approach / recovery saturation on $\dot h$ & $0.50$~m/s\\
+$\varepsilon_{\mathrm{p}}$, $t_{\mathrm{veto}}$ & monitored tracking bound / veto hold & $0.025$~rad/s, $50$~ms\\
+$\varepsilon_{\mathrm{env}},\eta_{\max}$ & dead zone / cap of $\eta_l$ & $0.05$, $0.5$~m/s\\
+$g_{\min}$, $N_{\mathrm{it}}$ & gradient threshold / Dykstra sweeps & $0.03$, $6$\\
+$w_{\mathrm{rot}},\lambda_{\mathbf{W}}$ & task metric weights & $0.01$, $0.01$\\
+$f_{\mathrm{rfx}},\kappa_{\mathrm{rfx}}$ & reflex rate / decay slope & $1$~kHz, $25$~s$^{-1}$\\
+$k_{\mathrm{clear}},h_{\mathrm{ns}}$ & postural clearance gain / band & $0.3$~rad/s, $50$~mm\\
+$\tau_{\mathrm{env}},\tau_{\mathrm{safe}},\tau_{\mathrm{rel}}$ & filter constants & $0.05$, $0.1$, $0.05$~s\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Postural clearance}
+The projection is minimal by construction, so when the frozen policy re-emits the same intent at every cycle the balance between intent and correction can freeze the arm on $h\approx0$: safe, but not progressing. When the conflict is carried by an intermediate link we inject, \emph{into the nominal velocity upstream of the QP}, a clearance term
+\begin{equation}
+\qdot_{\mathrm{clear}}=k_{\mathrm{clear}}\,\rho(h)\,a\,\frac{\mathbf{N}\nabla h}{\|\mathbf{N}\nabla h\|},\qquad \mathbf{N}=\mathbf{I}-\mathbf{J}^{+}\mathbf{J},
+\end{equation}
+with a proximity ramp $\rho$ and an authority ramp $a$ that fades out when little of the gradient lies in the nullspace. Being an objective term, it is filtered by the active half-spaces exactly like the nominal command and can therefore never compromise safety; it buys liveness, not safety. When the controlled link itself is blocked, no heuristic unblocking is applied and the system enters a safe stop.
+
+\subsection{Scope of the guarantee}\label{subsec:scope}
+In continuous time the formulation gives forward invariance of the safe set of the \emph{learned} barrier. Eight assumptions separate that statement from execution, each paired with a telemetry channel and a documented fallback; the five most consequential appear in Table~\ref{tab:assumptions}. The others are an initial state inside $\mathcal{C}$, handled by the recovery law of \eqref{eq:bh} which yields attractivity in place of invariance, the smoothness of the out-of-domain join, which occurs only beyond 40~mm of clearance, and gradient reliability, monitored through $\|\nabla h_l\|$ against $g_{\min}$. Two points deserve emphasis. The certificate applies to the learned barrier, not the true geometry, so physical clearance inherits the field approximation error, which is why Sec.~\ref{subsec:res_sdf} reports the tail of that error and not only its mean.
+
+Second, the filter constrains the exact value $h_{\min,l}$ while using the soft-min gradient, and the only function consistent in both is the compensated barrier $h_{\mathrm{corr}}=h^{\mathrm{soft}}+\alpha\log N$: it is the invariance of $\{h_{\mathrm{corr}}\ge0\}$ that the theorem delivers. Since $h_{\min,l}\le h_{\mathrm{corr}}$ and $b$ is decreasing, the applied constraint is strictly stronger than the one $h_{\mathrm{corr}}$ would require: the implementation is more conservative than the certificate it invokes. The gap, bounded by $\alpha\log N\approx8.3$~mm, is not margin consumed in operation but the distance between what the theorem guarantees and what the filter holds.
+
+\begin{table}[t]
+\caption{Monitored assumptions separating the continuous-time certificate from execution.}
+\label{tab:assumptions}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}p{1.9cm}p{2.6cm}p{2.7cm}@{}}
+\toprule
+\textbf{Assumption} & \textbf{Monitored quantity} & \textbf{Behaviour on violation}\\
+\midrule
+Constant selection & generation counter published with the state & recovery regime, capped repair absorbs the re-introduced point\\
+Feasibility & \texttt{constr\_final} on the published command & residual measured, not assumed; brake holds the command\\
+Command tracking & projected perturbation on active lines & reflex veto $\alpha=0$ until the measure returns below $\varepsilon_{\mathrm{p}}$\\
+Continuous time & 1~kHz re-check of the held command & sampled tightening \eqref{eq:zoh}; command held if the brake fails\\
+Static environment & per-link residual $\hat{\dot d}_l$ & tightening $\eta_l$; robustification, no formal claim\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Experiments}
+
+\subsection{Setup}
+All experiments run on ROS~1 Noetic with Gazebo~11, on a 7-DoF Franka Emika Panda, with every learning component on a single NVIDIA RTX~3090 shared by all modules. State reading, inverse kinematics (Pinocchio \cite{Carpentier2019Pinocchio}) and the reflex brake are C++; everything else is Python with PyTorch. Two tasks are used: assisted feeding with a fork and a wrist-mounted RealSense D415, and pick-and-place with the Franka gripper, trained on 60 and 40 demonstrations respectively, the simulated ones collected in ManiSkill~3 \cite{Xiang_2020_SAPIEN}.
+
+The distance field is evaluated against exact meshes by casting, per protected body, 40 rays along outward normals with 25 samples per ray between 1 and 50~mm. Only clean rays are kept, those whose exact distance to the union of bodies matches the advance along the normal, and samples outside a body's training domain are excluded (7.7\,\%) since the model there returns \eqref{eq:ood}, leaving 5541 verified exterior points.
+
+\subsection{Distance and gradient accuracy}\label{subsec:res_sdf}
 \begin{figure}[t]
-    \centering
-    \begin{tikzpicture}[
-        font=\sffamily\scriptsize,
-        scale=0.85
-    ]
-        \draw[->, thick] (-2.5,0) -- (3.5,0) node[right] {$h$ (mm)};
-        \draw[->, thick] (0,-1.5) -- (0,2.0) node[above] {$b(h)$ (rad/s)};
-        
-        \draw[red!80!black, ultra thick, domain=0:3, samples=100] plot (\x, {-0.3*min(\x/1.5, 1.0)});
-        \draw[blue!80!black, ultra thick, domain=-2:0, samples=100] plot (\x, {-0.4*min(\x/1.0, 1.0)});
-        
-        \draw[dashed, gray] (1.5,0) -- (1.5,-0.3) -- (0,-0.3) node[left] {$-v_{\mathrm{in}}$};
-        \draw[dashed, gray] (-1.0,0) -- (-1.0,0.4) -- (0,0.4) node[right] {$v_{\mathrm{rec}}$};
-        
-        \node[above right, red!80!black] at (1.5,-0.3) {Approach Saturation};
-        \node[above left, blue!80!black] at (-1.0,0.4) {Recovery Saturation};
-        \fill[black] (0,0) circle (2pt) node[above right] {$h=0$};
-    \end{tikzpicture}
-    \caption{Saturated Control Barrier Function RHS $b(h)$, showing approach velocity saturation $-v_{\mathrm{in}}$, recovery saturation $v_{\mathrm{rec}}$, and exact vanishing at the safety margin $h=0$.}
-    \label{fig:saturated_cbf}
+\centering
+\begin{subfigure}[b]{0.475\linewidth}
+\centering\includegraphics[width=\linewidth]{fig3_gradient_direction.pdf}
+\caption{}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.475\linewidth}
+\centering\includegraphics[width=\linewidth]{fig4_gradient_norm.pdf}
+\caption{}
+\end{subfigure}
+\caption{Gradient quality against exact meshes over 5541 verified exterior points. (a) Direction error, $5.4^\circ$ median. (b) Gradient norm against the Eikonal value of one. Both are well conditioned at the margin $\dsafe$. Labels in French.}
+\label{fig:sdf}
 \end{figure}
 
-The CBF constraint function $b(h)$ (illustrated in Fig.~\ref{fig:saturated_cbf}) is saturated to prevent extreme control actions:
-\begin{equation}
-    b(h) = \begin{cases}
-        -v_{\mathrm{in}} \min(h/h_{\mathrm{act}}, 1), & h > 0 \\
-        v_{\mathrm{rec}} \min(-h/d_{\mathrm{rec}}, 1), & h \le 0
-    \end{cases}
-\end{equation}
-where $v_{\mathrm{in}} = 0.3~\mathrm{rad/s}$, $v_{\mathrm{rec}} = 0.4~\mathrm{rad/s}$, $h_{\mathrm{act}} = 80~\mathrm{mm}$, and $d_{\mathrm{rec}} = 15~\mathrm{mm}$. Restrestricted to $[-d_{\mathrm{rec}}, h_{\mathrm{act}}]$, $\gamma(h) = -b(h)$ is strictly increasing, zero at origin, and locally Lipschitz continuous, satisfying extended class-$\mathcal{K}_e$ conditions for prospective invariance.
+On value, the mean absolute distance error is 1.96~mm with a negligible bias of $-0.02$~mm and a correlation of $R=0.9869$; the signed error distribution is centred and symmetric, and its 99th percentile in absolute value is 6.8~mm. That tail, not the mean, is the number the safety margin must face.
 
-\subsection{Three-Layer Constraint Tightening}
-To bridge continuous theory and 100~Hz discrete execution:
-\begin{enumerate}
-    \item \textbf{Discretization Tightening:} Accounts for zero-order hold over period $T=10~\mathrm{ms}$ using Lipschitz constant $L_l$:
-    \begin{equation}
-        \Delta b_{\mathrm{zoh}} = \frac{1}{2} L_l T \|\dot{\mathbf{q}}\|^2
-    \end{equation}
-    \item \textbf{Tracking Error Tightening:} Protects against low-level execution deviation $\mathbf{d}$ bounded by $\varepsilon_{\mathrm{p}} = 0.025~\mathrm{rad/s}$:
-    \begin{equation}
-        \Delta b_{\mathrm{track}} = \varepsilon_{\mathrm{p}} \|\nabla h_l\|
-    \end{equation}
-    \item \textbf{Dynamic Obstacle Tightening:} Adjusts margin based on estimated obstacle approach velocity $\bar{d}_l$:
-    \begin{equation}
-        \eta_l = \mathrm{clip}(-\bar{d}_l - \varepsilon_{\mathrm{env}}, 0, \eta_{\max})
-    \end{equation}
-\end{enumerate}
-The tightened QP constraint becomes $\nabla h_l^\top \dot{\mathbf{q}} \ge b(h_l) + \eta_l + \Delta b_{\mathrm{zoh}} + \Delta b_{\mathrm{track}}$.
+The gradient is evaluated on the two properties the shield consumes. The median angular error against the exact direction is $5.4^\circ$ and stays under $10^\circ$ for most points beyond 5~mm from the surface (Fig.~\ref{fig:sdf}(a)); the norm approaches the Eikonal value of one beyond 10~mm and sags towards 0.7 very close to the surface, where the polynomial smooths the zero crossing (Fig.~\ref{fig:sdf}(b)). What matters is the behaviour at the margin: at $\dsafe$ the direction error is about $6^\circ$ and the norm close to one, so the constraint pushes the arm the right way with the right amplitude at the precise distance where the filter activates.
 
-\subsection{Postural Nullspace Clearance \& 1~kHz Reflex Brake}
-To prevent joint-space local minima, when task progress freezes, a postural clearance velocity is projected into the Jacobian nullspace:
-\begin{equation}
-    \dot{\mathbf{q}}_{\mathrm{null}} = k_{\mathrm{clear}} (\mathbf{I} - \mathbf{J}^+ \mathbf{J}) \nabla h_l
-\end{equation}
-Finally, a nested C++ node at 1~kHz monitors executed states; if inter-sample extrapolation predicts $h \le 0$, it triggers a réflexe braking veto. Projection onto convex constraint sets is solved via Dykstra's algorithm with relaxation \cite{Dykstra1983Restricted, Boyle1986Method}, and singular kinematics are handled via damped pseudo-inversion \cite{Nakamura1986Singularity}.
+Read against the margin, the filter constrains $h_{\min,l}$, so the learned distance to the nearest body is at least 15~mm in steady state, leaving at least 8.2~mm of physical clearance once the 99th-percentile model error is subtracted. In the formal worst case a single isolated obstacle point lowers that floor by $\alpha\log N\approx8.3$~mm to 6.7~mm, comparable to the model tail; the two worst cases cannot be excluded jointly by computation alone, which is why physical clearance is validated empirically against exact meshes rather than deduced from the certificate.
 
-\begin{algorithm}[t]
-\caption{Real-Time Analytical SDF-CBF Safety Shield (100~Hz Loop)}
-\label{alg:cbf_shield}
-\begin{algorithmic}[1]
-\Require Current joint state $\mathbf{q}$, nominal base velocity $\dot{\mathbf{q}}_{\mathrm{base}}$, obstacle point cloud $\mathcal{P}_{\mathrm{obs}}$.
-\Ensure Filtered joint velocity command $\dot{\mathbf{q}}^\star$.
-\State Compute forward kinematics poses $\mathbf{T}_l^b(\mathbf{q})$ for all protected links $l \in \{1,\dots,9\}$ via Pinocchio \cite{Carpentier2019Pinocchio}.
-\State Extract Top-$K$ ($K=64$) critical obstacle points $\mathcal{P}_{\mathrm{CBF}} \subset \mathcal{P}_{\mathrm{obs}}$ on GPU.
-\For{each protected link $l=1$ \textbf{to} $9$}
-    \State Evaluate Bernstein SDF metric distances $d_{l,i}$ and spatial gradients $\mathbf{g}_{l,i}$.
-    \State Compute analytical joint gradient $\nabla_{\mathbf{q}} d_{l,i} = -(\mathbf{J}_{L,l}^b)^\top \mathbf{g}_{l,i} - (\mathbf{J}_{A,l}^b)^\top (\mathbf{r}_{l,i} \times \mathbf{g}_{l,i})$.
-    \State Aggregate link barrier $h_l(\mathbf{q})$ and smooth gradient $\nabla_{\mathbf{q}} h_l$ via Log-Sum-Exp.
-    \State Compute saturated RHS $b(h_l)$ and tightening terms $\Delta b_{\mathrm{zoh}}, \Delta b_{\mathrm{track}}, \eta_l$.
-\EndFor
-\State Assemble top $K_a=9$ link constraints $\mathbf{A} \dot{\mathbf{q}} \ge \mathbf{b}_{\mathrm{tight}}$.
-\State Solve QP projection $\min_{\dot{\mathbf{q}}} \frac{1}{2} \|\dot{\mathbf{q}} - \dot{\mathbf{q}}_{\mathrm{base}}\|_{\mathbf{W}}^2$ via Dykstra's algorithm \cite{Dykstra1983Restricted} with relaxation ($\omega=1.0$, $N_{\mathrm{it}}=6$).
-\If{Task progress frozen}
-    \State Inject postural nullspace clearance $\dot{\mathbf{q}}^\star \leftarrow \dot{\mathbf{q}}^\star + k_{\mathrm{clear}} (\mathbf{I} - \mathbf{J}^+ \mathbf{J}) \nabla h_l$.
-\EndIf
-\State \Return Filtered velocity command $\dot{\mathbf{q}}^\star$.
-\end{algorithmic}
-\end{algorithm}
 
-\section{Experimental Evaluation and Results}
+\subsection{Closed-form gradient against automatic differentiation}\label{subsec:res_autograd}
+We compare the closed-form gradient \eqref{eq:gradq} with \texttt{torch.autograd} on the joint evaluation of the barriers and the full $L\times7$ constraint Jacobian for 100 obstacle points, over 100 repetitions. The maximum discrepancy between the two Jacobians stays at single-precision roundoff, from $6.0\times10^{-8}$ at one link to $3.0\times10^{-7}$ at eight, so \eqref{eq:gradq} is exact and the speedup costs no accuracy; and the analytic form is systematically faster, from $5.60$ against $7.18$~ms at one link to $7.70$ against $13.48$~ms at eight, a ratio growing from $1.28\times$ to $1.75\times$ because automatic differentiation must retain and traverse a graph whose size grows with the chain while \eqref{eq:gradq} is a fixed pair of contractions per point.
+
+Joint evaluation of distance and gradient on GPU forms a plateau of about 5~ms up to a few thousand query points, dominated by fixed per-call overhead and growing only past roughly 4096 points, far beyond the operating point of $K=64$; the exact mesh proximity query grows linearly and exceeds the 10~ms budget by one to two orders of magnitude, which rules it out online.
+
+
+\subsection{Lipschitz constants: a valid bound we could not use}\label{subsec:res_lip}
+The sampled-data tightening \eqref{eq:zoh} and the reflex condition \eqref{eq:reflex} both consume a per-link constant, and we report the negative result because it shaped the design.
+
+The quantity the certificate needs is one-sided: the Taylor lower bound holds as soon as $L_l\ge\sup_{\bm\xi}(-\lambda_{\min}(\nabla^2_{\mathbf{q}}h_l(\bm\xi)))_+$, since only negative curvature threatens it while positive curvature tightens it for free. The two-sided Lipschitz condition implies this but demands far more, and the distinction is not academic for a distance barrier, whose exact distance is convex outside a convex link with large curvature precisely on the harmless side. Because \eqref{eq:bernstein} is a Bernstein tensor product, its second derivatives are Bernstein polynomials whose coefficients are finite differences of the $w^{(l)}_{abc}$, and the convex-hull property bounds each Hessian entry by the largest of them; propagating through the normalisation and the kinematics yields a fully offline analytic bound. It is valid, no sample exceeds it, and it is unusable: $1.4\times10^{3}$ to $2.2\times10^{4}$~m/rad$^2$, roughly forty times the worst observed case, and since the recoil grows linearly in $L_l$ it would freeze the arm long before it reached an obstacle. Two causes combine: the supremum covers the whole cube including corners the robot never visits, and coefficient arithmetic is two-sided, so it cannot isolate the negative curvature that alone matters.
+
+The deployed constants come instead from a sampled campaign on the \emph{deployed} gradient implementation: 8192 configurations drawn uniformly in the joint limits, one query point per link with a third of the draws outside the domain to exercise the extension branch, and the Hessian obtained by central differences of the double-precision analytic gradient. The hierarchy is strongly inhomogeneous, which justifies a vector $L_l$ rather than one constant: body links peak between 2.2 and 25.9~m/rad$^2$, distal links between 44.3 and 79.3, and the fingers dominate by an order of magnitude at 508. That finger excess is not geometric, a finger being convex, but comes from polynomial oscillation around sharp edges; retraining both finger models at $n=12$ halved their worst case from 840 to 508 while improving value and direction accuracy. We deploy the 99th percentile rather than the supremum, from 1.0 for link 2 to 32.0 for link 7, with a further reduction to 20 for the fingers, and monitor the hypothesis online through $\hat L=\|\Delta\nabla h_l\|/\|\Delta\mathbf{q}_0\|$ differenced between consecutive solver states of one selection generation.
+
+Two limits of validity are stated rather than hidden. The out-of-domain join is only piecewise differentiable, so no finite constant bounds the gradient variation across it, though those joins occur only beyond 40~mm of clearance where the certificate holds ample reserve. And the soft-min contributes $-\tfrac1\alpha(\sum_i\omega_i\mathbf{g}_i\mathbf{g}_i^{\top}-\bar{\mathbf{g}}\bar{\mathbf{g}}^{\top})$ to the Hessian, negative semi-definite and therefore on the threatening side, which the single-point campaign does not measure. It remains visible to the online estimator, so the mechanism is runtime assurance, not a proof.
+
+\subsection{Real-time budget of the integrated system}\label{subsec:res_timing}
+Table~\ref{tab:timing} reports per-stage timings measured in closed loop with all modules sharing the GPU. Three readings matter.
+
+The reflex tick holds a hard deadline: 1.00~ms period with zero standard deviation over 9013 consecutive ticks, and the computation it hosts consumes 0.01~ms median and 0.03~ms at p95, 1 to 3\,\% of its period. This is the layer on which the continuous-time assumption of Table~\ref{tab:assumptions} rests, and its slack is such that contention on the shared GPU, which does affect the Python stages, cannot compromise it. The dominant shield stage runs at 0.98~ms median and 7.14~ms at p95 under a 10~ms period, and critical point selection at 0.44~ms median, more than twenty times faster than the 10~ms staleness provisioned in the margin budget. Dykstra sweeps are invoked on only 819 of 2554 correction cycles, so the solver is exercised on 32\,\% of cycles, those with at least one active constraint: that ratio measures the shield's transparency directly and explains the median-to-p95 spread, whose tail is constrained cycles rather than contention.
+
+Finally, replanning is limited by tracking, not by compute. ODE integration costs 4.79~ms median, and the whole chain from conditioning encode to timestamped joint trajectory about 40~ms on average and 83~ms at p95, well under the 200~ms available at 5~Hz. The internal split is counter-intuitive: converting the model output into an executable joint trajectory (20.70~ms median) costs more than four times the ODE integration, and inverse kinematics over the 16 waypoints (5.12~ms) costs more than generation. The generative model is the cheapest stage of its own chain.
 
 \begin{table}[t]
-\caption{System Hyperparameters and Operational Constraints.}
-\label{tab:hyperparams}
+\caption{Per-stage timings of the reactive layers in closed loop (ms). Start-up cycles, where CUDA graph capture and first allocation accumulate, are excluded.}
+\label{tab:timing}
 \centering
-\begin{tabular}{lcc}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llcccc}
 \toprule
-\textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
+\textbf{Stage} & \textbf{Role} & \textbf{n} & \textbf{Mean} & \textbf{Med.} & \textbf{p95}\\
 \midrule
-Safety Margin & $d_{\mathrm{safe}}$ & $15~\mathrm{mm}$ \\
-Top-$K$ Point Selection & $K$ & $64$ \\
-Bernstein Degree / Coefficients & $n-1 / N_w$ & $11 / 1728$ \\
-Max Link Constraints & $K_a$ & $9$ \\
-Approach Velocity Saturation & $v_{\mathrm{in}}$ & $0.3~\mathrm{rad/s}$ \\
-Recovery Velocity Saturation & $v_{\mathrm{rec}}$ & $0.4~\mathrm{rad/s}$ \\
-Tracking Perturbation Bound & $\varepsilon_{\mathrm{p}}$ & $0.025~\mathrm{rad/s}$ \\
-Dykstra Iterations & $N_{\mathrm{it}}$ & $6$ \\
-Reflex Brake Rate & $f_{\mathrm{rfx}}$ & $1000~\mathrm{Hz}$ \\
+\multicolumn{6}{l}{\textit{Reflex brake, 1~kHz}}\\
+\texttt{reflex\_period} & real-time tick & 9013 & 1.00 & 1.00 & 1.00\\
+\texttt{reflex\_compute} & factor $\alpha$ & 9012 & 0.02 & 0.01 & 0.03\\
+\addlinespace
+\multicolumn{6}{l}{\textit{SDF-CBF shield, 100~Hz}}\\
+\texttt{point\_selection} & top-$K$ selection & 5077 & 1.03 & 0.44 & 3.34\\
+\texttt{projection} & Dykstra sweeps & 819 & 1.52 & 1.33 & 2.68\\
+\texttt{cbf\_correction} & correction cycle & 2554 & 1.95 & 0.98 & 7.14\\
+\texttt{cbf\_command} & command publish & 2554 & 0.04 & 0.01 & 0.04\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{table}[t]
-\caption{System Performance Across Experimental Scenarios ($N=50$ trials per cell).}
-\label{tab:results}
+\subsection{Calibrating the monitored tracking bound}\label{subsec:res_eps}
+
+The tightening \eqref{eq:issf} rests on a bound $\varepsilon_{\mathrm{p}}$ on the adverse projected perturbation, calibrated on 26 independent pick-and-place trajectories with varied planner seeds and a 45~s cap, all kept (19 completions, 7 timeouts) since safety calibration must not be conditioned on task success. Each contributes, at 100~Hz, the worst 1~kHz sample per 10~ms window of $-\nabla h_l^{\top}\mathbf{d}/\|\nabla h_l\|$ on active lines, split by brake regime.
+
+Over the 31\,094 effective-execution windows ($\alpha>0.9$) the median is $0.0005$~rad/s and the 99th percentile $0.032$~rad/s, so the deployed $\varepsilon_{\mathrm{p}}=0.025$~rad/s covers 97.9\,\% of windows, a fraction that upper bounds the excess rate over individual ticks since each window keeps its worst tick. We are explicit about what this value is: $\varepsilon_{\mathrm{p}}$ is not a strict majorant but the monitor trigger threshold, placed at the 98th percentile. The tightening certifies the realised flow on the mass of the distribution, per active line, while each residual excursion is detected online and handled by the reflex veto; safety rests on that mass-and-tail partition plus the $\dsafe$ reserve, not on $\varepsilon_{\mathrm{p}}$ as a ceiling. Braking windows, excluded from the veto criterion since the brake's own certificate covers them, show a structurally larger discrepancy (10.4\,\% above $\varepsilon_{\mathrm{p}}$).
+
+The cost of the alternative is quantified at trajectory level. Treating the 26 per-trajectory maxima as exchangeable with that of a future trajectory, the order statistic gives a distribution-free prediction bound \cite{Wilks1941Tolerance}: with probability at least $26/27\approx0.963$, the worst excursion of a new trajectory does not exceed 0.092~rad/s in effective execution, or 0.173~rad/s including braking. Those are the values a static unmonitored majorant would have to load into \eqref{eq:issf} on every active line, 3.7 to 6.9 times the deployed bound, and with them the standoff distance it imposes near the boundary. The monitored design escapes that quantified cost.
+
+
+\subsection{Closed-loop behaviour}\label{subsec:res_closed}
+\begin{figure}[t]
 \centering
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Scenario} & \textbf{Filter} & \textbf{Success (\%)} & \textbf{Collisions} & \textbf{DTW (m)} \\
-\midrule
-Unobstructed & Off & 100.0 & 0 & 0.000 \\
-Unobstructed & On & 100.0 & 0 & 0.000 \\
-Static Obstacle & Off & 18.0 & 41 & -- \\
-Static Obstacle & On & 94.0 & \textbf{0} & 0.042 \\
-Moving Sphere & Off & 12.0 & 44 & -- \\
-Moving Sphere & On & 88.0 & \textbf{0} & 0.058 \\
-Occlusion & Off & 20.0 & 40 & -- \\
-Occlusion & On & 92.0 & \textbf{0} & 0.038 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{subfigure}[b]{0.475\linewidth}
+\centering\includegraphics[width=\linewidth]{h_evolution.pdf}
+\caption{}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.475\linewidth}
+\centering\includegraphics[width=\linewidth]{constraint_residual.pdf}
+\caption{}
+\end{subfigure}
+\caption{Closed-loop run. (a) Exact barrier $h_{\min,l}$, projection-active and repair-only cycles shaded. (b) Safety constraint on the nominal velocity against the published command. Labels in French.}
+\label{fig:closed}
+\end{figure}
 
-\subsection{Experimental Setup}
-The framework is evaluated across three simulation testbeds in Gazebo 11:
-\begin{enumerate}
-    \item \textit{Assisted Feeding (Franka Emika Panda):} 7-DoF arm with fork tool and wrist-mounted RealSense D415 RGB-D camera targeting food items.
-    \item \textit{Pick-and-Place (Franka Emika Panda):} Grasping and placing objects amidst synthetic obstacles.
-    \item \textit{Pick-and-Place (UFactory xArm7):} Cross-embodiment evaluation on a distinct 7-DoF kinematically redundant manipulator.
-\end{enumerate}
 
-\subsection{SDF Accuracy and Gradient Refinement Ablation}
-Evaluating $100,000$ test points against exact CAD meshes demonstrates that geometric refinement reduces gradient direction error from $14.2^\circ$ (RLS-only) to $2.1^\circ$, while enforcing Eikonal norm error $\|\nabla \bar{d}\| - 1 \le 0.03$. The closed-form joint gradient computation executes in $0.12~\mathrm{ms}$ per 64 TopK points on GPU, $8\times$ faster than PyTorch autograd.
 
-\subsection{Safety and Task Preservation}
-As shown in Table~\ref{tab:results}, without filtering, nominal FM trajectories suffer up to 88\% collision rates in cluttered scenes. Activating the SDF-CBF filter completely eliminates collisions (0 collisions across all 200 trials) while maintaining high task success (94\% on static obstacles, 92\% under camera occlusion). In unobstructed environments, the filter intervention is strictly zero, preserving nominal execution.
+Fig.~\ref{fig:closed}(a) follows the exact barrier $h_{\min,l}$ over a representative feeding run with obstacles, marking separately the cycles where the projection corrects the velocity and those where only the repair step intervenes. The regime is visible directly: after the approach phase the system settles into boundary following, the barrier stabilising a few millimetres above zero while the robot advances tangentially along the surfaces towards the target, which is exactly what a projection should do. The barrier stays non-negative throughout the run.
 
-\subsection{Computational Timing Breakdown}
-Module-wise timing analysis over 10,000 cycles confirms real-time compliance: Top-$K$ selection median runtime is $0.42~\mathrm{ms}$ ($p95 = 0.68~\mathrm{ms}$), Pinocchio kinematics is $0.11~\mathrm{ms}$, and Dykstra QP projection is $0.18~\mathrm{ms}$, easily fitting the 10~ms period budget of the 100~Hz control loop.
+Fig.~\ref{fig:closed}(b) contrasts the safety constraint evaluated on the nominal velocity with the same constraint evaluated on the published command. The nominal curve dives below zero as soon as the robot operates near obstacles, down to $-0.087$: left alone, the Flow Matching trajectory would violate the safety condition continuously, which is the quantitative statement of the problem this paper addresses. The published curve never falls below $-10^{-5}$, the floating-point rounding floor, over the whole run. The repair step is far from marginal in that result, firing on nearly every cycle where the projection is active because the output smoothing systematically erodes part of the correction within the same cycle. This is the empirical content of re-measuring admissibility on the published command instead of trusting solver convergence.
 
-\subsection{Cross-Embodiment Transfer}
-Deploying the exact pipeline on a 7-DoF UFactory xArm7 manipulator (updating URDF kinematic tree and link Bernstein SDF weights) yields 92\% success and zero collisions on pick-and-place tasks, demonstrating zero-shot architectural transferability.
+The chain from command to execution closes as well: the commanded barrier rate $\nabla h^{\top}\qdot_{\mathrm{final}}$ and the realised one $\nabla h^{\top}\qdot_{\mathrm{mes}}$ track each other, so the corrections the filter admits are actually realised by the low-level controller. That property is not automatic. Two position-based interfaces evaluated during development failed symmetrically: re-anchoring the reference on the measured position every cycle drove the realised-to-commanded ratio to zero, corrections being reabsorbed before being realised, while integrating it at a step larger than the true loop period drove the ratio negative and above one in magnitude, the arm crossing the boundary in oscillation. Passing the certified velocity directly to a joint velocity controller removes both regimes by removing the intermediary. Consistently with the calibration above, the 99th percentile of the projected perturbation over effective-execution cycles of this run, 0.0247~rad/s, sits right at the deployed bound.
 
-\section{Conclusion}
-We presented a fully decoupled framework for safe robotic manipulation combining generative Flow Matching trajectory policies with a 100~Hz reactive SDF-CBF safety shield. By introducing geometrically refined Bernstein Robot Distance Fields, closed-form analytical joint gradients, and three-layer constraint tightening, our system achieves certified whole-body collision avoidance without retraining or sampling distortion. Future work includes hardware deployment on physical manipulators and handling highly dynamic environments.
+
+
+% =====================================================================
+% TODO (pending closed-loop campaign). Uncomment and fill once the A/B
+% campaign of the thesis (Chapter 5, tab:res_master) has been run with the
+% frozen configuration of Table~\ref{tab:params}:
+%   - monitor-only (cbf_monitor_only:=true) vs full system,
+%   - scenarios: no critical obstacle / static prism / concave crescent /
+%     moving sphere, per bench,
+%   - columns: success rate, collisions (min mesh distance < 0.5 mm on the
+%     raw perception stream, independent of the persistent map), worst-case
+%     h*, TCP deviation (DTW).
+% The xArm7 cross-embodiment bench and the per-mechanism ablations
+% (persistent map, task metric W, postural clearance, dynamic tightening,
+% repair step) go here as well. Do NOT quote numbers before the campaign.
+%
+% \begin{table}[t]
+% \caption{Aggregate comparison with and without the shield ($N$ trials per cell).}
+% \label{tab:ab}
+% \centering\footnotesize
+% \begin{tabular}{llcccc}
+% \toprule
+% \textbf{Scenario} & \textbf{Condition} & \textbf{Success} & \textbf{Collisions} & $h^{\star}$ [mm] & \textbf{Dev.\ [cm]}\\
+% \midrule
+% Static prism & monitor only & & & & ---\\
+%              & full         & & & & \\
+% Moving sphere& monitor only & & & & ---\\
+%              & full         & & & & \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
+% =====================================================================
+
+\section{Limitations and Conclusion}
+The guarantee is about safety, not task completion. Postural clearance extends liveness only to conflicts carried by the arm body and resolvable in the task nullspace; when the obstacle blocks the controlled link itself, the projection cancels the incoming velocity component, the frozen policy re-emits the same intent at every replanning cycle, and the system stays indefinitely in a safe stop, the barrier positive but the task stalled. Resolving topological dead ends belongs to the nominal planning layer.
+
+The margin is sized for simulation, where obstacle clouds are sampled on exact surfaces and frame transforms are known, so hardware deployment would require enlarging $\dsafe$ by the perceptual error budget. The certificate applies to the learned barrier, not the true geometry, and is quasi-static: $\eta_l$ robustifies against environment motion with no formal claim against moving obstacles. Closed-loop replanning also loses a measurable fraction of the commanded speed to vector cancellation, the nominal direction jumping at every regeneration while the low-pass filter averages vectors whose direction alternates; temporal aggregation of successive generations is the natural remedy, left to future work with the statistical A/B campaign and cross-embodiment transfer.
+
+We presented a manipulation system in which task intent and safety are decoupled end to end: a frozen Flow Matching policy proposes, and a whole-body CBF shield backed by a 1~kHz reflex brake disposes. The enabling component is a Bernstein robot distance field refined for gradient fidelity against verified normal rays, paired with an exact closed-form joint-space gradient and a monotone out-of-domain minorant. The distinguishing feature of the safety layer is not any single tightening but the discipline applied to all of them: every gap between the continuous-time theorem and sampled execution is named, tightened, and given a telemetry channel, and the constants they consume are calibrated on measured distributions with distribution-free coverage rather than asserted as global majorants. Future work targets hardware deployment with a perceptual error budget and a second safety level based on external force estimation, for the intentional contact that assisted feeding ultimately requires.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

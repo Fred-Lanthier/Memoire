@@ -716,7 +716,7 @@ Les trois derniers termes régissent l'apprentissage du gradient :
 
 Bien que $\mathcal{L}_{\mathrm{vec}}$ combine théoriquement la direction de $\mathcal{L}_{\mathrm{dir}}$ et la norme de $\mathcal{L}_{\mathrm{eik}}$, sa formulation quadratique directe sur les composantes $(x,y,z)$ offre une stabilité numérique supérieure lors de l'optimisation par Adam et permet d'appliquer la pondération de proximité $\omega(\mathbf{x})$ directement sur le vecteur gradient brut.
 
-La régularisation eikonale $\mathcal{L}_{\mathrm{eik}}$ est implémentée sous forme d'une pénalité quadratique moyenne, échantillonnée sur un ensemble fini de points tirés uniformément dans le cube $\mathcal{D}_{\mathrm{eik}}$. Elle ne constitue donc pas une identité analytiquement garantie en tout point continu du domaine : la propriété eikonale du modèle final est mesurée empiriquement à la Section~\ref{subsec:res_sdf_precision}.
+La régularisation eikonale $\mathcal{L}_{\mathrm{eik}}$ prend la forme d'une pénalité quadratique moyenne, échantillonnée sur un ensemble fini de points tirés uniformément dans le cube $\mathcal{D}_{\mathrm{eik}}$. Elle ne constitue donc pas une identité analytiquement garantie en tout point continu du domaine : la propriété eikonale du modèle final est mesurée empiriquement à la Section~\ref{subsec:res_sdf_precision}.
 
 \subsection*{Pondération de proximité}
 

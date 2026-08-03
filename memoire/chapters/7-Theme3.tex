@@ -714,6 +714,15 @@ Deux modes d'échec anticipés ne se sont pas manifestés et ne peuvent donc pas
 % =================================================================
 Cette section relit l'ensemble des mesures à travers les quatre critères de validation du Tableau~\ref{tab:criteres_validation}, puis en tire ce que la campagne établit sur les choix de conception et sur la portée du travail.
 
+La Figure~\ref{fig:res_sankey} en donne d'abord la vue d'ensemble : le devenir des $255$ essais conduits sous la condition déployée, répartis selon l'étage de la chaîne où l'échec survient.
+
+\begin{figure}[htbp!]
+    \centering
+    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/sankeymatic_20260803_013831.svg}
+    \caption{Devenir des $255$ essais conduits sous la condition déployée, tous scénarios et tous bancs confondus. Chaque étage retire les essais qui y échouent, dans l'ordre du flux de données : perte de la cible à la perception, condition de sécurité non tenue, blocage ou défaut de progression à la vivacité, puis échecs propres à l'accomplissement de la tâche. La branche de sécurité rassemble les $12$ épisodes où la barrière passe sous zéro ou le résidu de contrainte descend sous le seuil de bruit numérique, dont six accomplissent par ailleurs leur tâche ; aucun essai de la campagne ne produit de collision.}
+    \label{fig:res_sankey}
+\end{figure}
+
 \subsection*{Synthèse des critères de validation}
 Le critère de sécurité est satisfait sur son énoncé exact. Aucune collision n'est relevée avec le filtre dans les scénarios où le nominal en produit, alors que celui-ci en produit $47$ sur $60$ essais des deux bancs. La durée cumulée des franchissements de marge suit la même échelle : mesurée sur la géométrie exacte, elle couvre $59$~\% des cycles d'exécution sans filtre sur chacun des deux bancs, et se réduit à $21$ cycles au total avec le filtre, soit une demi-seconde cumulée sur les $30$ essais du banc d'alimentation, et à aucun cycle au banc de saisie et dépôt. La mesure repose sur le juge à maillages exacts que le critère exige, appliqué à la totalité des $795$ épisodes des cellules rapportées.
 
