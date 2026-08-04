@@ -1,28 +1,45 @@
 \Chapter{CONCLUSION}\label{sec:Conclusion}
-Texte / Text.
 
-%%
-%%  SYNTHESE DES TRAVAUX / SUMMARY OF WORKS
-%%
-\section{Synthèse des travaux / Summary of Works}
-Texte / Text.
+Ce chapitre synthétise les principales contributions de ce mémoire au regard des objectifs spécifiques énoncés au Chapitre~\ref{sec:Metho}, aborde les limites théoriques et expérimentales du système proposé, et esquisse les perspectives d'extension de ces travaux.
 
-%%
-%%  LIMITATIONS
-%%
-\section{Limitations de la solution proposée / Limitations}\label{sec:Limitations}
+%=================================================================
+\section{Synthèse des travaux}\label{sec:Synthese}
+%=================================================================
 
-Les conditions sous lesquelles le certificat du filtre de sécurité est établi, ainsi que les quantités surveillées à l'exécution qui en signalent la violation, sont énoncées à la Section~\ref{subsec:garanties}. Cette section ne les répète pas : elle rassemble ce que le système, une fois ces conditions tenues, ne sait pas faire.
+Ce travail a présenté et validé une architecture découplée pour l'exécution sécurisée en temps réel de trajectoires générées par une politique de \textit{Flow Matching} (\acs{FM}) gelée, opérant dans des environnements statiques non vus à l'entraînement. En dissociant la planification de la tâche et la garantie de sécurité, l'approche permet d'exploiter la flexibilité et la multimodalité des modèles génératifs sans compromettre la sécurité physique du robot.
 
-\paragraph{Sécurité sans progression.} La garantie obtenue porte sur la sécurité, non sur l'accomplissement de la tâche. L'invariance de l'ensemble sûr vaut pour une géométrie d'obstacle arbitraire, tandis que le dégagement postural (Section~\ref{subsec:minima}) n'étend la vivacité qu'aux blocages portés par le corps du bras, résolubles dans le noyau de la tâche. Lorsque l'obstacle barre le chemin du lien contrôlé lui-même, cas de la paroi frontale et de la cavité concave faisant face à la trajectoire nominale, la projection annule la composante entrante de la vitesse, le modèle génératif réémet la même intention à chaque replanification, et le système demeure indéfiniment en arrêt sûr : la barrière reste positive, mais la tâche ne progresse plus. Cette limitation est inhérente à un filtre qui opère par projection locale sans planification globale. La résolution des impasses topologiques relève de la couche de planification nominale, dont le remplacement par une politique consciente des obstacles, ou l'adjonction d'un routage global, sort du cadre de ce travail. Les situations de blocage ainsi induites sont caractérisées au Chapitre~\ref{sec:Theme3}.
+Pour répondre à \acs{OS}1, une chaîne de perception combinant le modèle de segmentation sémantique \ac{SAM}~3 et un suivi \ac{RGB-D} a été intégrée pour ancrer sémantiquement les cibles d'intérêt, tandis qu'une carte de points persistante accumule les observations de la scène. Cette mémoire spatiale constitue la contre-mesure principale contre les occlusions occasionnées par les mouvements de la caméra embarquée au poignet.
 
-\paragraph{Marge dimensionnée pour la simulation.} La marge de sécurité $d_{\mathrm{safe}}$ retenue est propre au cadre d'évaluation : les nuages d'obstacles y sont échantillonnés sur la surface exacte des objets et les transformations de repères sont connues, de sorte que les termes d'erreur perceptive, bruit de profondeur, calibration et quantification de carte, y sont nuls. Un déploiement sur matériel exigerait d'augmenter cette marge du budget d'erreur perceptive correspondant, et de revalider les constantes qui en dépendent.
+En réponse à \acs{OS}2, une politique générative conditionnée par la perception a été entraînée sur des démonstrations de manipulation. L'intégration déterministe en peu d'étapes permet de replanifier la trajectoire articulaire à une cadence de $3$--$5$~Hz, fournissant au système une consigne nominale réactive et adaptative.
 
-\paragraph{Invariance certifiée sur une barrière apprise.} Le certificat porte sur la barrière apprise, non sur la géométrie réelle : la distance physique hérite de l'erreur d'approximation du champ de distance. En régime établi, la marge conserve un dégagement réel confortable devant cette erreur, mais dans le pire transitoire certifié le plancher résiduel ne domine plus l'erreur de queue du modèle, et la conjonction des deux pires cas ne peut être exclue par le seul calcul. L'évitement physique est donc validé empiriquement, par la distance mesurée au maillage exact, et non déduit du certificat.
+Afin de satisfaire \acs{OS}3, un bouclier de sécurité réactif \acs{SDF}-\acs{CBF} a été développé. Il évalue un champ de distance signée (\ac{SDF}) appris par polynômes de Bernstein pour le corps complet du robot et corrige la vitesse nominale à $100$~Hz via programmation quadratique (\ac{QP}). Cette couche est complétée par un frein réflexe à $1$~kHz qui réévalue et adapte dynamiquement l'horizon de certification entre les résolutions du solveur.
 
-%%
-%%  AMELIORATIONS FUTURES / FUTURE RESEARCH
-%%
-\section{Améliorations futures / Future Research}
+La validation expérimentale menée pour \acs{OS}4 sur deux tâches de manipulation (alimentation assistée et saisie-dépôt) a confirmé l'efficacité du bouclier : le système élimine l'ensemble des $47$ collisions observées en régime nominal sur $60$ essais sans filtre, tout en préservant le taux de réussite de la tâche ($30/30$ en saisie-dépôt) et en maintenant une transparence élevée hors des zones de conflit.
 
-\paragraph{Du bouclier géométrique à la gestion du contact.} Le filtre proposé traite la sécurité comme un problème d'évitement : il maintient une marge strictement positive entre le robot et tout ce qu'il perçoit. La tâche d'alimentation assistée exige pourtant, dans sa phase terminale, un contact volontaire avec l'utilisateur, que cette formulation interdit par construction (Section~\ref{subsec:revue_cbf_qp}). Lever cette incompatibilité suppose d'adjoindre au bouclier géométrique un second niveau de sécurité, fondé sur l'estimation en ligne des efforts externes et sur une transition vers une commande en impédance ou en admittance lors de l'insertion, la marge $d_{\mathrm{safe}}$ devenant alors fonction de l'état de la tâche plutôt que constante. Ce niveau relève de l'interaction physique humain-robot et des seuils physiologiques de la norme ISO/TS 15066:2016, exclus de la portée de ce travail, et constitue la suite naturelle du système sur une plateforme réelle.
+Enfin, \acs{OS}5 a été réalisé par le déploiement de l'architecture sur un second manipulateur à 7 degrés de liberté (du Franka Emika Panda au uFactory xArm7). Ce transfert a confirmé la généralisation directe du bouclier de sécurité par le seul réentraînement de la cinématique et des champs de distance par lien, sans modification de l'algorithme de filtrage.
+
+%=================================================================
+\section{Limitations de la solution proposée}\label{sec:Limitations}
+%=================================================================
+
+Bien que l'architecture proposée démontre la faisabilité d'un filtrage de sécurité réactif sur des politiques génératives gelées, plusieurs limitations réduisent sa portée dans des conditions de déploiement réel.
+
+En premier lieu, la garantie formelle obtenue porte exclusivement sur la sécurité et non sur la progression de la tâche. La projection locale appliquée par le bouclier \ac{CBF} annule la composante de vitesse normale aux obstacles, mais lorsque l'obstacle obstrue la trajectoire du lien contrôlé lui-même (comme une paroi frontale ou une cavité concave), le système se maintient indéfiniment en arrêt sûr. Le modèle génératif réémettant la même consigne à chaque replanification, le bras s'immobilise. La résolution de ces impasses topologiques relève de la planification globale et dépasse le cadre de cette étude.
+
+Des contraintes d'exécution et de perception limitent également les performances temporelles et réactives du système. L'inclinaison de la caméra au poignet lors des phases d'approche masque parfois temporairement les obstacles, entraînant une découverte tardive dans le nuage de points. Bien que la carte persistante et le frein réflexe à $1$~kHz préviennent tout contact physique, le filtre bascule alors dans un régime de récupération réactif. De surcroît, bien que la résolution du problème \ac{QP} s'effectue en moins d'une milliseconde, la période effective du bouclier atteint $22$~ms en médiane en raison des temps de transfert de mémoire entre le processeur graphique et l'hôte, ce qui consomme une fraction de la marge de sécurité et restreint la vitesse d'exécution maximale du robot.
+
+Une limitation découle par ailleurs du découplage entre la couche de sécurité et la politique de tâche lors du transfert de morphologie robotique. Si le bouclier se transfère sans dégradation sur le manipulateur xArm7 ($0$ collision), la politique générative gelée, entraînée sur le Panda, s'adapte difficilement aux différences de manipulabilité et d'espace de travail du xArm7, ce qui réduit le taux de réussite de la tâche ($16/30$). Une adaptation cinématique de la politique nominale demeure donc nécessaire pour conserver des performances d'exécution optimales sur un autre porteur.
+
+Enfin, les garanties théoriques et le dimensionnement des paramètres s'inscrivent dans le cadre d'évaluation en simulation. La marge $d_{\mathrm{safe}}$ est calibrée pour des nuages de points sans bruit de profondeur ni erreur de calibration. De plus, le certificat s'appuie sur le champ de distance appris et non sur la géométrie exacte ; bien que la marge absorbe l'erreur du modèle en régime établi, l'évitement physique repose sur la vérification empirique au maillage exact et non sur la seule déduction formelle.
+
+%=================================================================
+\section{Améliorations futures}\label{sec:Perspectives}
+%=================================================================
+
+Plusieurs axes de recherche permettraient de faire évoluer cette architecture vers un système embarqué, interactif et adapté aux exigences du déploiement physique.
+
+Une première extension consiste à faire évoluer le filtre géométrique d'évitement vers un système capable de gérer le contact physique. Dans des tâches d'assistance telles que l'alimentation, la phase terminale exige un contact contrôlé avec l'utilisateur, ce qu'un filtre d'évitement strict interdit par construction. L'intégration d'un second niveau de sécurité fondé sur l'estimation des efforts externes et sur une transition vers une commande en impédance ou en admittance permettrait de faire varier la marge $d_{\mathrm{safe}}$ selon l'état de la tâche, en conformité avec les seuils physiologiques de la norme ISO/TS 15066:2016.
+
+Sur le plan de l'architecture logicielle et du couplage algorithmique, la réécriture du bouclier en C++/CUDA natif avec mémoire partagée éliminerait les goulots d'étranglement de transfert de données et ramènerait la période du bouclier en dessous de $10$~ms. Par ailleurs, la transmission de l'état d'activation des contraintes du bouclier vers le planificateur génératif offrirait à ce dernier l'information requise pour contourner les obstacles concaves et débloquer les impasses topologiques.
+
+Enfin, l'adaptation aux environnements dynamiques constitue une perspective majeure. L'extension du cadre théorique aux obstacles mobiles nécessite d'intégrer la dépendance temporelle explicite du champ de distance $h(\mathbf{q}, t)$, introduisant le terme de dérivée partielle $\frac{\partial h}{\partial t}$ dans la contrainte barrière $\dot{h} + \kappa(h) \geq 0$. Cette évolution requiert le développement de modules de perception capables d'estimer et de prédire en temps réel la vitesse des obstacles environnants.
