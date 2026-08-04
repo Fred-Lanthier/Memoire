@@ -25,6 +25,10 @@
         "*": false
     },
     "editor.inlineSuggest.enabled": false,
+    "latex-workshop.chktex.enabled": false,
+    "latex-workshop.message.warning.show": false,
+    "ltex.language": "fr",
+    "cSpell.language": "fr",
     "[latex]": {
         "editor.wordWrap": "on"
     }
