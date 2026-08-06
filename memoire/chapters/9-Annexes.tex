@@ -1304,9 +1304,31 @@ Cet écart produit des conséquences distinctes selon la tâche considérée. Su
 
 Le déploiement intègre l'\ac{ODE}~\eqref{eq:euler} en $N=5$ pas d'Euler explicite, valeur fixée au Chapitre~\ref{sec:Theme2} au nom de la latence de replanification. Cette analyse balaie $N \in \{1, 2, 3, 5, 10, 20\}$ sur $60$ fenêtres de validation et $3$ prédictions par fenêtre, et rapporte la déviation de position mesurée par \ac{DTW} vis-à-vis de la vérité terrain ainsi que le coût de génération.
 
-La qualité du chemin, mesurée par la déviation \ac{DTW} moyenne, présente une faible sensibilité au nombre de pas $N$ ($0{,}90$~cm pour $N=1$ et $0{,}93$~cm pour $N=20$, soit une variation inférieure à $12$~\%). Le coût, lui, est strictement linéaire : le temps par pas demeure constant à $1{,}73$~ms, de sorte que la génération passe de $1{,}9$~ms à $N=1$ à $34{,}7$~ms à $N=20$.
+La qualité du chemin, mesurée par la déviation \ac{DTW} moyenne, présente une faible sensibilité au nombre de pas $N$ ($0{,}90$~cm pour $N=1$ et $0{,}93$~cm pour $N=20$, soit une variation inférieure à $12$~\%). Le coût, lui, est strictement linéaire : le temps par pas demeure constant à $1{,}73$~ms, de sorte que la génération passe de $1{,}9$~ms à $N=1$ à $34{,}7$~ms à $N=20$. La Figure~\ref{fig:fm_euler_steps} rapporte les deux grandeurs.
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/thesis_fm_figures/fm_euler_steps_ablation_dtw.svg}
+        \caption{Déviation de position (\ac{DTW}).}\label{fig:fm_steps_dtw}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/thesis_fm_figures/fm_euler_steps_ablation_temps.svg}
+        \caption{Temps de génération.}\label{fig:fm_steps_temps}
+    \end{subfigure}
+    \caption{Qualité et coût de la génération selon le nombre de pas d'Euler $N$. (a)~La déviation \ac{DTW} moyenne demeure pratiquement constante sur toute la plage, son minimum se situant à $N=3$ ; (b)~le temps de génération croît linéairement, à pente constante.}\label{fig:fm_euler_steps}
+\end{figure}
 
 Le choix de $N=5$ s'explique par la structure géométrique et la régularité du chemin généré plutôt que par la seule métrique \ac{DTW}, comme l'illustre la Figure~\ref{fig:fm_dispersion_structure}. Un accroissement de $N$ réduit la rugosité de la trajectoire au détriment d'un surcoût temporel linéaire.
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/thesis_fm_figures/fm_dispersion_structure.svg}
+    \caption{Régularité géométrique du chemin généré selon le nombre de pas d'Euler $N$, comparée aux démonstrations expertes. (a)~Rugosité du chemin, mesurée par la norme de la différence seconde ; (b)~longueur d'arc du chemin généré rapportée à celle de la démonstration. Les deux grandeurs décroissent fortement jusqu'à $N=5$, puis n'évoluent plus qu'à la marge.}\label{fig:fm_dispersion_structure}
+\end{figure}
 
 Cette mesure confirme empiriquement le bénéfice du \ac{FM} face aux politiques de diffusion (Chapitre~\ref{sec:RevLitt}), à savoir l'obtention d'une trajectoire exploitable avec un nombre de passes réseau inférieur d'un ordre de grandeur.
 
@@ -1393,11 +1415,6 @@ Pince fermée (saisie) & $35\,200$ & $0{,}0110$ & $99{,}42\,\%$ & $99{,}09\,\%$ 
 \end{tabular}
 \end{table}
 
-\begin{figure}[!htbp]
-    \centering
-    \includesvg[inkscapelatex=false]{images/Results/FM/fm_trajectoire_multimodale.svg}
-    \caption{Générations multiples du planificateur pour une même observation, superposées à la vérité terrain. (a)~Plan $XY$ ; (b)~plan $XZ$.}\label{fig:fm_trajectoire_multimodale}
-\end{figure}
 
 \begin{figure}[!htbp]
     \centering
@@ -1438,13 +1455,7 @@ Deuxièmement, la transparence du filtre doit se lire sur la contrainte et non s
 Troisièmement, la vitesse nominale filtrée porte un bruit dont l'analyse spectrale situe la puissance dominante à $1{,}04$~Hz en médiane sur les essais de la cellule, soit une fréquence bien inférieure à la cadence de regénération du planificateur, fixée à $5$~Hz sur ce banc. La constante de lissage de la vitesse nominale, $0{,}05$~s sur le banc d'alimentation, filtre donc effectivement les impulsions que le gain de suivi $K_p$ produit à chaque nouvelle trajectoire générée ; le contenu résiduel suit la dynamique de la tâche elle-même plutôt que celle de la replanification. Les conséquences de ce lissage sur la vitesse réellement parcourue sont analysées à la Section~\ref{subsec:res_replan}.
 
 \subsection*{Action du filtre sur la vitesse commandée}\label{subsec:res_cbf_action}
-La Figure~\ref{fig:joint_vel} superpose, pour chacune des sept articulations, la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$ (ce que le robot ferait en l'absence d'obstacle), la correction de projection, la vitesse effectivement commandée $\dot{\mathbf{q}}_{\mathrm{final}}$ et la vitesse articulaire mesurée $\dot{\mathbf{q}}_{\mathrm{mes}}$, ce qui referme la chaîne du nominal à l'exécuté. L'écart entre les deux premières courbes se lit directement comme l'amplitude de l'intervention du filtre, et la correction se concentre sur les articulations qui ont le plus d'autorité sur la barrière : sur l'ensemble de la cellule, les articulations $4$, $2$ et $6$ reçoivent les corrections médianes les plus fortes ($0{,}030$, $0{,}026$ et $0{,}022$~rad/s sur les cycles contraints), celles dont le mouvement déplace le poignet et la fourchette perpendiculairement à la paroi du bol, alors que les articulations $1$ et $3$ en reçoivent trois à quatre fois moins. Ce classement est propre à la géométrie du conflit : au banc de saisie et dépôt, où la contrainte porte sur la main et les doigts, ce sont les articulations $7$ et $1$ qui dominent.
-
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/per_joint_velocity.svg}
-    \caption{Vitesse nominale, correction de projection, vitesse commandée et vitesse mesurée pour chacune des sept articulations.}\label{fig:joint_vel}
-\end{figure}
+La correction de projection ne se répartit pas uniformément entre les articulations. Son amplitude se lit comme l'écart entre la vitesse nominale $\dot{\mathbf{q}}_{\mathrm{base}}$, ce que le robot ferait en l'absence d'obstacle, et la vitesse effectivement commandée $\dot{\mathbf{q}}_{\mathrm{final}}$, superposition que les Figures~\ref{fig:pp_vel_joints} et~\ref{fig:pp_vel_decomp} détaillent au banc de saisie et dépôt. Elle se concentre sur les articulations qui ont le plus d'autorité sur la barrière : sur l'ensemble de la cellule, les articulations $4$, $2$ et $6$ reçoivent les corrections médianes les plus fortes ($0{,}030$, $0{,}026$ et $0{,}022$~rad/s sur les cycles contraints), celles dont le mouvement déplace le poignet et la fourchette perpendiculairement à la paroi du bol, alors que les articulations $1$ et $3$ en reçoivent trois à quatre fois moins. Ce classement est propre à la géométrie du conflit : au banc de saisie et dépôt, où la contrainte porte sur la main et les doigts, ce sont les articulations $7$ et $1$ qui dominent.
 
 Hors des zones d'activation, la vitesse commandée n'est pas atténuée de façon mesurable sur ce banc : le rapport de sa norme à celle de la vitesse nominale vaut $1{,}00$ en médiane. Conformément à la formulation de la Section~\ref{subsec:commande}, l'absence d'atténuation découle du report du lissage dans l'objectif d'optimisation du solveur : la vitesse cible du problème de projection est déjà la moyenne exponentielle de la commande précédente et de la nominale courante, de sorte qu'aucune érosion ne s'ajoute après coup. La constante en jeu vaut $\tau_{\mathrm{safe}}=0{,}05$~s sur le banc d'alimentation, contre les $0{,}1$~s du Tableau~\ref{tab:cbf_params} au banc de saisie et dépôt, où la même mesure donne une atténuation de $3$~\%.
 
@@ -1538,4 +1549,54 @@ Quantifiée par le protocole de la sous-section précédente, la dispersion de c
     \centering
     \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/FM/pp_fm_denoising_scene.svg}
     \caption{Intégration du flot pour la tâche de saisie et dépôt aux instants $t=0$, $t=0{,}5$ et $t=1$.}\label{fig:pp_denoising}
+\end{figure}
+
+\subsection*{Régularité et nombre de pas d'intégration}
+
+Le balayage du nombre de pas d'Euler conduit plus haut sur la tâche d'alimentation a été repris sur celle-ci. Il confirme le point de fonctionnement $N=5$ et fait apparaître le seul critère sur lequel les deux tâches diffèrent.
+
+La régularité géométrique s'y comporte de la même façon, en partant de plus près (Figure~\ref{fig:pp_fm_structure}) : la rugosité passe de $0{,}80$~cm à $N=1$ à $0{,}23$~cm à $N=5$, pour $0{,}17$~cm chez les démonstrations, et l'excès de longueur d'arc de $9$~\% à $1$~\%. La trajectoire étant plus courte et plus contrainte, l'oscillation à faible nombre de pas y écarte moins du chemin expert qu'en alimentation, où cet excès atteignait $65$~\%. La rectitude des chemins d'intégration est identique, à $1{,}000$ de médiane et $1{,}001$ de moyenne (Figure~\ref{fig:pp_fm_straightness}).
+
+La différence porte sur la déviation \ac{DTW} (Figure~\ref{fig:pp_fm_euler_steps}). Là où elle demeurait plate en alimentation, elle décroît ici de $0{,}65$~cm à $N=1$ à $0{,}45$~cm à $N=5$, soit $30$~\%, avant de se stabiliser. Sur cette tâche, la métrique de fidélité départage donc les faibles valeurs de $N$, et elle place son optimum au même endroit que les critères de régularité. Le coût, lui, croît linéairement comme au banc d'alimentation.
+
+La dispersion des générations suit ce profil (Figures~\ref{fig:pp_fm_dispersion_pas} et~\ref{fig:pp_fm_multimodalite_xy}) : elle décroît jusqu'à un minimum à $N=5$ puis remonte légèrement. Les vues dans le plan $XY$ appellent la même lecture qu'en alimentation, l'écart mesuré à $N=1$ relevant de la rugosité des chemins plutôt que de modes distincts.
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/thesis_pickplace_figures/pp_fm_dispersion_structure.svg}
+    \caption{Régularité géométrique du chemin généré sur la tâche de saisie et dépôt, selon le nombre de pas d'Euler $N$. (a)~Rugosité du chemin ; (b)~longueur d'arc rapportée à celle de la démonstration.}\label{fig:pp_fm_structure}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/thesis_pickplace_figures/pp_fm_euler_steps_ablation_dtw.svg}
+        \caption{Déviation de position (\ac{DTW}).}\label{fig:pp_fm_steps_dtw}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/thesis_pickplace_figures/pp_fm_euler_steps_ablation_temps.svg}
+        \caption{Temps d'inférence \ac{GPU}.}\label{fig:pp_fm_steps_temps}
+    \end{subfigure}
+    \caption{Qualité et coût de la génération sur la tâche de saisie et dépôt, selon le nombre de pas d'Euler $N$. (a)~La déviation \ac{DTW} moyenne décroît jusqu'à $N=5$ puis se stabilise, contrairement au banc d'alimentation où elle demeure plate ; (b)~le temps d'inférence croît linéairement. Ces durées sont mesurées sans graphe \ac{CUDA} : elles ne se comparent donc pas au compteur \texttt{fm\_generation} du système déployé, qui en utilise un (Section~\ref{sec:res_temps}).}\label{fig:pp_fm_euler_steps}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false, width=0.72\textwidth]{images/Results/thesis_pickplace_figures/pp_fm_straightness_ratio.svg}
+    \caption{Distribution du rapport de rectitude des chemins d'intégration sur la tâche de saisie et dépôt.}\label{fig:pp_fm_straightness}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false, width=0.72\textwidth]{images/Results/thesis_pickplace_figures/pp_fm_dispersion_vs_pas.svg}
+    \caption{Dispersion inter-générations sur la tâche de saisie et dépôt en fonction du nombre de pas d'intégration $N$.}\label{fig:pp_fm_dispersion_pas}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/thesis_pickplace_figures/pp_fm_dispersion_multimodalite_xy.svg}
+    \caption{Trajectoires générées dans le plan $XY$ sur la tâche de saisie et dépôt, selon le nombre de pas d'intégration $N$, pour une même observation et $24$ tirages initiaux.}\label{fig:pp_fm_multimodalite_xy}
 \end{figure}

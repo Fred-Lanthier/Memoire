@@ -96,37 +96,40 @@ Les durées énoncées plus haut sont des coûts \ac{GPU} synchronisés, relevé
     \caption{Temps de calcul de la distance en fonction du nombre de points de requête : modèle de Bernstein (\ac{GPU}) contre requêtes de proximité sur les maillages exacts, \texttt{trimesh} (\texttt{numpy}) et Embree (C++). Le point d'opération du filtre est à $4096$ points, taille maximale de la carte persistante.}\label{fig:temps_SDF}
 \end{figure}
 
-Le Tableau~\ref{tab:gradient_comparison} complète cette mesure en comparant la forme close du gradient (Section~\ref{subsec:gradient}) à la différentiation automatique (\texttt{torch.autograd} de \texttt{PyTorch}), pour l'évaluation conjointe des barrières et de la Jacobienne de contrainte complète. La forme analytique est systématiquement plus rapide, avec un écart qui croît avec le nombre de liens protégés. De plus, l'erreur maximale entre les deux Jacobiennes demeure de l'ordre de la précision machine en simple précision : la dérivation en forme close du Chapitre~\ref{sec:Theme2} est exacte, et le gain de temps s'obtient sans perte de précision.
+Le Tableau~\ref{tab:gradient_comparison} porte sur l'étape suivante de la chaîne, celle qui agrège les distances en barrières et en Jacobienne de contrainte. La sélection TopK a déjà ramené le nuage à $K = 64$ points, et c'est sur ce nuage de taille fixe que la forme close du gradient (Section~\ref{subsec:gradient}) est comparée à la différentiation automatique (\texttt{torch.autograd} de \texttt{PyTorch}).
+
+Aux neuf corps protégés, la forme close demande $9{,}7$~ms contre $20{,}1$~ms, et l'écart se creuse avec le nombre de corps, d'un facteur $1{,}3$ pour un seul corps à $2{,}1$ pour les neuf. De plus, Les deux méthodes ne réagissent pas de la même façon à la taille du nuage. Par exemple, le calcul effectué sur l'ensemble du nuage de $4096$ points, la forme close demeure à $8{,}8$~ms alors que la différentiation automatique passe à $28{,}8$~ms. La première est donc insensible au nombre de points dans cette plage, la seconde non. L'erreur maximale entre les deux Jacobiennes reste inférieure à $10^{-6}$, soit quelques fois la précision machine en simple précision : la dérivation en forme close du Chapitre~\ref{sec:Theme2} est exacte, et le gain de temps s'obtient sans perte de précision.
 
 \begin{table}[!htbp]
 \centering
-\caption{Temps d'évaluation conjointe des barrières $h_l$ et de la Jacobienne de contrainte complète ($L\times 7$) pour $100$ points obstacles, en fonction du nombre $L$ de liens protégés inclus : gradient analytique en forme close contre différentiation automatique (moyenne $\pm$ écart-type en ms, $100$ répétitions), avec l'erreur absolue maximale entre les deux Jacobiennes.}
+\caption{Temps d'évaluation conjointe des barrières $h_l$ et de la Jacobienne de contrainte complète ($L\times 7$) sur les $K = 64$ points pour le gradient analytique en forme close contre différentiation automatique sur 100 répétitions.}
 \label{tab:gradient_comparison}
 \small
 \begin{tabular}{cccc}
 \toprule
-\textbf{Liens $L$} & \textbf{Analytique [ms]} & \textbf{Diff. automatique [ms]} & \textbf{Erreur max. gradient} \\
+\textbf{Corps $L$} & \textbf{Analytique [ms]} & \textbf{Diff. automatique [ms]} & \textbf{Erreur max. gradient} \\
 \midrule
-1 & $5{,}596 \pm 0{,}413$ & $7{,}180 \pm 0{,}113$ & $5{,}960 \times 10^{-8}$ \\
-2 & $5{,}549 \pm 0{,}345$ & $8{,}010 \pm 0{,}389$ & $2{,}235 \times 10^{-7}$ \\
-3 & $5{,}432 \pm 0{,}149$ & $8{,}836 \pm 0{,}457$ & $2{,}373 \times 10^{-7}$ \\
-4 & $5{,}444 \pm 0{,}106$ & $9{,}789 \pm 0{,}127$ & $2{,}373 \times 10^{-7}$ \\
-5 & $5{,}538 \pm 0{,}398$ & $10{,}349 \pm 0{,}321$ & $2{,}980 \times 10^{-7}$ \\
-6 & $7{,}644 \pm 0{,}156$ & $12{,}257 \pm 0{,}517$ & $2{,}980 \times 10^{-7}$ \\
-7 & $7{,}792 \pm 0{,}315$ & $12{,}899 \pm 0{,}288$ & $2{,}980 \times 10^{-7}$ \\
-8 & $7{,}698 \pm 0{,}172$ & $13{,}479 \pm 0{,}233$ & $2{,}980 \times 10^{-7}$ \\
+1 & $6{,}62 \pm 0{,}95$ & $8{,}53 \pm 1{,}00$ & $2{,}864 \times 10^{-8}$ \\
+2 & $6{,}49 \pm 0{,}87$ & $9{,}34 \pm 1{,}10$ & $1{,}825 \times 10^{-7}$ \\
+3 & $9{,}33 \pm 1{,}22$ & $13{,}04 \pm 0{,}90$ & $1{,}825 \times 10^{-7}$ \\
+4 & $9{,}18 \pm 1{,}06$ & $14{,}71 \pm 1{,}62$ & $1{,}937 \times 10^{-7}$ \\
+5 & $8{,}84 \pm 0{,}62$ & $16{,}03 \pm 1{,}63$ & $9{,}686 \times 10^{-7}$ \\
+6 & $9{,}57 \pm 1{,}13$ & $17{,}69 \pm 1{,}48$ & $9{,}686 \times 10^{-7}$ \\
+7 & $9{,}74 \pm 1{,}33$ & $18{,}51 \pm 1{,}59$ & $9{,}686 \times 10^{-7}$ \\
+8 & $9{,}12 \pm 0{,}75$ & $19{,}73 \pm 2{,}29$ & $9{,}686 \times 10^{-7}$ \\
+9 & $9{,}73 \pm 1{,}37$ & $20{,}12 \pm 1{,}49$ & $9{,}686 \times 10^{-7}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-La sélection des points critiques de la Section~\ref{subsec:selection} se vérifie enfin en situation. Celle-ci s'adapte à la géométrie complète du manipulateur plutôt qu'à un volume sphérique autour de l'outil : des points sont retenus le long des liens intermédiaires dès qu'un obstacle s'en approche, ce qui illustre la prise en compte de la sécurité corps-complet définie au Chapitre~\ref{sec:Theme2}. L'illustration correspondante est reportée à l'Annexe~\ref{annexe:resultats_complementaires}.
+La sélection des points critiques de la Section~\ref{subsec:selection} se vérifie enfin en situation. Celle-ci s'adapte à la géométrie complète du manipulateur plutôt qu'à un volume sphérique autour de l'outil : des points sont retenus le long des liens intermédiaires dès qu'un obstacle s'en approche, ce qui illustre la prise en compte de la sécurité corps-complet définie au Chapitre~\ref{sec:Theme2}.
 
 \subsection{Validation du planificateur nominal}\label{subsec:res_fm}
-Cette sous-section évalue le planificateur génératif par \textit{Flow Matching} (\ac{FM}) seul, hors de la boucle de sécurité, sur trois propriétés : sa fidélité aux démonstrations expertes, le comportement de son erreur le long de l'horizon de prédiction, et la multimodalité des trajectoires qu'il produit. Seul le profil de l'erreur le long de l'horizon est illustré ici, parce qu'il commande une décision de conception ; les distributions d'erreur agrégées, celles de la seconde tâche et les caractérisations intrinsèques du modèle (convergence, sensibilité au pas d'intégration, rectitude des flots) sont regroupées à l'Annexe~\ref{annexe:resultats_complementaires}.
+Cette sous-section évalue le planificateur génératif par \textit{Flow Matching} (\ac{FM}) seul, hors de la boucle de sécurité, sur quatre propriétés : sa fidélité aux démonstrations expertes, le comportement de son erreur le long de l'horizon de prédiction, l'exactitude de sa commande de pince, et la multimodalité des trajectoires qu'il produit. Seul le profil de l'erreur le long de l'horizon est illustré ici, parce qu'il commande une décision de conception ; les distributions d'erreur agrégées, celles de la seconde tâche et les caractérisations intrinsèques du modèle (convergence, sensibilité au pas d'intégration, rectitude des flots) sont regroupées à l'Annexe~\ref{annexe:resultats_complementaires}.
 
-La fidélité de reproduction, mesurée sur $200$ fenêtres régulièrement espacées couvrant l'intégralité du jeu de validation et $20$ tirages par fenêtre, place la trajectoire générée à l'intérieur de la tolérance géométrique des outils employés : la déviation de position (\ac{DTW}) affiche une médiane de $0{,}67$~cm (écart interquartile de $0{,}35$ à $1{,}21$~cm) et l'erreur de rotation finale à l'effecteur une médiane de $3{,}21^\circ$, contre une ouverture utile de plusieurs centimètres pour la pince comme pour les dents de la fourchette. La précision en rotation indique que le modèle prédit l'orientation requise de l'outil à l'atteinte de la cible, condition du piquage comme de la préhension.
+La fidélité de reproduction, mesurée sur $200$ fenêtres régulièrement espacées couvrant l'intégralité du jeu de validation et $20$ tirages par fenêtre, place la trajectoire générée à l'intérieur de la tolérance géométrique des outils employés : la déviation de position (\ac{DTW}) affiche une médiane de $0{,}67$~cm, son troisième quartile atteignant $1{,}21$~cm, et l'erreur de rotation finale à l'effecteur une médiane de $3{,}21^\circ$, contre une ouverture utile de plusieurs centimètres pour la pince comme pour la largeur des dents de la fourchette. La précision en rotation indique que le modèle prédit l'orientation requise de l'outil à l'atteinte de la cible.
 
-Le profil de l'erreur le long de l'horizon importe davantage que sa valeur agrégée, car il justifie la stratégie de régénération glissante du Chapitre~\ref{sec:Theme2}. La Figure~\ref{fig:fm_horizon} en donne l'allure complète. L'erreur médiane de position vaut $0{,}09$~cm au premier point de l'horizon et $0{,}14$~cm au deuxième, puis croît jusqu'à $1{,}26$~cm au seizième, l'écart interquartile passant de $0{,}07$ à $2{,}02$~cm : l'incertitude d'une trajectoire en boucle ouverte se concentre en queue d'horizon, et la replanification continue empêche cette queue d'être atteinte.
+Le profil de l'erreur le long de l'horizon importe davantage que sa valeur agrégée, car il valide la stratégie de régénération glissante du Chapitre~\ref{sec:Theme2}. La Figure~\ref{fig:fm_horizon} en donne l'allure complète. L'erreur médiane de position vaut $0{,}09$~cm au premier point de l'horizon et $0{,}14$~cm au deuxième, puis croît jusqu'à $1{,}26$~cm au seizième, l'écart interquartile passant de $0{,}07$ à $2{,}02$~cm : l'incertitude d'une trajectoire en boucle ouverte se concentre en queue d'horizon, et la replanification continue empêche cette queue d'être atteinte.
 
 \begin{figure}[htpb]
     \centering
@@ -135,7 +138,19 @@ Le profil de l'erreur le long de l'horizon importe davantage que sa valeur agré
     long de l'horizon, sur le jeu de validation du banc d'alimentation ($200$ fenêtres, $20$ prédictions par fenêtre, $5$ pas d'Euler). (a)~Erreur de position ; (b)~erreur de rotation à l'effecteur. La médiane comme la dispersion croissent avec le rang $k$ du point dans l'horizon, l'incertitude se concentrant en queue de segment.}\label{fig:fm_horizon}
 \end{figure}
 
-Deux propriétés complètent cette validation. La commande discrète de la pince du banc de saisie et dépôt, évaluée conjointement à la génération sur $64\,000$ commandes image par image ($200$ fenêtres, $20$ tirages, $16$ pas d'horizon), atteint une exactitude globale de $99{,}18\,\%$ avec un score F1 supérieur à $99\,\%$ pour les deux états, ce qui rend le déclenchement de la préhension fiable aux phases de saisie et de dépôt. Enfin, en faisant varier le seul tirage de bruit initial à observation fixée, le modèle produit des variantes distinctes et lisses de contournement au lieu de s'effondrer sur une trajectoire moyenne : ce comportement s'affranchit de la moyenne des modes propre aux approches régressives par clonage de comportement (\ac{MSE}), qui dirigent le robot vers le centre des obstacles.
+La commande discrète de la pince du banc de saisie et dépôt, évaluée conjointement à la génération sur $64\,000$ commandes image par image ($200$ fenêtres, $20$ tirages, $16$ pas d'horizon), atteint une exactitude globale de $99{,}18\,\%$ avec un score $F_1$ supérieur à $99\,\%$ pour les deux états, ce qui rend le déclenchement de la préhension fiable aux phases de saisie et de dépôt. Ce score résume en une seule grandeur la précision et le rappel de la classe considérée :
+\begin{equation}\label{eq:F1score}
+    F_1 = \frac{2\,\mathrm{VP}}{2\,\mathrm{VP} + \mathrm{FP} + \mathrm{FN}},
+\end{equation}
+où $\mathrm{VP}$, $\mathrm{FP}$ et $\mathrm{FN}$ dénombrent respectivement les vrais positifs, les faux positifs et les faux négatifs.
+
+Enfin, en ne faisant varier que le tirage de bruit initial à observation fixée, le modèle produit des trajectoires distinctes et lisses plutôt qu'une trajectoire moyenne unique (Figure~\ref{fig:fm_trajectoire_multimodale}). Cette variabilité conservée distingue une politique générative d'une régression par clonage de comportement sous perte quadratique, laquelle moyenne les modes de la démonstration (Chapitre~\ref{sec:RevLitt}). L'Annexe~\ref{annexe:resultats_complementaires} quantifie cette multimodalité deux générations issues d'une même observation s'écartent en moyenne de $0{,}50$~cm, là où un modèle effondré sur un mode unique donnerait zéro et où deux démonstrations expertes de configurations voisines s'écartent de $1{,}04$~cm.
+
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false]{images/Results/FM/fm_trajectoire_multimodale.svg}
+    \caption{Générations multiples du planificateur pour une même observation du banc d'alimentation, en ne faisant varier que le tirage de bruit initial, superposées à la vérité terrain et à leur moyenne. (a)~Plan $XY$ ; (b)~plan $XZ$.}\label{fig:fm_trajectoire_multimodale}
+\end{figure}
 
 \FloatBarrier
 % =================================================================
@@ -158,7 +173,7 @@ Les deux bancs de saisie et dépôt remplacent cette caméra embarquée par une 
 \toprule
  & \textbf{Alimentation} & \textbf{Saisie et dépôt} & \textbf{Saisie et dépôt} \\
 \midrule
-Robot & Panda 7 \acs{DDL} & Panda 7 \acs{DDL} & xArm7 \\
+Robot & Franka Emika Panda & Franka Emika Panda & xArm7 \\
 Outil / effecteur & fourchette & pince Franka & pince Franka \\
 Caméra (D415) & poignet & statique & statique \\
 Politique \ac{FM} & alimentation & saisie-dépôt & saisie-dépôt \\
@@ -167,17 +182,17 @@ Politique \ac{FM} & alimentation & saisie-dépôt & saisie-dépôt \\
 \end{table}
 
 \subsection{Scénarios}\label{subsec:res_scenarios}
-Cinq scénarios sollicitent chacun un mécanisme précis du système ; le Tableau~\ref{tab:res_scenarios} indique quels bancs d'essai exécutent chacun d'eux.
+Cinq scénarios composent le plan d'évaluation ; le Tableau~\ref{tab:res_scenarios} indique quels bancs d'essai exécutent chacun d'eux.
 
-Les deux premiers scénarios établissent le comportement de base. Le scénario sans obstacle critique constitue la référence : aucun obstacle n'approche la trajectoire nominale, et il vérifie la transparence du filtre (interventions et déviation attendues nulles). Le scénario d'obstacles statiques place un obstacle convexe sur le chemin nominal de l'outil et force un contournement.
+Les deux premiers scénarios établissent le comportement de base. Le scénario sans obstacle critique constitue la référence où aucun obstacle, mis à part ceux présents dans les données comme la table, n'approche la trajectoire nominale, et il mesure la transparence du filtre, c'est-à-dire ce qu'il coûte lorsque la tâche ne lui impose aucun conflit. Le scénario d'obstacles statiques place un obstacle sur le chemin nominal de l'outil et force un contournement.
 
-Les trois derniers scénarios sondent chacun une limite ou un mécanisme dédié. L'obstacle concave (croissant) ouvre une poche autour du chemin nominal : il matérialise la limite de vivacité assumée du filtre (Section~\ref{subsec:garanties}), dont le comportement d'arrêt sûr attendu est documenté parmi les cas d'échec. Le conflit porté par le corps place un obstacle dans le volume balayé par le coude et l'avant-bras en laissant libre le corridor de l'outil : c'est le seul régime où le dégagement postural (Section~\ref{subsec:minima}) dispose d'une autorité, et il sert donc de scénario dédié à l'ablation de ce mécanisme. Le scénario d'occlusion, propre au banc d'alimentation, oriente le bras à l'écart de l'obstacle au moment où il s'en approche : l'obstacle quitte le champ de vision de la caméra embarquée, et la sécurité ne peut plus reposer que sur la mémoire spatiale de la carte persistante.
+Les trois derniers scénarios sondent chacun une limite ou un mécanisme dédié. L'obstacle concave (croissant) ouvre une poche autour du chemin nominal : il matérialise la limite de contournement d'obstacle assumée du filtre (Section~\ref{subsec:garanties}). Le conflit porté par le corps ajoute un obstacle dans le volume balayé par le coude et l'avant-bras : c'est le seul régime où le dégagement postural (Section~\ref{subsec:minima}) dispose d'une autorité, et il sert donc de scénario dédié à l'ablation de ce mécanisme. Le scénario d'occlusion oriente le bras à l'écart de l'obstacle au moment où il s'en approche : l'obstacle quitte le champ de vision de la caméra embarquée, et la sécurité ne peut plus reposer que sur la mémoire spatiale de la carte persistante.
 
-Sur le banc d'alimentation, les deux dernières lignes du Tableau~\ref{tab:res_scenarios} désignent la même cellule de 30 essais. La caméra étant montée au poignet, le bras se détourne du bol au moment de l'inclinaison du poignet vers l'aliment : l'occlusion de l'obstacle ne nécessite aucun aménagement spécifique et se produit systématiquement à chaque essai de par la configuration cinématique, et le tirage de la pose du bol fait varier l'instant et la profondeur de la perte de vue. Cette cellule unique est associée à deux critères d'évaluation distincts.
+Sur le banc d'alimentation, les lignes Obstacle(s) statique(s) et Occlusion de l'obstacle du Tableau~\ref{tab:res_scenarios} sont reliées aux mêmes 30 essais. La caméra étant montée au poignet, le bras se détourne du bol au moment de l'inclinaison du poignet vers l'aliment : l'occlusion de l'obstacle ne nécessite aucun aménagement spécifique et se produit systématiquement à chaque essai de par la configuration cinématique. Cette cellule unique est associée à deux critères d'évaluation distincts.
 
 \begin{table}[htbp]
 \centering
-\caption{Matrice des scénarios évalués par banc d'essai ($N$ essais par cellule). La ligne concave rassemble deux géométries : le croissant de $0{,}36$~m ($N=30$) et sa variante de $1$~m ($N=15$), cette dernière documentant un mode d'échec plutôt qu'un taux. Sur le banc d'alimentation, les lignes « obstacles statiques » et « occlusion » désignent la même cellule de $30$ essais.}
+\caption{Matrice des scénarios évalués par banc d'essai ($N$ essais par cellule). La ligne concave rassemble deux géométries : le croissant de $0{,}36$~m ($N=30$) et sa variante de $1$~m ($N=15$)}
 \label{tab:res_scenarios}
 \small
 \begin{tabular}{lccc}
@@ -194,89 +209,105 @@ Occlusion de l'obstacle       & $N=30$      & ---    & --- \\
 \end{tabular}
 \end{table}
 
-La réalisation matérielle de ces scénarios diffère par banc. Sur le banc d'alimentation, l'obstacle est le bol lui-même, l'aliment étant la cible : la cellule sans obstacle critique s'obtient en retirant le bol de la scène, la table demeurant un obstacle que le filtre doit respecter. Cette cellule appelle deux précautions de lecture, exposées à la Section~\ref{subsec:res_ab}. Sur les bancs de saisie et dépôt, l'obstacle statique est un prisme de $0{,}36$~m de haut barrant le transport du cube, et l'obstacle du conflit porté par le corps est une sphère virtuelle placée dans le volume balayé par le coude et l'avant-bras, sans modèle de collision physique associé : un franchissement y constitue une violation de barrière et exclut tout contact physique matériel.
+La réalisation matérielle de ces scénarios diffère par banc. Sur le banc d'alimentation, l'obstacle est le bol lui-même, l'aliment étant la cible : la cellule sans obstacle critique s'obtient en retirant le bol de la scène, la table demeurant un obstacle que le filtre doit respecter. Sur les bancs de saisie et dépôt, l'obstacle statique est un prisme de $0{,}36$~m de haut barrant le transport du cube, et l'obstacle du conflit porté par le corps est une sphère virtuelle placée dans le volume balayé par le coude et l'avant-bras, sans modèle de collision physique associé : un franchissement y constitue une violation de barrière et exclut tout contact physique matériel.
 
-Deux réglages du filtre diffèrent selon les bancs d'essai. Le banc d'alimentation retient $K=100$ points critiques au lieu des $64$ du Tableau~\ref{tab:cbf_params}, une sélection plus large et donc plus conservatrice, imposée par la densité du nuage issu de la caméra au poignet ; ses neuf corps protégés incluent la fourchette et excluent le lien $2$, alors que les bancs de saisie et dépôt protègent les liens $2$ à $7$, la main et les deux doigts. Le nombre de corps contraints, lui, est de $9$ sur les trois bancs, conformément au Tableau~\ref{tab:cbf_params}. Tous les autres paramètres du filtre sont ceux de ce tableau, identiques sur les trois bancs.
+Il est toutefois important de précisé une différence au niveau des réglages du filtre selon les bancs d'essai. Les neuf corps protégés par le système pour l'alimentation incluent la fourchette et excluent le lien $2$, alors que les bancs de saisie et dépôt protègent les liens $2$ à $7$, la main et les deux doigts. Tous les autres paramètres du filtre sont ceux du tableau~\ref{tab:cbf_params}, identiques sur les trois bancs.
 
 \subsection{Métriques}\label{subsec:res_metriques}
-Les métriques suivantes sont utilisées pour évaluer l'ensemble du système et ne sont définies qu'ici :
+Les métriques suivantes sont utilisées pour évaluer l'ensemble du système et sont définies ici :
 \begin{itemize}
-  \item \textbf{Taux de réussite sûre} : fraction des essais où la tâche est complétée dans un délai maximal $T_{\max}$ sans que la barrière $h$ ni le résidu de contrainte ne descendent sous $-10^{-4}$, seuil qui sépare le bruit numérique des violations mesurées ; la complétion correspondant au piquage effectif de la cible pour la tâche d'alimentation et au dépôt du cube dans la boîte pour la tâche de saisie-dépôt ;
-  \item \textbf{Collisions} : nombre d'essais où la distance minimale entre les maillages exacts des corps protégés et le nuage d'obstacles descend sous $0{,}5$~mm. Cette distance est recalculée hors ligne, à partir des angles articulaires mesurés et d'une cinématique directe indépendante du n\oe ud, et elle ne dépend donc ni du \ac{SDF} appris ni de la valeur de barrière que le filtre publie. Cette évaluation géométrique exacte sur maillages est appliquée à la totalité des $795$ épisodes des cellules retenues, sans tri préalable sur la valeur de barrière publiée ;
-  \item \textbf{Marge minimale de l'essai $h^{\star}$} : plus petite valeur atteinte au cours de l'essai par la barrière publiée $h_{\min,l} = \min_i d_{l,i} - d_{\mathrm{safe}}$, mesurant le respect strict du domaine de sécurité ($h^{\star} \ge 0$). La même grandeur évaluée sur les maillages exacts plutôt que sur le \ac{SDF} appris est notée $h^{\star}_{\mathrm{ex}}$ : elle est indépendante du modèle et de l'artefact de télémesure de la Section~\ref{sec:res_echecs}, et c'est elle qui est rapportée dans les tableaux de sécurité agrégée. La notation la distingue du minimum spatial $h_{\min,l}$ du Chapitre~\ref{sec:Theme2}, pris sur les points obstacles à un instant donné, dont $h^{\star}$ est le minimum temporel ;
-  \item \textbf{Résidu de contrainte (\texttt{constr\_final})} : valeur maximale du résidu de la contrainte \ac{CBF} mesurée sur la commande de vitesse réellement transmise au robot, après projection, saturations articulaires et filtre de sortie ; cette métrique vérifie empiriquement que la commande publiée ne réintroduit aucune violation de la contrainte ;
-  \item \textbf{Norme d'intervention ($\|\Delta\dot{\mathbf{q}}\|$)} : amplitude de la correction de vitesse articulaire apportée par le filtre par rapport à la consigne nominale produite par le planificateur ($\|\dot{\mathbf{q}}_{\mathrm{safe}} - \dot{\mathbf{q}}_{\mathrm{nom}}\|$), mesurant la transparence du bouclier (strictement nulle hors de la zone d'activation) ;
-  \item \textbf{Déclenchements du frein réflexe ($1$~kHz)} : fréquence d'intervention et durée d'activation de la boucle de garde haute fréquence en C++, quantifiant la sollicitation du frein réflexe ultime entre deux résolutions de la boucle \ac{CBF} ($100$~Hz) ;
+  \item \textbf{Taux de réussite sûre} : fraction des essais où la tâche est complétée dans un délai maximal de $30$~s pour la tâche d'alimentation et de $45$~s pour la tâche de saisie et dépôt, sans que la barrière publiée $h$ ni le résidu de contrainte ne descendent sous $-10^{-6}$, seuil qui sépare le bruit numérique des violations mesurées ; la complétion correspondant au piquage effectif de la cible pour la tâche d'alimentation et au dépôt du cube dans la boîte pour la tâche de saisie-dépôt ;
+  \item \textbf{Collisions} : nombre d'essais où la distance minimale entre les maillages exacts des corps protégés et le nuage d'obstacles descend sous $0{,}5$~mm. Cette distance est recalculée hors ligne, à partir des angles articulaires mesurés et d'une cinématique directe indépendante du n\oe ud, et elle ne dépend donc ni du \ac{SDF} appris ni de la valeur de barrière que le filtre publie; 
+  \item \textbf{Marge minimale de l'essai $h^{\star}$} : plus petite valeur atteinte au cours de l'essai par la barrière publiée $h_{\min,l} = \min_i d_{l,i} - d_{\mathrm{safe}}$, mesurant le respect strict du domaine de sécurité ($h^{\star} \ge 0$). La même grandeur évaluée sur les maillages exacts plutôt que sur le \ac{SDF} appris est notée $h^{\star}_{\mathrm{ex}}$ et c'est elle qui est rapportée dans les tableaux de sécurité agrégée ;
+  \item \textbf{Résidu de contrainte (\texttt{constr\_final})} : valeur minimale du résidu de la contrainte \ac{CBF} mesurée sur la commande de vitesse réellement transmise au robot, après projection, saturations articulaires et filtre de sortie ;
+  \item \textbf{Norme d'intervention ($\|\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}\|$)} : amplitude de la correction de vitesse articulaire que le solveur applique à la vitesse cible du problème de projection ; hors de la zone d'activation, l'écart entre commande et nominale mesure le retard du filtre de lissage et non une action de sécurité (Section~\ref{subsec:res_pp_deep}) ;
+  \item \textbf{Déviation de l'outil} : écart géométrique entre la trajectoire
+  de l'outil réellement exécutée et la trajectoire nominale produite par le
+  planificateur, mesuré par déformation temporelle dynamique (\ac{DTW}) sur la
+  position de la pointe de l'outil ; elle mesure ce que le filtre déplace de la
+  consigne du planificateur ;
+  \item \textbf{Atténuation du frein réflexe ($\alpha$)} : facteur appliqué à la
+  commande par la boucle de garde à $1$~kHz, valant $1$ lorsqu'elle la laisse
+  passer intégralement et $0$ lorsqu'elle immobilise le robot ; sa médiane et son
+  premier décile quantifient la sollicitation du frein entre deux résolutions de
+  la boucle \ac{CBF} à $100$~Hz ;
+  \item \textbf{Fraction de cycles contraints} : proportion des cycles du
+  bouclier où la vitesse nominale ne satisfait pas la contrainte resserrée,
+  c'est-à-dire ceux où le solveur a une correction de sécurité à appliquer ;
+  c'est sur elle, et non sur l'amplitude de la correction, que se lit la
+  transparence du filtre (Section~\ref{subsec:res_pp_deep}) ;
   \item \textbf{Temps de complétion} : durée totale entre le début de l'essai et la réussite de la tâche, calculée uniquement sur les essais réussis ;
   \item \textbf{Temps de calcul} : latence d'exécution mesurée pour chaque sous-système (perception, génération Flow Matching, résolution du filtre \ac{CBF} et boucle de commande).
 \end{itemize}
-Sauf mention contraire, les taux de réussite et de collision sont rapportés en proportion des $N$ essais de la cellule, et les métriques continues par leur médiane et leur écart interquartile ; la marge minimale de l'essai $h^{\star}$ et le résidu de contrainte (\texttt{constr\_final}) sont également rapportés en pire cas sur l'ensemble des essais.
+Sauf mention contraire, les taux de réussite et de collision sont rapportés en proportion des $N$ essais de la cellule, et les métriques continues par leur médiane, complétée de centiles là où la queue de distribution importe.
 
 % =================================================================
 \section{Sécurité et évitement d'obstacles}\label{sec:res_securite}
 % =================================================================
-Cette section évalue si le filtre \ac{SDF}-\ac{CBF} permet d'exécuter sans collision, dans des environnements non vus à l'entraînement, les trajectoires produites par le planificateur génératif, sans réentraînement de celui-ci. La comparaison principale oppose le système complet au même système en mode observation (\textit{monitor only}), où la barrière et les diagnostics sont calculés mais aucune correction n'est appliquée.
+Cette section évalue si le filtre \ac{SDF}-\ac{CBF} permet d'exécuter sans collision, dans des environnements non vus à l'entraînement, les trajectoires produites par le planificateur génératif, sans réentraînement de celui-ci. La comparaison principale oppose le système complet au même système en mode observation, où la barrière et les diagnostics sont calculés mais aucune correction n'est appliquée.
 
 \subsection{Résultats agrégés avec et sans filtre}\label{subsec:res_ab}
-Le Tableau~\ref{tab:res_master} rassemble la comparaison centrale du mémoire. Le filtre déployé se compose de deux couches, le bouclier \ac{QP} à la cadence de commande et le frein réflexe à $1$~kHz, et la campagne les sépare : chaque banc est évalué dans les quatre conditions du plan factoriel complet, du système entier au nominal exécuté brut. Les cellules sont appariées sur les graines du planificateur et sur le tirage de pose, de sorte que chaque ligne d'un même bloc voit les mêmes scènes.
+Le Tableau~\ref{tab:res_master} rassemble la comparaison centrale du mémoire. Le filtre déployé compte deux couches, le bouclier \ac{QP} à la cadence de commande et le frein réflexe à $1$~kHz. Les activer indépendamment donne les quatre conditions du tableau : sans filtre, chaque couche prise seule, et le système
+complet. Les quatre partagent les mêmes graines de planificateur et les mêmes tirages de pose, donc les mêmes scènes.
 
-Trois cellules complètent le tableau sous la seule condition déployée, la condition sans filtre n'y ayant pas d'application directe : la scène sans obstacle critique de chaque banc, où la question n'est plus l'évitement mais la transparence, et le conflit porté par le corps du bras, dédié à l'ablation du dégagement postural (Section~\ref{subsec:res_abl_clearance}).
+Le dernier bloc du tableau ajoute trois cellules exécutées avec le système complet seulement. Les scènes sans obstacle critique des deux bancs Panda y mesurent la transparence du filtre ; le conflit porté par le corps du bras sert à l'ablation du dégagement postural (Section~\ref{subsec:res_abl_clearance}).
+Aucune ne place d'obstacle matériel sur le chemin de l'outil.
 
-\subsection*{Précisions méthodologiques sur la mesure des collisions}
-La colonne des collisions doit être interprétée au regard du protocole de mesure retenu. L'évaluation géométrique exacte sur maillages définie à la Section~\ref{subsec:res_metriques} recalcule, à partir des angles articulaires mesurés et d'une cinématique directe indépendante du n\oe ud, la distance entre les surfaces des corps protégés et le nuage d'obstacles. Elle a été appliquée à la totalité des $795$ épisodes des cellules rapportées, sans échec : les colonnes de collision et de marge proviennent donc d'une mesure exhaustive.
+\subsection*{Mesure des collisions au maillage exact}
+La colonne des collisions du Tableau~\ref{tab:res_master} provient de mesures exhaustives. L'évaluation géométrique exacte sur maillages définie à la Section~\ref{subsec:res_metriques} recalcule, à partir des angles articulaires mesurés et d'une cinématique directe indépendante du n\oe ud, la distance entre les surfaces des corps protégés et le nuage d'obstacles. Elle a été appliquée à la totalité des $765$ épisodes des cellules rapportées.
 
 \begin{table}[htbp]
 \centering
-\caption{Comparaison avec et sans filtre \ac{SDF}-\ac{CBF}, agrégée sur $N=30$ essais par cellule : taux de réussite, collisions au maillage exact, marge minimale de l'essai $h^{\star}$ en pire cas sur la cellule et déviation médiane de l'outil (métriques de la Section~\ref{subsec:res_metriques}). La marge $h^{\star}$ est recalculée sur les maillages exacts pour la totalité des essais.}
+\caption{Comparaison avec et sans filtre \ac{SDF}-\ac{CBF}, agrégée sur $N=30$ essais par cellule. La marge $h^{\star}$ est recalculée sur les maillages exacts pour la totalité des essais. Le résidu n'est pas défini dans les conditions sans bouclier, où aucune commande filtrée n'est réévaluée.}
 \label{tab:res_master}
-\footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{llcccc}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{llcccccc}
 \toprule
-\textbf{Scénario} & \textbf{Condition} & \textbf{Réussite} & \textbf{Collisions} & $\boldsymbol{h^{\star}_{\mathrm{ex}}}$ \textbf{(mm)} & \textbf{Déviation} \\
- & & & & & \textbf{(cm)} \\
+\textbf{Scénario} & \textbf{Condition} & \textbf{Réussite} & \textbf{Collisions} & $\boldsymbol{h^{\star}_{\mathrm{ex}}}$ & \textbf{Déviation} & \textbf{Cycles} & \textbf{Résidu final} \\
+ & & & & \textbf{(mm)} & \textbf{(cm)} & \textbf{contraints} & \textbf{(m/s)} \\
 \midrule
-\multicolumn{6}{l}{\textbf{Alimentation, bol tiré au hasard}} \\
- & sans filtre        & $0/30$  & $19/30$ & $-14{,}9$ & $0{,}40$ \\
- & frein seul         & $0/30$  & $0/30$  & $-4{,}7$  & $0{,}24$ \\
- & bouclier seul      & $24/30$ & $1/30$  & $-14{,}6$ & $0{,}37$ \\
- & système complet    & $24/30$ & $0/30$  & $-3{,}4$  & $0{,}37$ \\
+\multicolumn{8}{l}{\textbf{Alimentation, bol tiré au hasard}} \\
+ & sans filtre        & $0/30$  & $23/30$ & $-15{,}0$ & $0{,}31$ & $88{,}3$~\% & --- \\
+ & frein seul         & $0/30$  & $0/30$  & $-12{,}6$ & $0{,}14$ & $98{,}5$~\% & --- \\
+ & bouclier seul      & $24/30$ & $0/30$  & $-9{,}4$  & $0{,}27$ & $62{,}5$~\% & $-4{,}4\times10^{-7}$ \\
+ & système complet    & $26/30$ & $0/30$  & $+5{,}3$  & $0{,}26$ & $62{,}7$~\% & $-3{,}9\times10^{-8}$ \\
 \addlinespace
-\multicolumn{6}{l}{\textbf{Saisie et dépôt, prisme statique}} \\
- & sans filtre        & $0/30$  & $28/30$ & $-15{,}0$ & $0{,}40$ \\
- & frein seul         & $0/30$  & $0/30$  & $+4{,}2$  & $1{,}55$ \\
- & bouclier seul      & $29/30$ & $0/30$  & $+4{,}6$  & $0{,}51$ \\
- & système complet    & $30/30$ & $0/30$  & $+4{,}9$  & $0{,}60$ \\
+\multicolumn{8}{l}{\textbf{Saisie et dépôt, prisme statique}} \\
+ & sans filtre        & $0/30$  & $28/30$ & $-15{,}0$ & $0{,}40$ & $64{,}0$~\% & --- \\
+ & frein seul         & $0/30$  & $0/30$  & $+4{,}2$  & $1{,}55$ & $76{,}0$~\% & --- \\
+ & bouclier seul      & $29/30$ & $0/30$  & $+4{,}6$  & $0{,}51$ & $21{,}8$~\% & $-8{,}4\times10^{-9}$ \\
+ & système complet    & $30/30$ & $0/30$  & $+4{,}9$  & $0{,}60$ & $33{,}5$~\% & $-1{,}7\times10^{-8}$ \\
 \addlinespace
-\multicolumn{6}{l}{\textbf{Système complet seul}} \\
-Alimentation, sans bol      & système complet & $21/30$ & $0/30$ & $+12{,}9$ & $0{,}26$ \\
-Saisie-dépôt, sans obstacle & système complet & $27/30$ & $0/30$ & $+1243{,}7$ & $0{,}46$ \\
-Conflit porté par le corps  & système complet & $28/30$ & $0/30$ & $+4{,}2$  & $0{,}31$ \\
+\multicolumn{8}{l}{\textbf{Système complet seul}} \\
+Alimentation, sans bol      & système complet & $25/30$ & $0/30$ & $+11{,}2$ & $0{,}20$ & $27{,}9$~\% & $-1{,}1\times10^{-8}$ \\
+Saisie-dépôt, sans obstacle & système complet & $27/30$ & $0/30$ & $+11{,}7$ & $0{,}46$ & $0{,}2$~\%  & $-6{,}9\times10^{-8}$ \\
+Conflit porté par le corps  & système complet & $28/30$ & $0/30$ & $+4{,}2$  & $0{,}31$ & $5{,}0$~\%  & $-2{,}1\times10^{-9}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection*{Évitement des collisions par le filtre de sécurité}
-L'effet principal du filtrage s'observe sur les deux premiers blocs du Tableau~\ref{tab:res_master}. Sans filtre, la trajectoire générée entre en contact dans $19$ essais sur $30$ au banc d'alimentation et dans $28$ sur $30$ au banc de saisie et dépôt, et le dégagement réel en pire cas y tombe à $0{,}08$ et $0{,}05$~mm, c'est-à-dire au contact physique. Le système complet ne produit aucune collision sur aucun des deux bancs, ni dans aucune des trois cellules de la troisième section du tableau. La durée passée à l'intérieur de la marge suit la même échelle : mesurée sur la géométrie exacte, elle couvre $59$~\% des cycles d'exécution sans filtre sur chacun des deux bancs, contre $21$ cycles au total pour les $30$ essais du banc d'alimentation avec le système complet, et aucun cycle au banc de saisie et dépôt. Le planificateur génératif n'a pas été réentraîné, ni même informé des obstacles : l'ajout du filtre permet ainsi d'éliminer l'ensemble des $47$ collisions observées en régime nominal.
+L'effet principal du filtrage s'observe sur les deux premiers blocs du Tableau~\ref{tab:res_master}. Sans filtre, la trajectoire générée entre en contact dans $23$ essais sur $30$ au banc d'alimentation et dans $28$ sur $30$ au banc de saisie et dépôt, et le dégagement réel en pire cas y tombe à $0{,}05$~mm sur les deux bancs, c'est-à-dire au contact physique. Le système complet ne produit aucune collision sur aucun des deux bancs, ni dans aucune des trois cellules de la troisième section du tableau. La durée passée à l'intérieur de la marge suit la même échelle : mesurée sur la géométrie exacte, elle couvre $61{,}8$~\% des cycles d'exécution sans filtre au banc d'alimentation et $59{,}2$~\% au banc de saisie et dépôt, contre aucun cycle sur l'un comme sur l'autre avec le système complet. Le planificateur génératif n'a pas été réentraîné, ni même informé des obstacles : l'ajout du filtre permet ainsi d'éliminer l'ensemble des $51$ collisions observées en régime nominal.
 
 Ce résultat s'étend aux environnements absents du jeu d'entraînement du planificateur. Le prisme, le croissant et la sphère du banc de saisie et dépôt ne figuraient pas dans les démonstrations, et le tirage de la pose du bol place l'obstacle du banc d'alimentation dans des configurations inédites. Le filtre satisfait ainsi le critère de sécurité du Tableau~\ref{tab:criteres_validation} : aucune collision n'est observée avec filtre là où le régime nominal échoue.
 
 \subsection*{Rôles complémentaires du bouclier QP et du frein réflexe}
 L'analyse séparée des deux couches de sécurité précise le rôle de chaque composant, dont le comportement varie selon le banc d'essai. Au banc de saisie et dépôt, le bouclier \ac{QP} est suffisant : la condition sans frein réunit $29$ succès sur $30$ et aucune collision, et sa barrière minimale demeure positive. Le frein n'y apporte pas de gain de sécurité mesurable et augmente le temps de complétion de $3{,}2$~s en médiane appariée.
 
-Au banc d'alimentation, l'analyse montre au contraire l'importance du frein réflexe. Le bouclier seul laisse subsister une collision, sur l'essai $23$, où le dégagement réel tombe à $0{,}41$~mm ; ce même essai, avec le frein actif, s'arrête à $11{,}6$~mm de la surface. La différence tient à la nature de l'obstacle. La caméra étant montée au poignet, le bol est perçu tardivement : l'analyse de latence de perception rapportée à la Section~\ref{subsec:res_abl_persistance} attribue $61$ des $68$ franchissements de barrière relevés sur les $210$ épisodes couverts du banc d'alimentation à des points d'obstacle perçus pour la première fois moins de $200$~ms avant le franchissement, avec une médiane de $80$~ms. Dans une fenêtre de cet ordre, l'horizon de calcul du filtre QP se limite à quelques cycles, alors que le frein en dispose de plusieurs dizaines. La couche à $1$~kHz est donc requise pour agir à l'échelle de temps de la perception.
+Au banc d'alimentation, c'est le frein réflexe qui maintient la barrière positive. Sans lui, quatre essais sur trente descendent sous zéro et la barrière exacte tombe à $-9{,}4$~mm au pire, le bras passant dix cycles à l'intérieur de la marge ; avec lui, aucun essai ne franchit zéro et la barrière exacte demeure au-dessus de $+5{,}3$~mm. Aucune des deux conditions ne produit de collision, le dégagement réel restant à $5{,}6$~mm au pire sans frein. La différence tient à la nature de l'obstacle. La caméra étant montée au poignet, le bol est perçu tardivement (Section~\ref{sec:res_echecs}) : dans une fenêtre de cet ordre, l'horizon de calcul du filtre QP se limite à quelques cycles, alors que le frein en dispose de plusieurs dizaines. La couche à $1$~kHz est donc requise pour agir à l'échelle de temps de la perception.
 
-La condition « frein seul » complète cette caractérisation. Elle ne correspond pas à une absence de sécurité : le frein immobilise le bras sans aucune collision sur les deux bancs, et la vitesse articulaire mesurée y est nulle en médiane. Néanmoins, la tâche n'aboutit jamais ($0$ succès sur $30$ des deux côtés). L'arrêt réflexe prévient les collisions en immobilisant le robot, tandis que la correction QP ajuste la vitesse de consigne afin de poursuivre l'exécution de la tâche. La déviation de $1{,}55$~cm de cette cellule au banc de saisie et dépôt traduit ainsi l'immobilisation elle-même, la trajectoire exécutée s'arrêtant là où la trajectoire nominale se poursuit.
+La condition « frein seul » complète cette caractérisation. Elle ne correspond pas à une absence de sécurité : le frein immobilise le bras sans aucune collision sur les deux bancs, et la vitesse articulaire mesurée y est nulle en médiane. Au banc d'alimentation, il l'immobilise toutefois à l'intérieur de la marge, $13{,}8$~\% des cycles s'y déroulant sous zéro pour un dégagement réel qui ne descend jamais sous $2{,}4$~mm. Néanmoins, la tâche n'aboutit jamais ($0$ succès sur $30$ des deux côtés). L'arrêt réflexe prévient les collisions en immobilisant le robot, tandis que la correction QP ajuste la vitesse de consigne afin de poursuivre l'exécution de la tâche. La déviation de $1{,}55$~cm de cette cellule au banc de saisie et dépôt traduit ainsi l'immobilisation elle-même, la trajectoire exécutée s'arrêtant là où la trajectoire nominale se poursuit.
 
 \subsection*{Impact du filtrage sur l'accomplissement de la tâche}
-L'impact du filtrage sur la réalisation des tâches s'évalue à partir des taux de réussite et de la déviation de la trajectoire. Au banc de saisie et dépôt, le système complet réussit $30$ essais sur $30$ contre $0$ sans filtre, et le rapport est de $24$ contre $0$ au banc d'alimentation : sans filtre, aucun essai ne satisfait la condition de sécurité. La déviation de l'outil mesure quant à elle l'écart par rapport à la trajectoire nominale consignée : $0{,}60$~cm au banc de saisie et dépôt contre $0{,}40$~cm sans filtre (soit $2{,}1$~mm de déviation supplémentaire en médiane appariée), et $0{,}37$~cm contre $0{,}40$~cm au banc d'alimentation, où l'écart n'est pas significatif. Au regard de la tolérance géométrique des outils employés (plusieurs centimètres pour l'ouverture de la pince et les dents de la fourchette), cette déviation demeure négligeable.
+L'impact du filtrage sur la réalisation des tâches s'évalue à partir des taux de réussite et de la déviation de la trajectoire. Au banc de saisie et dépôt, le système complet réussit $30$ essais sur $30$ contre $0$ sans filtre, et le rapport est de $26$ contre $0$ au banc d'alimentation : sans filtre, aucun essai ne satisfait la condition de sécurité. La déviation de l'outil mesure quant à elle l'écart par rapport à la trajectoire nominale consignée : $0{,}60$~cm au banc de saisie et dépôt contre $0{,}40$~cm sans filtre (soit $2{,}1$~mm de déviation supplémentaire en médiane appariée), et $0{,}26$~cm contre $0{,}31$~cm au banc d'alimentation, où le filtrage réduit même légèrement la déviation. Au regard de la tolérance géométrique des outils employés (plusieurs centimètres pour l'ouverture de la pince et les dents de la fourchette), cette déviation demeure négligeable.
 
-Les cellules sans obstacle critique complètent l'évaluation de la transparence. Au banc de saisie et dépôt, la barrière n'est jamais contraignante ($0{,}2$~\% des cycles) et la déviation vaut $0{,}46$~cm ; au banc xArm7, elle ne l'est sur aucun cycle et la déviation tombe à $0{,}18$~cm. La cellule sans bol du banc d'alimentation ne se compare pas directement aux cellules avec bol, son critère de complétion étant différent : le rebord ayant disparu, la réussite y est le piquage suivi d'une livraison à $y \geq 0{,}40$~m plutôt que l'extraction au-dessus du rebord. Elle sert de référence de transparence, indiquant un filtre contraignant sur $25$~\% des cycles seulement (contre $70$~\% lorsque le bol est présent), avec la table comme seul obstacle.
+Les cellules sans obstacle critique complètent l'évaluation de la transparence. Au banc de saisie et dépôt, la barrière n'est jamais contraignante ($0{,}2$~\% des cycles) et la déviation vaut $0{,}46$~cm ; au banc xArm7, elle ne l'est sur aucun cycle et la déviation tombe à $0{,}18$~cm. La cellule sans bol du banc d'alimentation ne se compare pas directement aux cellules avec bol, son critère de complétion étant différent : le rebord ayant disparu, la réussite y est le piquage suivi d'une livraison à $y \geq 0{,}40$~m plutôt que l'extraction au-dessus du rebord. Elle sert de référence de transparence, indiquant un filtre contraignant sur $27{,}9$~\% des cycles seulement (contre $62{,}7$~\% lorsque le bol est présent), avec la table comme seul obstacle.
 
 \subsection*{Évaluation de la marge de sécurité effective}
-L'évolution de la barrière minimale sous le système déployé permet d'évaluer le respect du budget de marge $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}). Sur les cellules déployées sans franchissement, la valeur minimale de $h^{\star}$ s'établit entre $+0{,}8$ et $+1{,}0$~mm : le filtre maintient le robot à environ un millimètre de la frontière de sécurité, ce qui correspond au régime de suivi de frontière illustré à la Figure~\ref{fig:h_ev}. Ce millimètre résiduel correspond au résidu de discrétisation provisionné par la marge, laissant les $15$~mm de $d_{\mathrm{safe}}$ absorber l'erreur du modèle appris : une barrière minimale de $+1{,}0$~mm correspond à une distance apprise d'au moins $16{,}0$~mm, dont il reste $9{,}3$~mm de dégagement physique une fois retranchée l'erreur du modèle au 99\textsuperscript{e} centile. La mesure directe le confirme : sur la seule cellule de saisie et dépôt dont un essai a franchi zéro, le dégagement exact en pire cas vaut $19{,}8$~mm, cet essai relevant de la condition à frein seul du prisme statique. La marge n'est donc pas entamée en régime établi ; son éventuelle dégradation s'explique par la détection tardive d'obstacles, analysée à la Section~\ref{sec:res_echecs}.
+L'évolution de la barrière minimale sous le système déployé permet d'évaluer le respect du budget de marge $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}). Sur les cellules déployées sans franchissement, la valeur minimale de $h^{\star}$ s'établit entre $+0{,}5$ et $+1{,}0$~mm : le filtre maintient le robot à environ un millimètre de la frontière de sécurité, ce qui correspond au régime de suivi de frontière illustré à la Figure~\ref{fig:h_ev}. Ce millimètre résiduel correspond au résidu de discrétisation provisionné par la marge, laissant les $15$~mm de $d_{\mathrm{safe}}$ absorber l'erreur du modèle appris : une barrière minimale de $+1{,}0$~mm correspond à une distance apprise d'au moins $16{,}0$~mm, dont il reste $9{,}3$~mm de dégagement physique une fois retranchée l'erreur du modèle au 99\textsuperscript{e} centile. La mesure directe le confirme : sur la seule cellule de saisie et dépôt dont un essai a franchi zéro, le dégagement exact en pire cas vaut $19{,}8$~mm, cet essai relevant de la condition à frein seul du prisme statique. La marge n'est donc pas entamée en régime établi ; son éventuelle dégradation s'explique par la détection tardive d'obstacles, analysée à la Section~\ref{sec:res_echecs}.
 
-La Figure~\ref{fig:comparaison_avec_sans} illustre les quatre conditions sur une même graine du banc de saisie et dépôt. Le panneau (a) montre la géométrie de l'évitement : le système complet fait franchir au préhenseur le sommet du prisme, à $0{,}43$~m contre les $0{,}36$~m de l'obstacle, tandis que le nominal exécuté brut longe la face du prisme et s'y engage. Le panneau (b) montre les barrières correspondantes : les deux conditions comportant le bouclier restent positives, la condition sans filtre plonge à $-15$~mm et y demeure, et la condition à frein seul s'immobilise exactement sur la frontière et n'en repart plus.
+La Figure~\ref{fig:comparaison_avec_sans} illustre les quatre conditions sur une même graine du banc de saisie et dépôt. Le panneau (a) montre la géométrie de l'évitement : les deux conditions comportant le bouclier font franchir au préhenseur le sommet du prisme, à $0{,}43$ et $0{,}45$~m contre les $0{,}36$~m de l'obstacle, tandis que le nominal exécuté brut longe la face du prisme et s'y engage et que la condition à frein seul s'immobilise avant de l'atteindre. Le panneau (b) montre les barrières correspondantes : les deux conditions comportant le bouclier restent positives, la condition sans filtre plonge à $-15$~mm et y demeure, et la condition à frein seul s'immobilise exactement sur la frontière et n'en repart plus.
 
 \begin{figure}[htpb]
     \centering
@@ -285,24 +316,24 @@ La Figure~\ref{fig:comparaison_avec_sans} illustre les quatre conditions sur une
 \end{figure}
 
 \subsection{Étude détaillée : tâche d'alimentation}\label{subsec:res_feeding_deep}
-Les sous-sections suivantes analysent en profondeur un essai représentatif de la tâche d'alimentation en présence d'obstacles, en suivant la chaîne de commande du Chapitre~\ref{sec:Theme2} : la barrière et la contrainte d'abord, puis la décomposition des vitesses qui révèle l'action de chaque étage du filtre. Toutes les figures et toutes les valeurs de cette sous-section proviennent de la cellule déployée du banc d'alimentation de la campagne gelée, l'essai illustré étant celui de la première graine ; les grandeurs agrégées portent sur les $30$ essais de la cellule, soit $13\,835$ cycles de bouclier.
+Les sous-sections suivantes analysent en profondeur un essai représentatif de la tâche d'alimentation en présence d'obstacles, en suivant la chaîne de commande du Chapitre~\ref{sec:Theme2} : la barrière et la contrainte d'abord, puis la décomposition des vitesses qui révèle l'action de chaque étage du filtre. Les grandeurs agrégées de cette sous-section proviennent de la cellule déployée du banc d'alimentation de la campagne gelée, soit $30$ essais et $15\,458$ cycles de bouclier. L'essai illustré par les figures est un enregistrement distinct de ce même banc, conduit sous la même configuration, et sa fenêtre est restreinte à la phase de piquage.
 
 \subsubsection{Évolution de la barrière et de la contrainte de sécurité}
-La Figure~\ref{fig:h_ev} présente l'évolution de la barrière $h_{\min,l}$ au cours d'un essai représentatif, c'est-à-dire la valeur exacte que le filtre transmet au second membre de la contrainte (Section~\ref{subsec:barriere}). Les bandes vertes marquent les cycles où la vitesse nominale ne satisfait pas la contrainte resserrée, ceux où la projection a une correction de sécurité à appliquer. Les bandes jaunes marquent ceux où seule la réparation intervient : la vitesse instantanée satisfait la contrainte, mais la commande filtrée, qui porte la mémoire des cycles précédents, échoue à la revérification et est corrigée par $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ (Section~\ref{subsec:commande}).
+La Figure~\ref{fig:h_ev} présente l'évolution de la barrière $h_{\min,l}$ au cours d'un essai représentatif, c'est-à-dire la valeur exacte que le filtre transmet au second membre de la contrainte (Section~\ref{subsec:barriere}). Les bandes ombrées marquent les cycles où la vitesse nominale ne satisfait pas la contrainte resserrée, ceux où la projection a une correction de sécurité à appliquer.
 
-La lecture d'ensemble montre le régime de fonctionnement du filtre. Après la phase d'approche, qui occupe la première seconde et demie, le système opère en suivi de frontière : la barrière se stabilise autour de $14$~mm et n'y descend jamais sous $5{,}0$~mm, pendant que le robot progresse tangentiellement le long des surfaces vers la cible. Ce résultat correspond au comportement théorique de la projection, qui annule la composante normale interdite tout en préservant la composante tangentielle du mouvement (Section~\ref{subsec:projection}). La contrainte est active sur $67{,}7$~\% des cycles de cet essai et sur $69{,}6$~\% de ceux de la cellule : sur ce banc, le bras opère dans la bande d'activation la majeure partie de la tâche, ce qui distingue ce régime de celui du banc de saisie et dépôt, où la même quantité vaut $33{,}5$~\%.
+La lecture d'ensemble montre le régime de fonctionnement du filtre. La première seconde et demie est une descente libre depuis $88$~mm, hors de portée de la contrainte. La barrière atteint ensuite son minimum de $3{,}0$~mm à $3{,}9$~s, au moment où la fourchette pique dans le bol, puis le système opère en suivi de frontière : de $7{,}8$ à $10$~s elle se maintient entre $5{,}3$ et $7{,}9$~mm, pendant que le robot progresse tangentiellement le long des surfaces vers la cible. Ce résultat correspond au comportement théorique de la projection, qui annule la composante normale interdite tout en préservant la composante tangentielle du mouvement (Section~\ref{subsec:projection}). La contrainte est active sur $32{,}7$~\% des cycles de cet essai et sur $62{,}7$~\% de ceux de la cellule : sur ce banc, le bras opère dans la bande d'activation une large part de la tâche, là où la même quantité vaut $33{,}5$~\% au banc de saisie et dépôt.
 
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/h_evolution.svg}
-    \caption{Évolution de la barrière $h_{\min,l}$ pour une tâche en présence d'obstacles ; les bandes vertes indiquent les cycles où la projection corrige la vitesse, les bandes jaunes ceux où seule la réparation intervient.}\label{fig:h_ev}
+    \caption{Évolution de la barrière $h_{\min,l}$ pour une tâche en présence d'obstacles ; les bandes ombrées indiquent les cycles où la projection corrige la vitesse.}\label{fig:h_ev}
 \end{figure}
 
 La Figure~\ref{fig:constraint_ev} compare la valeur de la contrainte de sécurité évaluée sur la vitesse nominale (avant projection) et sur la commande finale (après filtrage et réparation). La courbe nominale plonge sous zéro dès que le robot opère à proximité des obstacles : laissée seule, la trajectoire générée par \textit{Flow Matching} violerait continuellement la condition de sécurité. L'écart entre les deux courbes constitue ainsi la mesure directe de l'intervention du filtre.
 
-La courbe nominale descend jusqu'à $-0{,}081$ sur cet essai et jusqu'à $-0{,}184$ en pire cas sur la cellule. La courbe finale, elle, demeure nulle à la précision machine sur tout l'essai illustré : le résidu introduit par le lissage et les saturations est entièrement résorbé, de sorte que la condition \ac{CBF} proprement dite, $\nabla h^\top\dot{\mathbf{q}} + \kappa_{\mathrm{eff}}\,h \geq 0$, est satisfaite à chaque cycle. Sur l'ensemble de la cellule, ce résidu final descend à $-1{,}4\times10^{-2}$ dans son pire cas et demeure négatif sur $0{,}03$~\% des cycles, ces exceptions correspondant aux épisodes de découverte tardive d'obstacle analysés à la Section~\ref{sec:res_echecs}.
+La courbe nominale descend jusqu'à $-0{,}078$~m/s sur cet essai et jusqu'à $-0{,}167$~m/s en pire cas sur la cellule. La courbe finale, elle, demeure nulle à la précision machine sur tout l'essai illustré : le résidu introduit par le lissage et les saturations est entièrement résorbé, de sorte que la condition \ac{CBF} proprement dite, $\nabla h^\top\dot{\mathbf{q}} + \kappa_{\mathrm{eff}}\,h \geq 0$, est satisfaite à chaque cycle. Le constat vaut pour la cellule entière : ce résidu final ne descend jamais sous $-3{,}9\times10^{-8}$~m/s, et aucun de ses $15\,458$ cycles ne franchit le seuil de $-10^{-6}$~m/s qui sépare le bruit numérique d'une violation mesurée.
 
-L'étape de réparation (Section~\ref{subsec:commande}) contribue à ce résultat sans être le seul facteur impliqué, et sa fréquence s'établit à $26{,}3$~\% des cycles où la contrainte est active dans cet essai, et à $23{,}9$~\% de ceux de la cellule, contre $0{,}7$~\% des cycles où la contrainte ne l'est pas. Son intervention est restreinte aux cycles contraints, sans être systématique : le lissage étant reporté dans l'objectif du problème de projection plutôt qu'appliqué en aval (Section~\ref{subsec:commande}), la vitesse lissée demeure admissible par construction dans la majorité des cycles, et la réparation ne rattrape que ce que les saturations et la troncature des balayages laissent passer. Le rôle qu'elle joue est établi par ablation à la Section~\ref{subsec:res_abl_reparation}, où sa suppression augmente le résidu de contrainte de huit ordres de grandeur.
+L'étape de réparation (Section~\ref{subsec:commande}) contribue à ce résultat sans être le seul facteur impliqué, et sa fréquence s'établit à $16{,}2$~\% des cycles où la contrainte est active dans cet essai, et à $16{,}7$~\% de ceux de la cellule, contre $0{,}7$~\% des cycles où la contrainte ne l'est pas. Son intervention est restreinte aux cycles contraints, sans être systématique : le lissage étant reporté dans l'objectif du problème de projection plutôt qu'appliqué en aval (Section~\ref{subsec:commande}), la vitesse lissée demeure admissible par construction dans la majorité des cycles, et la réparation ne rattrape que ce que les saturations et la troncature des balayages laissent passer. Le rôle qu'elle joue est établi par ablation à la Section~\ref{subsec:res_abl_reparation}, où sa suppression augmente le résidu de contrainte de huit ordres de grandeur.
 
 \begin{figure}[htpb]
     \centering
@@ -310,31 +341,37 @@ L'étape de réparation (Section~\ref{subsec:commande}) contribue à ce résulta
     \caption{Contrainte de sécurité évaluée sur la vitesse nominale (avant projection) et sur la commande finale (après réparation). Les valeurs négatives de la courbe nominale correspondent aux violations qu'aurait commises la trajectoire générée sans filtre.}\label{fig:constraint_ev}
 \end{figure}
 
-La suite de la chaîne de commande, de la consigne anticipatrice réajustée temporellement jusqu'à la vitesse réellement exécutée, est déroulée articulation par articulation à l'Annexe~\ref{annexe:resultats_complementaires}. Trois constats en sont repris ici, parce qu'ils portent sur des grandeurs que le reste du chapitre réutilise. La norme du feedforward vaut exactement $0{,}300$~rad/s, du dixième au quatre-vingt-dixième centile de sa distribution sur les $13\,835$ cycles de la cellule : le réajustement temporel de la Section~\ref{subsec:dqff} atteint sa consigne sans écart mesurable. L'écart entre la vitesse nominale et la sortie du solveur n'est jamais exactement nul, y compris lorsque aucune contrainte de sécurité n'est active, parce que la mémoire du lissage est reportée dans la vitesse cible $\dot{\mathbf{q}}_{\mathrm{cible}}$ du problème de projection (Section~\ref{subsec:commande}) : cet écart mesure alors le retard du filtre passe-bas sur une vitesse nominale qui varie, et non une action de sécurité. Rapportée à la vitesse cible qu'elle prend réellement pour centre, l'action propre du solveur est mesurée exactement nulle sur ces cycles. La transparence du bouclier se lit donc sur le signe du résidu de contrainte évalué sur la vitesse nominale, et non sur l'amplitude de cet écart. Enfin, la vitesse commandée n'est pas atténuée de façon mesurable hors des zones d'activation, le lissage étant reporté en amont du solveur plutôt qu'appliqué à sa sortie.
+La suite de la chaîne de commande, de la consigne anticipatrice réajustée temporellement jusqu'à la vitesse réellement exécutée, est déroulée articulation par articulation à l'Annexe~\ref{annexe:resultats_complementaires}. Trois constats en sont repris ici, parce qu'ils portent sur des grandeurs que le reste du chapitre réutilise. La norme du feedforward vaut exactement $0{,}300$~rad/s, du dixième au quatre-vingt-dixième centile de sa distribution sur les $15\,458$ cycles de la cellule : le réajustement temporel de la Section~\ref{subsec:dqff} atteint sa consigne sans écart mesurable. L'écart entre la vitesse nominale et la sortie du solveur n'est jamais exactement nul, y compris lorsque aucune contrainte de sécurité n'est active, parce que la mémoire du lissage est reportée dans la vitesse cible $\dot{\mathbf{q}}_{\mathrm{cible}}$ du problème de projection (Section~\ref{subsec:commande}) : cet écart mesure alors le retard du filtre passe-bas sur une vitesse nominale qui varie, et non une action de sécurité. Rapportée à la vitesse cible qu'elle prend réellement pour centre, l'action propre du solveur est mesurée exactement nulle sur ces cycles. La transparence du bouclier se lit donc sur le signe du résidu de contrainte évalué sur la vitesse nominale, et non sur l'amplitude de cet écart. Enfin, la vitesse commandée n'est pas atténuée de façon mesurable hors des zones d'activation, le lissage étant reporté en amont du solveur plutôt qu'appliqué à sa sortie.
 
 \subsection{Étude détaillée : tâche de saisie et dépôt}\label{subsec:res_pp_deep}
-La tâche de saisie et dépôt fournit le régime le plus exigeant de la campagne : le prisme barre le transport du cube, la contrainte est portée par la main et les doigts, et l'obstacle est visible dès le premier instant, ce qui isole le comportement du filtre de toute latence de perception. Les Figures~\ref{fig:pp_deep} et~\ref{fig:pp_vel_joints} présentent un même essai représentatif de la cellule déployée, la première du point de vue de la barrière et la seconde du point de vue des vitesses articulaires, et les grandeurs agrégées ci-dessous portent sur ses $30$ essais, soit $20\,430$ cycles de bouclier.
+Sur le banc de saisie et dépôt, le prisme barre le transport du cube, la contrainte est portée par la main et les doigts, et l'obstacle est visible dès le premier instant : le comportement du filtre s'y observe sans latence de perception. Les Figures~\ref{fig:pp_deep} à~\ref{fig:pp_vel_decomp} présentent un même essai de la cellule déployée et les grandeurs agrégées ci-dessous portent sur ses $30$ essais, soit $20\,430$ cycles de bouclier.
 
-Le filtre est transparent les deux tiers du temps. La contrainte de sécurité évaluée sur la vitesse nominale demeure satisfaite sur $66{,}5$~\% des cycles : sur ceux-là, la commande traverse le bouclier sans correction de sécurité. Les balayages de Dykstra s'y exécutent comme à tout autre cycle, la structure du graphe \ac{CUDA} étant à forme fixe, mais aucune des projections n'y déplace la vitesse : c'est sur les cycles à contrainte active, et sur eux seuls, que le solveur produit une correction. Sur les $33{,}5$~\% restants, elle descend jusqu'à $-0{,}205$ en pire cas et à $-0{,}117$ au premier centile : laissée seule, la trajectoire générée dépasserait la contrainte de sécurité sur plusieurs cycles successifs. La correction de projection appliquée s'élève à $0{,}210$~rad/s en médiane sur ces cycles, pour une vitesse nominale de $0{,}368$~rad/s sur ces mêmes cycles, et le cosinus entre la vitesse cible du problème et la vitesse projetée demeure à $0{,}993$ : la correction est de forte amplitude mais réoriente peu, ce qui caractérise la projection minimale de la Section~\ref{subsec:projection}.
+Le filtre est transparent les deux tiers du temps. La contrainte de sécurité évaluée sur la vitesse nominale demeure satisfaite sur $66{,}5$~\% des cycles : sur ceux-là, la commande traverse le bouclier sans correction de sécurité. Les balayages de Dykstra s'y exécutent comme à tout autre cycle, la structure du graphe \ac{CUDA} étant à forme fixe, mais l'action propre du solveur y tombe à $2\times10^{-5}$~rad/s, trois ordres de grandeur sous celle des cycles contraints. Sur les $33{,}5$~\% restants, le résidu de cette contrainte descend jusqu'à $-0{,}205$~m/s en pire cas et à $-0{,}117$~m/s au premier centile, ce qui signifie que que la trajectoire générée y referme la distance à l'obstacle jusqu'à $20{,}5$~cm/s plus vite que la contrainte resserrée ne le permet. La correction de projection appliquée s'élève à $0{,}210$~rad/s en médiane sur ces cycles, pour une vitesse nominale de $0{,}368$~rad/s sur ces mêmes cycles, et le cosinus entre la vitesse cible du problème et la vitesse projetée demeure à $0{,}993$ : la correction est de forte amplitude mais réoriente peu, ce qui caractérise la projection minimale de la Section~\ref{subsec:projection}. La Figure~\ref{fig:pp_constraint} met les deux régimes en regard sur l'essai illustré : les deux courbes se confondent tant que la vitesse nominale satisfait la contrainte, puis la nominale descend jusqu'à $-0{,}104$ pendant que la commande publiée demeure exactement à zéro, sur la frontière et non au-delà.
 
-Cette amplitude n'est pas reconquise à chaque cycle. En reportant la commande publiée au cycle précédent dans la vitesse cible, le lissage de la Section~\ref{subsec:commande} confère au bouclier la dynamique d'un intégrateur à fuite : en notant $\mathbf{D}_k = \dot{\mathbf{q}}_{\mathrm{proj},k} - \dot{\mathbf{q}}_{\mathrm{base},k}$ l'écart de la commande à la nominale et $\mathbf{c}_k$ l'action du solveur au cycle $k$, la substitution de $\dot{\mathbf{q}}_{\mathrm{cible},k}$ donne
+Ces corrections de projection ne sont pas enregistrées à chaque cycle. En reportant la commande publiée au cycle précédent dans la vitesse cible, le lissage de la Section~\ref{subsec:commande} confère au bouclier la dynamique d'un intégrateur à fuite : en notant $\mathbf{D}_k = \dot{\mathbf{q}}_{\mathrm{proj},k} - \dot{\mathbf{q}}_{\mathrm{base},k}$ l'écart de la commande à la nominale et $\mathbf{c}_k$ l'action du solveur au cycle $k$, la substitution de $\dot{\mathbf{q}}_{\mathrm{cible},k}$ donne
 \begin{equation}
 \mathbf{D}_k = (1-\gamma_{\mathrm{safe}})\,\mathbf{D}_{k-1}
 + (1-\gamma_{\mathrm{safe}})\big(\dot{\mathbf{q}}_{\mathrm{base},k-1}-\dot{\mathbf{q}}_{\mathrm{base},k}\big)
 + \mathbf{c}_k .
 \end{equation}
-Une action maintenue s'accumule donc jusqu'à un écart de régime établi $1/\gamma_{\mathrm{safe}}$ fois plus grand qu'elle, soit un facteur $5{,}35$ à la cadence mesurée. C'est ce que confirme la Figure~\ref{fig:pp_vel_decomp}, qui sépare les deux contributions accumulées de $\mathbf{D}_k$ : le solveur ne fournit que $0{,}036$~rad/s d'action nouvelle par cycle, et l'intégration porte cet incrément à $0{,}208$~rad/s d'écart soutenu, soit la quasi-totalité des $0{,}210$~rad/s mesurés. Hors activation, la même décomposition attribue au bouclier $0{,}0004$~rad/s et le reste au retard du filtre sur la nominale. L'écart est ainsi maintenu sans appliquer, à chaque cycle, plus d'un sixième de cet écart : c'est cette faible autorité instantanée qui rend les transitions progressives plutôt que brusques.
+En reconstruisant le signal, on trouve que le solveur n'ajoute que $0{,}036$~rad/s d'action nouvelle par cycle, et cette accumulation porte l'écart à $0{,}208$~rad/s en médiane sur les cycles contraints, soit la quasi-totalité des $0{,}210$~rad/s mesurés. La Figure~\ref{fig:pp_vel_decomp} montre cet écart accumulé articulation par articulation : il culmine à $0{,}197$~rad/s à l'articulation $7$ pendant le contournement, les articulations $1$ et $3$ en portant l'essentiel du reste. Hors activation, la même décomposition attribue au bouclier $0{,}0004$~rad/s et le reste au retard du filtre sur la nominale.
 
-La réévaluation en bout de chaîne confirme l'admissibilité de la commande. Le résidu de contrainte mesuré sur la commande réellement transmise, après troncature des balayages de Dykstra, saturations articulaires et réparation, ne descend jamais sous $-1{,}7\times10^{-8}$ sur les $20\,430$ cycles, soit la précision de l'arithmétique en simple précision. L'argument du Chapitre~\ref{sec:Theme2} se referme donc sur une mesure : l'admissibilité n'est qu'approchée à la sortie des balayages tronqués, et elle est rétablie exactement par la réévaluation finale sur la commande émise. La réparation intervient sur $20{,}6$~\% des cycles où la contrainte est active, et sur $0{,}07$~\% seulement des cycles où elle ne l'est pas : elle corrige le résidu que la troncature des balayages laisse subsister, les saturations articulaires n'étant actives sur aucun cycle de cette cellule.
+La réévaluation en bout de chaîne confirme l'admissibilité de la commande. Le résidu de contrainte mesuré sur la commande réellement transmise, après troncature des balayages de Dykstra, saturations articulaires et réparation, ne descend jamais sous $-1{,}7\times10^{-8}$ sur les $20\,430$ cycles, soit la précision de l'arithmétique en simple précision. La réparation intervient sur $20{,}6$~\% des cycles où la contrainte est active, et sur $0{,}07$~\% seulement des cycles où elle ne l'est pas : elle corrige le résidu que la troncature des balayages laisse subsister, les saturations articulaires n'étant actives sur aucun cycle de cette cellule.
 
-Le frein réflexe est sollicité en continu sans devenir prépondérant. Le facteur d'atténuation $\alpha$ vaut $0{,}984$ en médiane et $0{,}380$ au premier décile, et il descend sous $0{,}99$ sur $51$~\% des relevés : le frein module presque en permanence, d'une fraction faible la plupart du temps et davantage pour les centiles extrêmes. Le frein réflexe réduit la vitesse lors des transitoires sans modifier directement la consigne générée par le solveur QP.
+Le frein réflexe est sollicité en continu sans devenir prépondérant. Le facteur d'atténuation $\alpha$ vaut $0{,}984$ en médiane et $0{,}380$ au premier décile, et il descend sous $0{,}99$ sur $51$~\% des $26\,574$ relevés de la cellule : la retenue est faible la plupart du temps et forte dans la queue de la distribution.
 
-La chaîne se referme enfin sur l'exécution. La vitesse commandée vaut $0{,}283$~rad/s en médiane pour une nominale de $0{,}297$~rad/s, et la vitesse articulaire mesurée $0{,}212$~rad/s. L'écart entre commande et exécution n'est pas une erreur de poursuite mais le produit de l'atténuation $\alpha$ du frein, dont la distribution fortement asymétrique donne une moyenne de $0{,}80$ là où sa médiane vaut $0{,}984$, comme l'annonce la Section~\ref{subsubsec:reflexe}, et c'est bien à la commande atténuée que la fidélité doit être rapportée. La tâche aboutit dans $30$ essais sur $30$, en $30{,}1$~s en médiane, pour une déviation de l'outil de $0{,}60$~cm.
+La vitesse commandée vaut $0{,}283$~rad/s en médiane pour une nominale de $0{,}297$~rad/s, et la vitesse articulaire mesurée $0{,}212$~rad/s. L'écart entre commande et exécution n'est pas une erreur de poursuite mais le produit de l'atténuation $\alpha$ du frein, dont la distribution fortement asymétrique donne une moyenne de $0{,}80$ là où sa médiane vaut $0{,}984$, comme l'annonce la Section~\ref{subsubsec:reflexe}, et c'est bien à la commande atténuée que la fidélité doit être rapportée. La tâche aboutit dans $30$ essais sur $30$, en $30{,}1$~s en médiane, pour une déviation de l'outil de $0{,}60$~cm.
 
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/ablation/fig_pp_h_only.svg}
     \caption{Essai représentatif de la tâche de saisie et dépôt en présence du prisme statique : évolution de la barrière $h_{\min,l}$. Les bandes ombrées marquent les cycles où la contrainte de sécurité évaluée sur la vitesse nominale est violée, c'est-à-dire ceux où la projection intervient.}\label{fig:pp_deep}
+\end{figure}
+
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false]{images/Results/ablation/fig_pp_constraint.svg}
+    \caption{Contrainte de sécurité du même essai que la Figure~\ref{fig:pp_deep}, évaluée sur la vitesse nominale (avant projection) puis sur la commande réellement transmise (après réparation). Les valeurs négatives de la courbe nominale correspondent aux cycles ombrés de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_constraint}
 \end{figure}
 
 \begin{figure}[htpb]
@@ -346,7 +383,7 @@ La chaîne se referme enfin sur l'exécution. La vitesse commandée vaut $0{,}28
 \begin{figure}[htpb]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/ablation/fig_pp_vel_decomp.svg}
-    \caption{Décomposition de l'écart de la commande à la nominale, $\dot{q}_{\mathrm{proj}}-\dot{q}_{\mathrm{base}}$, pour le même essai. Les deux contributions sont celles, accumulées, de l'action du solveur et du retard du filtre sur une nominale qui varie ; séparer les incréments d'un seul cycle attribuerait au filtre la mémoire des corrections antérieures du bouclier. Les contributions étant vectorielles, elles peuvent se compenser partiellement.}\label{fig:pp_vel_decomp}
+    \caption{Décomposition, articulation par articulation, de l'écart de la commande à la nominale $\dot{q}_{\mathrm{proj}}-\dot{q}_{\mathrm{base}}$ pour le même essai. Les deux parts tracées sont accumulées, et non les incréments d'un seul cycle : chacune porte la mémoire des cycles antérieurs, et découper cycle par cycle attribuerait au filtre les corrections passées du bouclier. L'action que le solveur ajoute à un cycle donné, $0{,}036$~rad/s en médiane, n'est donc pas la part du bouclier tracée ici. Les contributions étant vectorielles, elles peuvent se compenser partiellement.}\label{fig:pp_vel_decomp}
 \end{figure}
 
 % =================================================================
@@ -369,31 +406,34 @@ Chaque mécanisme de conception du Chapitre~\ref{sec:Theme2} est isolé par une 
 %   - disponibilité de la détection dans le temps (dispo/indispo) ;
 %   - images montrant perte de détection puis redétection (SAM3/SAM2) ;
 %   - h(t) avec et sans persistance pendant l'occlusion.
-La carte persistante du Chapitre~\ref{sec:Theme2} découple la sécurité du champ de vision instantané : l'obstacle quitte le champ de vision de la caméra embarquée dès que le bras s'en écarte, précisément au moment où il s'en approche. L'ablation alimente le filtre directement par le nuage instantané nettoyé plutôt que par la carte, sur le scénario d'occlusion du banc d'alimentation : sans mémoire spatiale, l'obstacle occulté ne figure plus dans les contraintes du filtre au moment où elles importent le plus.
+La carte persistante du Chapitre~\ref{sec:Theme2} découple la sécurité du champ de vision instantané : l'obstacle quitte le champ de vision de la caméra embarquée dès que le bras s'en écarte, précisément au moment où il s'en approche. L'ablation alimente le filtre directement par le nuage instantané nettoyé plutôt que par la carte, sur le scénario d'occlusion du banc d'alimentation. Ce choix a été fait car, sans mémoire spatiale, l'arrière du bol du point de vue de l'outil ne figure plus dans les contraintes du filtre au moment où il importe le plus, au moment de la rotation du poignet de la fourchette pour amener les dents à l'horizontal.
 
-Le Tableau~\ref{tab:res_abl_persistance} rapporte la comparaison sur $30$ tirages aléatoires appariés. Cette ablation entraîne la dégradation de performance la plus importante parmi les ablations de mécanisme. Le taux de réussite sûre diminue de $24$ à $7$ essais sur $30$, et la cellule ablatée entraîne $11$ collisions au maillage exact là où la carte persistante n'en produit aucune, avec un dégagement réel en pire cas de $0{,}12$~mm. Quatorze essais sur trente y franchissent la barrière, et la vérification exacte confirme l'ensemble de ces franchissements.
+Le Tableau~\ref{tab:res_abl_persistance} rapporte la comparaison sur $30$ tirages aléatoires appariés. La cellule ablatée entraîne $9$ collisions au maillage exact là où la carte persistante n'en produit aucune, avec un dégagement réel en pire cas de $0{,}14$~mm. Le taux de réussite sûre, lui, ne recule que de $26$ à $21$ essais sur $30$ : sans mémoire spatiale, le bras accomplit la tâche en traversant l'obstacle plutôt qu'il n'échoue devant lui.
+
+Le décompte des franchissements mesure l'ampleur de cet aveuglement. Vingt-trois essais sur trente entrent réellement dans la marge, alors que la barrière publiée n'en signale que six : le filtre ignore la violation dans dix-sept cas sur vingt-trois, faute de percevoir l'obstacle qui la cause.
 
 \begin{table}[htbp]
 \centering
 \caption{Ablation de la carte persistante (A8) sur le banc d'alimentation, $30$ graines appariées. La colonne d'écart rapporte la différence entre la barrière exacte et la barrière publiée à l'instant du minimum, en valeur extrême sur les $30$ essais ; elle est positive lorsque la valeur publiée est conservatrice.}
 \label{tab:res_abl_persistance}
-\small
-\begin{tabular}{lccccc}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lccccccc}
 \toprule
-\textbf{Condition} & \textbf{Réussite} & \textbf{Collisions} & $\boldsymbol{h^{\star}_{\mathrm{ex}}}$ & \textbf{Résidu final} & \textbf{Écart} \\
- & & & \textbf{(mm)} & \textbf{$<0$ (\% cycles)} & \textbf{(mm)} \\
+\textbf{Condition} & \textbf{Réussite} & \textbf{Collisions} & $\boldsymbol{h^{\star}_{\mathrm{ex}}}$ & \textbf{Cycles} & \textbf{Résidu final} & \textbf{Résidu final} & \textbf{Écart} \\
+ & & & \textbf{(mm)} & \textbf{contraints} & \textbf{(m/s)} & \textbf{$<0$ (\% cycles)} & \textbf{(mm)} \\
 \midrule
-Carte persistante  & $24/30$ & $0/30$  & $-3{,}4$  & $0{,}03$ & $+1{,}1$ \\
-Nuage instantané   & $7/30$  & $11/30$ & $-14{,}9$ & $10{,}1$ & $-20{,}0$ \\
+Carte persistante  & $26/30$ & $0/30$ & $+5{,}3$  & $62{,}7$~\% & $-3{,}9\times10^{-8}$ & $0{,}00$ & $+0{,}5$  \\
+Nuage instantané   & $21/30$ & $9/30$ & $-14{,}9$ & $63{,}0$~\% & $-6{,}1\times10^{-2}$ & $1{,}16$ & $-16{,}0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Le mécanisme de la défaillance est visible sur la Figure~\ref{fig:res_persistance}, qui superpose la barrière publiée et la barrière exacte pour une même graine. Avec la carte, les deux courbes se suivent et restent entre $11$ et $23$~mm pendant toute la descente vers le bol. Avec le nuage instantané, la barrière exacte franchit zéro dès $3{,}8$~s et atteint $-14$~mm, alors que la barrière publiée ne le signale qu'à $6$~s et ne descend qu'à $-11$~mm. Le retard de réaction du filtre ne provient pas d'un délai de calcul, mais de l'absence de perception de l'obstacle occulté dont il s'approche ; l'écart entre les deux courbes reflète ainsi l'absence de l'obstacle dans les contraintes. Sur l'ensemble de la cellule, la barrière publiée est plus optimiste que la géométrie exacte de $20{,}0$~mm en pire cas. C'est la seule cellule de la campagne où l'écart dépasse l'erreur de queue du modèle dans le sens optimiste : ailleurs, la barrière publiée peut être légèrement optimiste, mais jamais au-delà de cette erreur.
+Le mécanisme de la défaillance est visible sur la Figure~\ref{fig:res_persistance}, qui superpose la barrière publiée et la barrière exacte pour une même graine. L'essai retenu est celui dont la barrière exacte descend le plus bas sous ablation. Avec la carte, les deux courbes se suivent et aucune ne franchit zéro, la publiée s'arrêtant à $6{,}0$~mm et la géométrie exacte à $8{,}0$~mm. Avec le nuage instantané, elles divorcent deux fois. La barrière exacte franchit zéro dès $7{,}0$~s et descend à $-14{,}9$~mm, alors que la publiée ne signale la violation qu'à $12{,}6$~s et ne descend qu'à $-7{,}9$~mm : le filtre l'apprend cinq secondes trop tard, et de moitié seulement. Ce retard ne vient pas d'un délai de calcul mais de l'absence de l'obstacle occulté dans les contraintes. Sur l'ensemble de la cellule, la barrière publiée est plus optimiste que la géométrie exacte de $16{,}0$~mm en pire cas. C'est la seule cellule de la campagne où l'écart dépasse l'erreur de queue du modèle dans le sens optimiste : ailleurs, la barrière publiée peut être légèrement optimiste, mais jamais au-delà de cette erreur.
 
-Deux conséquences découlent de cette absence de mémoire spatiale, illustrant les limites des modules de sécurité aval lorsque la représentation géométrique en entrée est incomplète. La réparation finale, qui ramène le résidu de contrainte à la précision machine dans la configuration déployée, échoue sur $10{,}1$~\% des cycles : la ligne qu'elle répare ne correspond pas à la contrainte réelle. Le frein réflexe, dont l'atténuation médiane demeure à $0{,}99$, tombe à $0$ au premier décile (déclenchant un arrêt tardif). Une couche de sécurité ne peut évaluer que la géométrie transmise.
+Deux conséquences découlent de cette absence de mémoire spatiale, illustrant les limites des modules de sécurité aval lorsque la représentation géométrique en entrée est incomplète. La réparation finale échoue sur $1{,}16$~\% des cycles, contre aucun avec la carte : la ligne qu'elle répare ne correspond pas à la contrainte réelle. Le frein réflexe s'immobilise complètement sur $12{,}7$~\% des relevés contre $4{,}7$~\% avec la carte, son atténuation tombant à zéro dès le premier décile : il arrête le bras, mais une fois la marge déjà entamée. Une couche de sécurité ne peut évaluer que la géométrie transmise.
 
-L'analyse de la latence de perception confirme ces observations. Sur les $210$ épisodes du banc d'alimentation qu'elle couvre, $61$ des $68$ franchissements de barrière sont attribuables à un point d'obstacle perçu pour la première fois moins de $200$~ms avant le franchissement. Dans la cellule ablatée, les quatorze franchissements sont tous de ce type, avec des délais de réaction de $11$ à $130$~ms. Le critère de persistance du Tableau~\ref{tab:criteres_validation} est donc rempli par la carte, qui maintient la contrainte d'évitement pendant toute l'occlusion, et n'est pas respecté sans elle.
+L'analyse de la latence de perception confirme ces observations. Sur les $270$ épisodes du banc d'alimentation qu'elle couvre, $68$ des $73$ franchissements de barrière sont attribuables à un point d'obstacle perçu pour la première fois moins de $300$~ms avant le franchissement, la médiane de ce délai valant $115$~ms. Dans la cellule ablatée, les six franchissements signalés sont tous de ce type. Le critère de persistance du Tableau~\ref{tab:criteres_validation} est donc rempli par la carte, qui maintient la contrainte d'évitement pendant toute l'occlusion, et n'est pas respecté sans elle.
 
 \begin{figure}[htpb]
     \centering
@@ -406,7 +446,7 @@ L'analyse de la latence de perception confirme ces observations. Sur les $210$ �
 % Banc : saisie-dépôt Panda, prisme. Condition ablatée :
 % cbf_projection_metric:=identity. Métrique clé : déviation TCP (DTW) entre
 % trajectoire exécutée et nominale, à sécurité égale.
-La projection en métrique de tâche $\mathbf{W}$ (Section~\ref{subsec:projection}) répartit la correction de sécurité préférentiellement dans le noyau de la tâche afin de préserver le mouvement de l'outil. L'ablation la remplace par la métrique euclidienne, à scénario et réglages par ailleurs identiques (saisie et dépôt, prisme statique) : à sécurité égale, la déviation de l'outil (DTW) quantifie l'écart géométrique entre la trajectoire exécutée et la référence nominale.
+La projection en métrique de tâche $\mathbf{W}$ (Section~\ref{subsec:projection}) répartit la correction de sécurité préférentiellement dans le noyau de la tâche afin de préserver le mouvement de l'outil. L'ablation la remplace par la métrique euclidienne, à scénario et réglages par ailleurs identiques (saisie et dépôt, prisme statique de 0.36m et sphère au niveau du coude) : à sécurité égale, la déviation de l'outil (DTW) quantifie l'écart géométrique entre la trajectoire exécutée et la référence nominale.
 
 Le Tableau~\ref{tab:res_abl_metrique} rapporte les deux bras sur $30$ graines appariées. La condition de neutralité est vérifiée d'abord : les deux métriques réussissent les $30$ essais, ne produisent aucun franchissement de barrière et laissent le résidu de contrainte final à la précision machine. La comparaison porte donc bien, comme prévu, sur la seule répartition de la correction.
 
@@ -414,16 +454,19 @@ Le Tableau~\ref{tab:res_abl_metrique} rapporte les deux bras sur $30$ graines ap
 \centering
 \caption{Ablation de la métrique de projection (A1) sur le banc de saisie et dépôt, prisme statique, $30$ tirages aléatoires appariés. Les écarts appariés sont les médianes des différences essai par essai, le nombre entre parenthèses comptant les essais où la métrique euclidienne dégrade la colonne.}
 \label{tab:res_abl_metrique}
-\small
-\begin{tabular}{lccccc}
+\scriptsize
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lcccccccc}
 \toprule
-\textbf{Métrique} & \textbf{Réussite} & $\boldsymbol{h^{\star}}$ \textbf{publiée (mm)} & \textbf{Déviation} & \textbf{Complétion} & $\|\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}\|$ \\
- & & & \textbf{outil (cm)} & \textbf{(s)} & \textbf{(rad/s)} \\
+\textbf{Scénario} & \textbf{Métrique} & \textbf{Réussite} & $\boldsymbol{h^{\star}}$ \textbf{publiée} & \textbf{Déviation} & \textbf{Complétion} & $\|\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}\|$ & \textbf{Cycles} & \textbf{Résidu final} \\
+ & & & \textbf{(mm)} & \textbf{outil (cm)} & \textbf{(s)} & \textbf{(rad/s)} & \textbf{contraints} & \textbf{(m/s)} \\
 \midrule
-Tâche $\mathbf{W}$ & $30/30$ & $+1{,}0$ & $0{,}602$ & $30{,}1$ & $0{,}210$ \\
-Euclidienne        & $30/30$ & $+0{,}0$ & $0{,}660$ & $21{,}7$ & $0{,}115$ \\
+Corps du bras et main & Tâche $\mathbf{W}$ & $28/30$ & $+3{,}5$ & $0{,}608$ & $32{,}4$ & $0{,}260$ & $5{,}0$~\% & $-2{,}1\times10^{-9}$ \\
+ & Euclidienne        & $11/30$ & $+0{,}2$ & $1{,}35$ & $24{,}7$ & $0{,}122$ & --- & --- \\
 \addlinespace
-Écart apparié      & $0$     & ---      & $+0{,}057$ ($25/30$) & $-8{,}1$ ($0/30$) & --- \\
+Main seulement & Tâche $\mathbf{W}$ & $28/30$ & $+1{,}0$ & $0{,}602$ & $30{,}1$ & $0{,}210$ & $33{,}5$~\% & $-1{,}7\times10^{-8}$ \\
+ & Euclidienne        & $27/30$ & $+0{,}0$ & $0{,}660$ & $21{,}7$ & $0{,}115$ & $32{,}8$~\% & $-1{,}3\times10^{-8}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -457,37 +500,39 @@ Le choix de la métrique de tâche (Chapitre~\ref{sec:Theme2}) demeure adapté l
 % Rédaction du constat : « sécurité inchangée » (pas « toujours bonne », pas
 % « améliorée ») ; si les prédictions échouent, rapporter l'échec ou retirer
 % le terme du système.
-Le dégagement postural (Section~\ref{subsec:minima}) est le seul mécanisme de déblocage du filtre, et son statut est celui d'une heuristique de progression : il n'entre que dans l'objectif du problème de projection, jamais dans ses contraintes, de sorte que la sécurité ne peut structurellement pas en dépendre. L'ablation vérifie empiriquement cette neutralité et mesure ce que le terme apporte : à scénarios appariés (conflit porté par le corps du bras, corridor de l'outil libre), la condition ablatée ($k_{\mathrm{clear}}=0$) est comparée à la condition nominale sur les colonnes de sécurité, attendues identiques, et sur les colonnes de progression (taux et temps de complétion, taux d'arrêt sans progression), attendues favorables au dégagement.
+Le dégagement postural (Section~\ref{subsec:minima}) est le seul mécanisme de déblocage du filtre, et son statut est celui d'une heuristique de progression : il n'entre que dans l'objectif du problème de projection, jamais dans ses contraintes, de sorte que la sécurité ne peut structurellement pas en dépendre. L'ablation vérifie empiriquement cette neutralité et mesure ce que le terme apporte : à scénarios appariés, la condition ablatée ($k_{\mathrm{clear}}=0$) est comparée à la condition nominale sur les colonnes de sécurité, attendues identiques, et sur les colonnes de progression (taux et temps de complétion, taux d'arrêt sans progression), attendues favorables au dégagement.
 
 Trois hypothèses initiales ont été définies pour évaluer ce mécanisme. La première anticipe des métriques de sécurité identiques entre les deux conditions (neutralité structurelle). La deuxième prévoit une amélioration des temps et taux de complétion grâce au dégagement. La troisième indique que sur un scénario où la contrainte est portée par la main (rampe d'autorité éteinte), les deux conditions restent équivalentes. Le Tableau~\ref{tab:res_abl_clearance} rapporte les deux scénarios.
 
+Pour répondre à ces hypothèses, deux scénarios sont utilisés. Le premier consiste à utiliser un prisme de 0.36m de hauteur dans le passage nominale de la main et une sphère au niveau du coude du robot. Le second contient seulement le prisme.
+
 \begin{table}[htbp]
 \centering
-\caption{Ablation du dégagement postural (A3), tirages aléatoires appariés, sur le scénario où la contrainte est portée par le corps du bras (sphère, $N=30$) et sur celui où elle est portée par la main (prisme, $N=27$). La fraction de cycles contraints mesure la proportion de cycles où la vitesse nominale ne satisfait pas la contrainte resserrée.}
+\caption{Ablation du dégagement postural (A3), tirages aléatoires appariés, sur le scénario où la contrainte est portée par le corps du bras et sur celui où elle est portée par la main. La fraction de cycles contraints mesure la proportion de cycles où la vitesse nominale ne satisfait pas la contrainte resserrée.}
 \label{tab:res_abl_clearance}
-\footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{llccccc}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{llcccccc}
 \toprule
-\textbf{Scénario} & \textbf{Condition} & \textbf{Réussite} & \textbf{Collisions} & \textbf{Complétion} & \textbf{Déviation} & \textbf{Cycles} \\
- & & & & \textbf{(s)} & \textbf{outil (cm)} & \textbf{contraints} \\
+\textbf{Scénario} & \textbf{Condition} & \textbf{Réussite} & \textbf{Collisions} & \textbf{Complétion} & \textbf{Déviation} & \textbf{Cycles} & \textbf{Résidu final} \\
+ & & & & \textbf{(s)} & \textbf{outil (cm)} & \textbf{contraints} & \textbf{(m/s)} \\
 \midrule
-Corps du bras & $k_{\mathrm{clear}}=0{,}3$ & $28/30$ & $0/30$ & $27{,}7$ & $0{,}306$ & $5{,}0$~\% \\
-              & $k_{\mathrm{clear}}=0$     & $26/30$ & $0/30$ & $37{,}9$ & $0{,}413$ & $43{,}6$~\% \\
+Corps du bras et main & $k_{\mathrm{clear}}=0{,}3$ & $28/30$ & $0/30$ & $27{,}7$ & $0{,}306$ & $5{,}0$~\%  & $-2{,}1\times10^{-9}$ \\
+              & $k_{\mathrm{clear}}=0$     & $26/30$ & $0/30$ & $37{,}9$ & $0{,}413$ & $43{,}6$~\% & $-1{,}4\times10^{-8}$ \\
 \addlinespace
-Main          & $k_{\mathrm{clear}}=0{,}3$ & $27/27$ & $0/27$ & $29{,}9$ & $0{,}601$ & $33{,}5$~\% \\
-              & $k_{\mathrm{clear}}=0$     & $27/27$ & $0/27$ & $30{,}6$ & $0{,}615$ & $32{,}4$~\% \\
+Main seulement        & $k_{\mathrm{clear}}=0{,}3$ & $27/30$ & $0/30$ & $29{,}9$ & $0{,}601$ & $33{,}5$~\% & $-1{,}7\times10^{-8}$ \\
+              & $k_{\mathrm{clear}}=0$     & $27/30$ & $0/30$ & $30{,}6$ & $0{,}615$ & $32{,}4$~\% & $-1{,}1\times10^{-8}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-La première hypothèse est confirmée. Aucune des deux conditions ne produit de collision, et la marge exacte demeure positive sur la totalité des essais, ses deux valeurs les plus basses appartenant à la condition ablatée et valant $+2{,}30$ et $+2{,}19$~mm. La marge géométrique exacte demeure donc inchangée, conformément à la formulation du problème.
+La première hypothèse est confirmée. Aucune des deux conditions ne produit de collision, et la marge $h*$ demeure positive sur la totalité des essais, ses deux valeurs les plus basses appartenant à la condition ablatée et valant $+2{,}30$ pour le premier scenario et $+2{,}19$~mm pour le deuxième. La marge géométrique exacte demeure donc inchangée, conformément à la formulation du problème.
 
-La deuxième hypothèse n'est que partiellement confirmée. Le temps de complétion s'allonge de $27{,}7$ à $37{,}9$~s en médiane (l'écart apparié étant positif sur les 27 essais réussis). En revanche, le taux de réussite de tâche reste identique ($28/30$ de part et d'autre), la réussite sûre reculant de $28$ à $26$ du fait de deux franchissements de la barrière publiée en condition ablatée, et le nombre d'arrêts sûrs sans progression passe de un à deux (écart non significatif sur 30 essais). Le dégagement postural accélère ainsi le franchissement des configurations de conflit, sans modifier le taux de réussite global.
+La deuxième hypothèse n'est que partiellement confirmée. Le temps de complétion s'allonge de $27{,}7$ à $37{,}9$~s en médiane, l'écart apparié étant positif sur les 27 essais réussis, signifiant que le temps de complétion est effectivement amélioré. En revanche, le taux de réussite de tâche reste similaire dans les deux scénarios, avec des réussites de $28/30$ et $26/30$ pour le premier scénario ainsi que $27/30$ pour les deux conditions pour le second. Ainsi, le taux de succès global n'est pas influencé par le dégagement postural contrairement à ce que l'hypothèse prévoyait.
 
-Le mécanisme apparaît nettement sur les indicateurs de contrainte. Sans dégagement, la contrainte est active sur $43{,}6$~\% des cycles (contre $5{,}0$~\% avec dégagement) : la configuration articulaire reste proche de la frontière au lieu de modifier son orientation pour s'en éloigner. Le frein réflexe est sollicité en conséquence (atténuation médiane passant de $0{,}88$ à $0{,}67$), et la déviation de l'outil augmente de $0{,}104$~cm en médiane appariée, sur 28 des 30 essais. Le gain en progression offert par ce terme est donc mesurable et cohérent avec sa formulation théorique.
+Le mécanisme apparaît nettement sur les indicateurs de contrainte. Sans dégagement, la contrainte est active sur $43{,}6$~\% des cycles (contre $5{,}0$~\% avec dégagement) : la configuration articulaire reste proche de la frontière au lieu de modifier son orientation pour s'en éloigner. Le frein réflexe est sollicité en conséquence (atténuation médiane passant de $0{,}88$ à $0{,}67$), et la déviation de l'outil augmente de $0{,}104$~cm en médiane appariée. Le gain en progression offert par ce terme est donc mesurable et cohérent avec sa formulation théorique.
 
-La troisième hypothèse se trouve pleinement vérifiée. Sur le scénario du prisme (contrainte portée par la main), où la rampe d'autorité $a$ s'annule faute de composante exploitable dans le noyau de la tâche, les deux conditions fournissent des résultats équivalents ($27/27$ succès, écart de complétion de $0{,}24$~s, écart de déviation de $0{,}0001$~cm, et fractions de cycles contraints de $33{,}5$~\% et $32{,}4$~\%). Ce comportement confirme que la rampe d'autorité désactive adéquatement le mécanisme lorsqu'il ne peut pas contribuer à la résolution de la contrainte.
+La troisième hypothèse se trouve pleinement vérifiée. Sur le scénario du prisme (contrainte portée par la main), où la rampe d'autorité $a$ s'annule faute de composante exploitable dans le noyau de la tâche, les deux conditions fournissent des résultats équivalents ($27/30$ succès, écart de complétion de $0{,}24$~s, écart de déviation de $0{,}0001$~cm, et fractions de cycles contraints de $33{,}5$~\% et $32{,}4$~\%). Ce comportement confirme que la rampe d'autorité désactive adéquatement le mécanisme lorsqu'il ne peut pas contribuer à la résolution de la contrainte.
 
 \subsection{Réparation de la commande filtrée}\label{subsec:res_abl_reparation}
 % Valide : l'étape de réparation après le filtre passe-bas de sortie
@@ -506,22 +551,22 @@ Une précaution méthodologique conditionne la lecture de ces données. La suppr
 \centering
 \caption{Ablations de la réparation de la commande filtrée (A5, A6), $30$ essais appariés par cellule. Le résidu final est la valeur extrême du résidu de contrainte évalué sur la commande réellement transmise ; pour les cellules sans réparation, où le n\oe ud ne publie pas ce résidu, il est reconstruit hors ligne à partir des enregistrements de télémesure (fichiers ROS bag). La fréquence de réparation est rapportée aux cycles où la contrainte est active. Les cellules marquées d'un astérisque s'exécutent sur la branche logicielle non compilée.}
 \label{tab:res_abl_reparation}
-\footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{llcccc}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{llccccc}
 \toprule
-\textbf{Banc} & \textbf{Condition} & \textbf{Réussite} & \textbf{Résidu final} & \textbf{Cycles en} & \textbf{Réparations} \\
- & & & \textbf{(pire cas)} & \textbf{violation (\%)} & \textbf{(\% cycles actifs)} \\
+\textbf{Banc} & \textbf{Condition} & \textbf{Réussite} & \textbf{Cycles} & \textbf{Résidu final} & \textbf{Cycles en} & \textbf{Réparations} \\
+ & & & \textbf{contraints} & \textbf{(pire cas, m/s)} & \textbf{violation (\%)} & \textbf{(\% cycles actifs)} \\
 \midrule
-Alimentation & Toutes lignes (déployé) & $24/30$ & $-1{,}4\times10^{-2}$ & $0{,}03$ & $23{,}9$ \\
-             & Ligne critique          & $25/30$ & $-3{,}3\times10^{-2}$ & $0{,}35$ & $36{,}5$ \\
-             & Ligne critique*         & $23/30$ & $-5{,}2\times10^{-4}$ & $0{,}02$ & $36{,}8$ \\
-             & Sans réparation*        & $23/30$ & $-6{,}9\times10^{-5}$ & $0{,}15$ & $0$ \\
+Alimentation & Toutes lignes (déployé) & $24/30$ & $62{,}7$~\% & $-1{,}4\times10^{-2}$ & $0{,}03$ & $23{,}9$ \\
+             & Ligne critique          & $25/30$ & $62{,}3$~\% & $-3{,}3\times10^{-2}$ & $0{,}35$ & $36{,}5$ \\
+             & Ligne critique*         & $23/30$ & ---         & $-5{,}2\times10^{-4}$ & $0{,}02$ & $36{,}8$ \\
+             & Sans réparation*        & $23/30$ & $62{,}7$~\% & $-6{,}9\times10^{-5}$ & $0{,}15$ & $0$ \\
 \addlinespace
-Saisie-dépôt & Toutes lignes (déployé) & $30/30$ & $-1{,}7\times10^{-8}$ & $0$ & $20{,}6$ \\
-             & Ligne critique          & $28/30$ & $-1{,}3\times10^{-8}$ & $0$ & $38{,}2$ \\
-             & Ligne critique*         & $30/30$ & $-1{,}7\times10^{-8}$ & $0$ & $39{,}0$ \\
-             & Sans réparation*        & $28/30$ & $-8{,}3\times10^{-7}$ & $0$ & $0$ \\
+Saisie-dépôt & Toutes lignes (déployé) & $30/30$ & $33{,}5$~\% & $-1{,}7\times10^{-8}$ & $0$ & $20{,}6$ \\
+             & Ligne critique          & $28/30$ & $29{,}0$~\% & $-1{,}3\times10^{-8}$ & $0$ & $38{,}2$ \\
+             & Ligne critique*         & $30/30$ & ---         & $-1{,}7\times10^{-8}$ & $0$ & $39{,}0$ \\
+             & Sans réparation*        & $28/30$ & $35{,}2$~\% & $-8{,}3\times10^{-7}$ & $0$ & $0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -532,7 +577,7 @@ Cet écart d'admissibilité ne s'accompagne d'aucune conséquence physique. La c
 
 L'ablation A5 montre quant à elle un effet dépendant du banc. Sur la tâche de saisie-dépôt, restreindre la réparation à la seule ligne critique ne dégrade pas le résidu, qui reste à la précision machine : la contrainte n'y est active que sur $33$~\% des cycles, contre $70$~\% au banc d'alimentation. Sur la tâche d'alimentation, le résidu en pire cas se trouve multiplié par $2{,}4$, et la proportion de cycles en violation passe de $0{,}03$~\% à $0{,}35$~\%. Sur l'essai le plus contraint, la distance minimale au bol passe de $11{,}6$~mm à $3{,}1$~mm. La réparation multi-lignes est donc nécessaire lorsque plusieurs corps du robot sont simultanément proches d'obstacles.
 
-L'effet de la branche logicielle (isolé par la cellule de contrôle) reste du second ordre sur la sécurité (le résidu extrême variant de $-3{,}3\times10^{-2}$ à $-5{,}2\times10^{-4}$ en alimentation). Il influe en revanche sur le taux de réussite sûre en alimentation ($23/30$ contre $25/30$).
+L'effet de la branche logicielle (isolé par la cellule de contrôle) reste du second ordre sur la sécurité (le résidu extrême variant de $-3{,}3\times10^{-2}$ à $-5{,}2\times10^{-4}$~m/s en alimentation). Il influe en revanche sur le taux de réussite sûre en alimentation ($23/30$ contre $25/30$).
 
 \subsection{Surveillance en ligne de la borne de poursuite}\label{subsec:res_issf_monitor}
 % Valide : l'hypothèse (iii) du certificat (Section~\ref{subsec:garanties}),
@@ -563,37 +608,33 @@ Ces grandeurs correspondent au resserrement qu'une majoration statique non surve
 % =================================================================
 Le transfert vers le xArm7 n'introduit aucune méthodologie nouvelle : la chaîne du Chapitre~\ref{sec:Theme2} est agnostique à la morphologie du robot. La politique de \ac{FM} génère des poses de l'outil dans l'espace de la tâche et son conditionnement perceptif est inchangé ; seuls les éléments propres au bras sont substitués, à savoir le modèle cinématique (\ac{URDF} et cinématique inverse) et les \ac{SDF} de Bernstein par lien, réentraînés sur les maillages du xArm7 par le protocole de la Section~\ref{subsec:sdf_robot}. Le filtre de sécurité, ses barrières et ses réglages sont identiques. Le Tableau~\ref{tab:res_xarm} compare les deux bras sur les scénarios communs de la tâche de saisie et dépôt.
 
-L'identité des réglages a été vérifiée sur les fichiers de lancement archivés avec la campagne plutôt que supposée. Les deux bancs partagent le même point de contrôle de la politique de \ac{FM}, la même marge $d_{\mathrm{safe}} = 15$~mm, le même nombre de points critiques $K=64$, la même métrique de projection, le même gain de dégagement postural, la même borne de poursuite $\varepsilon_{\mathrm{p}}$ et le même effectif de neuf corps protégés. Sur le xArm7, ces neuf corps sont les liens $2$ à $7$ du bras et la main Franka soudée à son poignet avec ses deux doigts : l'outil est donc physiquement le même, ce qui rend la métrique de tâche et la tolérance de préhension directement comparables.
+Les deux bancs partagent la même politique de \ac{FM}, la même marge $d_{\mathrm{safe}} = 15$~mm, le même nombre de points critiques $K=64$, la même métrique de projection, le même gain de dégagement postural, la même borne de poursuite $\varepsilon_{\mathrm{p}}$ et le même effectif de neuf corps protégés. Sur le xArm7, ces neuf corps sont les liens $2$ à $7$ du bras et la main Franka soudée à son poignet avec ses deux doigts : l'outil est donc physiquement le même, ce qui rend la métrique de tâche et la tolérance de préhension directement comparables.
 
 La position du cube diffère de $5$~cm par rapport au banc Panda afin de tenir compte de la portée du xArm7.
 
 \begin{table}[htbp]
 \centering
-\caption{Comparaison Panda et xArm7 sur les scénarios communs de la tâche de saisie et dépôt ($N=30$ essais par cellule, métriques de la Section~\ref{subsec:res_metriques}). La barrière du scénario sans obstacle n'est pas rapportée pour le xArm7, aucun point d'obstacle n'y ayant jamais été sélectionné.}
+\caption{Comparaison Panda et xArm7 sur les scénarios communs de la tâche de saisie et dépôt ($N=30$ essais par cellule, métriques de la Section~\ref{subsec:res_metriques}).}
 \label{tab:res_xarm}
 \footnotesize
 \setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{llccccc}
+\begin{tabular}{llcccccc}
 \toprule
-\textbf{Scénario} & \textbf{Robot} & \textbf{Réussite} & \textbf{Collisions} & $\boldsymbol{h^{\star}_{\mathrm{ex}}}$ \textbf{(mm)} & \textbf{Déviation} & \textbf{Cycles} \\
- & & & & & \textbf{outil (cm)} & \textbf{contraints} \\
+\textbf{Scénario} & \textbf{Robot} & \textbf{Réussite} & \textbf{Collisions} & $\boldsymbol{h^{\star}_{\mathrm{ex}}}$ \textbf{(mm)} & \textbf{Déviation} & \textbf{Cycles} & \textbf{Résidu final} \\
+ & & & & & \textbf{outil (cm)} & \textbf{contraints} & \textbf{(m/s)} \\
 \midrule
-Sans obstacle critique  & Panda & $27/30$ & $0/30$ & $+1243{,}7$ & $0{,}46$ & $0{,}2$~\% \\
-                        & xArm7 & $30/30$ & $0/30$ & ---       & $0{,}18$ & $0{,}0$~\% \\
+Sans obstacle critique  & Panda & $27/30$ & $0/30$ & $+10{,}7$ & $0{,}46$ & $0{,}2$~\%  & $+6{,}9\times10^{-2}$ \\
+                        & xArm7 & $30/30$ & $0/30$ & $+9{,}6$  & $0{,}18$ & $0{,}5$~\%  & $+4{,}5\times10^{-1}$ \\
 \addlinespace
-Obstacle(s) statique(s) & Panda & $30/30$ & $0/30$ & $+4{,}9$  & $0{,}60$ & $33{,}5$~\% \\
-                        & xArm7 & $16/30$ & $0/30$ & $+5{,}9$  & $0{,}42$ & $15{,}9$~\% \\
+Obstacle(s) statique(s) & Panda & $30/30$ & $0/30$ & $+4{,}9$  & $0{,}60$ & $33{,}5$~\% & $-1{,}7\times10^{-8}$ \\
+                        & xArm7 & $16/30$ & $0/30$ & $+5{,}9$  & $0{,}42$ & $15{,}9$~\% & $-1{,}5\times10^{-8}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-La sécurité se transfère intégralement sans dégradation. Aucune collision n'est relevée sur les deux cellules du xArm7, aucune barrière ne franchit zéro sur les $30$ essais du prisme, seul scénario où un obstacle entre dans le champ du filtre, et la marge minimale en pire cas y est même supérieure à celle mesurée sur le Panda ($+5{,}9$~mm contre $+4{,}9$~mm). Le scénario sans obstacle critique offre l'évaluation de transparence la plus nette : aucun point d'obstacle n'est sélectionné, la contrainte n'est jamais active, et la déviation de l'outil tombe à $0{,}18$~cm (la plus faible de la campagne). Le bouclier adapté à cette nouvelle géométrie ne perturbe donc pas la trajectoire en l'absence de conflit, tout en garantissant le même niveau de protection lorsque nécessaire. La Figure~\ref{fig:res_xarm} illustre ce résultat sur un tirage aléatoire commun : les deux bras franchissent le prisme selon un couloir similaire et leurs barrières suivent un profil identique.
+La sécurité se transfère intégralement sans dégradation. Aucune collision n'est relevée sur les deux cellules du xArm7, aucune barrière ne franchit zéro sur les $30$ essais du prisme, et la marge minimale en pire cas y est même supérieure à celle mesurée sur le Panda ($+5{,}9$~mm contre $+4{,}9$~mm). Le scénario sans obstacle critique offre l'évaluation de transparence la plus nette : moins de 1\% des cycles sont contraints et la déviation de l'outil tombe à $0{,}18$~cm. Le bouclier adapté à cette nouvelle géométrie ne perturbe donc pas la trajectoire en l'absence de conflit, tout en garantissant le même niveau de protection lorsque nécessaire. La Figure~\ref{fig:res_xarm} illustre ce résultat sur un tirage aléatoire commun : les deux bras franchissent le prisme selon un couloir similaire et leurs barrières suivent un profil identique.
 
-En revanche, le taux de réussite sur la tâche ne se maintient pas au même niveau ($16/30$ contre $30/30$). Deux facteurs expliquent cet écart, sans qu'aucun ne remette en cause le filtre de sécurité :
-\begin{enumerate}
-  \item La nature des échecs : il s'agit exclusivement de $14$ échecs de préhension et $11$ blocages cinématiques, sans aucun défaut de sécurité ;
-  \item La variabilité intra-cellule (Section~\ref{sec:res_echecs}) : la cellule du prisme réussit ses $16$ premiers essais mais échoue sur les suivants, rendant ce taux agrégé conservateur.
-\end{enumerate}
+En revanche, le taux de réussite sur la tâche ne se maintient pas au même niveau ($16/30$ contre $30/30$). Ce qui peut expliquer cet écart est la nature des échecs étant donné qu'il s'agit exclusivement de $14$ échecs de préhension, sans aucun défaut de sécurité. En reculant le cube de 5cm par rapport au banc utilisé pour le franka et en conservant l'environnement identique, le cube tombait dans une zones où il était impossible pour le robot d'atteindre la cible sans respecter les contraintes de sécurité. De plus, en reculant le cube de 5cm et en conservant la pose initiale de la pince, le cube tombait dans une zone hors distribution du modèle, rendant la trajectoire de la pince en direction d'une zone en avant du cube, ce qui est davantage une limite des données qu'une limite de la transférabilité du système.
 
 Ces résultats expérimentaux confirment la propriété de généralisation (\ac{OS}5). L'architecture de sécurité se transporte d'un manipulateur à un autre moyennant le seul réentraînement de la cinématique et des champs de distance par lien, en conservant la totalité de ses garanties. L'élément non transférable concerne la politique générative, entraînée sur des démonstrations du Panda et confrontée ici à des limites cinématiques différentes.
 
@@ -701,9 +742,9 @@ La lecture des grandeurs internes montre un système qui respecte scrupuleusemen
 Un seul essai du croissant de $0{,}36$~m franchit réellement la barrière, à $-7{,}9$~mm mesurés au maillage, soit $7{,}1$~mm de dégagement physique restant, sans contact. Les quatre autres franchissements enregistrés sont des surestimations conservatrices confirmées par la vérification exacte.
 
 \subsection*{Impact de la découverte tardive des obstacles}
-Le second mode d'échec est propre au banc d'alimentation et à sa caméra au poignet. Sur les $210$ épisodes couverts par l'analyse de latence, toutes conditions confondues, $61$ des $68$ franchissements de barrière sont attribuables à un point d'obstacle perçu pour la première fois moins de $200$~ms avant le franchissement, la médiane de ce délai valant $80$~ms et son minimum $0$~ms. Le filtre ne peut pas contraindre ce qu'il ne connaît pas encore ; sa réponse est celle d'un système en régime de récupération, qui commande une vitesse de sortie croissant avec la pénétration.
+Le second mode d'échec est propre au banc d'alimentation et à sa caméra au poignet. Sur les $270$ épisodes couverts par l'analyse de latence, toutes conditions confondues, $68$ des $73$ franchissements de barrière sont attribuables à un point d'obstacle perçu pour la première fois moins de $300$~ms avant le franchissement, la médiane de ce délai valant $115$~ms et son minimum $0$~ms. Le filtre ne peut pas contraindre ce qu'il ne connaît pas encore ; sa réponse est celle d'un système en régime de récupération, qui commande une vitesse de sortie croissant avec la pénétration.
 
-Dans la configuration déployée, ce mode se solde par deux franchissements sur trente, dont un seul est réel : la fourchette y descend à $11{,}6$~mm de la surface du bol, à l'intérieur de la marge de $15$~mm mais loin du contact. Les couches aval accomplissent donc leur office. Ce mode devient en revanche dominant dès que la mémoire spatiale est retirée (Section~\ref{subsec:res_abl_persistance}), ce qui identifie la carte persistante comme la contre-mesure effective plutôt que la marge statique.
+Les cinq franchissements que l'analyse n'impute pas à la perception se produisent tous dans les deux cellules où le bouclier est délibérément coupé, trois en mode observation et deux sans filtre. Dans les cinq cellules où le filtre est actif, aucun franchissement ne lui est imputable, et la configuration déployée n'en produit aucun sur ses trente essais. Ce mode devient en revanche dominant dès que la mémoire spatiale est retirée (Section~\ref{subsec:res_abl_persistance}), ce qui identifie la carte persistante comme la contre-mesure effective plutôt que la marge statique.
 
 \subsection*{Écart entre période effective et hypothèse du certificat}
 Le resserrement échantillonné~\eqref{eq:sampled_margin} est dimensionné sur une durée de maintien $T = 10$~ms, et le Chapitre~\ref{sec:Theme2} précise que le certificat n'est mis en défaut que si la période effective la dépasse. La campagne établit qu'elle la dépasse. La période mesurée entre deux résolutions du bouclier vaut $22$~ms en médiane et $50$~ms au 95\textsuperscript{e} centile sur les deux bancs Panda, et le cycle complet du bouclier, du début de la résolution à la publication de la commande, coûte $10{,}9$~ms en médiane et $26{,}3$~ms au 95\textsuperscript{e} centile. Le facteur limitant n'est pas l'étage de correction lui-même, dont la médiane est de $0{,}87$~ms, mais les transferts entre le processeur graphique et l'hôte qui l'encadrent.
@@ -713,10 +754,10 @@ Le resserrement couvre une chute de barrière de $\tfrac{1}{2}L_l\|\dot{\mathbf{
 Deux éléments limitent la portée de ce défaut sans l'effacer. Le frein réflexe n'en souffre pas : il mesure à chaque micro-cycle le temps réellement écoulé depuis la publication du paquet et certifie sur cet horizon-là, de sorte qu'une latence du solveur allonge son horizon au lieu d'invalider son certificat. Sa propre période est tenue exactement, à $1{,}00$~ms de période ordonnancée sur les $53\,102$ relevés. De plus, la mesure empirique ne montre aucun franchissement imputable à ce mécanisme, les franchissements observés s'expliquant tous par la perception ou par l'artefact du signal. Néanmoins, la valeur de $T$ retenue au Chapitre~\ref{sec:Theme2} est sous-estimée d'un facteur deux en médiane, ce qui impliquerait, dans le cadre d'un déploiement physique hors simulation, d'augmenter cette marge ou d'optimiser le temps de cycle du bouclier pour rejoindre la période nominale.
 
 \subsection*{Limites associées à l'artefact de télémesure}
-Le signal de barrière que le n\oe ud publie à destination du frein réflexe présente une anomalie sur cinq épisodes, dont trois ont été écartés du plan et deux subsistent dans les cellules rapportées : sa valeur y alterne d'un cycle à l'autre entre la valeur correcte et une valeur erronée alors que la géométrie ne bouge pas. La cause n'est pas identifiée à ce jour ; la piste documentée met en cause l'ordre d'écriture entre deux flux \ac{CUDA} distincts alimentant le même champ. Sa seule propriété établie est son unilatéralité : dans les trois cas observés la valeur erronée est pessimiste, et la mesure sur les maillages exacts rétablit une marge positive, jusqu'à $1{,}25$~m de dégagement réel pour une valeur annoncée à $-10{,}33$~mm. Le système déclenche ainsi le frein de façon injustifiée plutôt que d'omettre un arrêt requis. Cette propriété est empirique et non démontrée : elle ne fonderait aucune garantie de sécurité si l'artefact venait à s'inverser.
+Le signal de barrière que le n\oe ud publie à destination du frein réflexe présente une anomalie sur deux épisodes de la scène sans obstacle du banc de saisie et dépôt, seuls cas subsistant dans les cellules rapportées : sa valeur y alterne d'un cycle à l'autre entre la valeur correcte et une valeur erronée alors que la géométrie ne bouge pas. La cause n'est pas identifiée à ce jour ; la piste documentée met en cause l'ordre d'écriture entre deux flux \ac{CUDA} distincts alimentant le même champ. Sa seule propriété établie est son unilatéralité : dans les cas observés la valeur erronée est pessimiste, et la mesure sur les maillages exacts rétablit une marge positive, jusqu'à $1{,}25$~m de dégagement réel pour une valeur annoncée à $-10{,}33$~mm. Le système déclenche ainsi le frein de façon injustifiée plutôt que d'omettre un arrêt requis. Cette propriété est empirique et non démontrée : elle ne fonderait aucune garantie de sécurité si l'artefact venait à s'inverser.
 
 \subsection*{Variabilité des taux de réussite au cours des essais}
-Un biais de protocole affecte une partie des taux rapportés. Sur le banc d'alimentation, le taux de réussite de la seconde moitié est inférieur de $20$ à $40$ points à celui de la première sur sept des dix cellules ; sur le banc xArm7, le retrait est prononcé, la cellule du prisme passant de $15$ succès sur $15$ à un seul. Le banc de saisie et dépôt du Panda est en revanche stable, ses cellules déployées ne variant pas d'un essai entre les deux moitiés. La cause n'est pas identifiée. Sa conséquence est que les colonnes de succès et de temps de complétion des cellules d'alimentation et de xArm7 sont biaisées vers le bas et doivent être lues comme des bornes inférieures. La colonne $h^{\star}$ n'est pas concernée, la barrière étant mesurée cycle par cycle indépendamment de l'issue de l'épisode. Une cellule fait exception au sens de la dérive, celle du banc de saisie et dépôt sans filtre, dont le taux progresse de $2$ à $10$ succès sur $15$ entre les deux moitiés.
+Un biais de protocole affecte une partie des taux rapportés. Sur le banc xArm7, le taux de réussite de la seconde moitié des essais est nettement inférieur à celui de la première, la cellule du prisme passant de $15$ succès sur $15$ à un seul. Les deux bancs Panda sont en revanche stables : leurs cellules déployées ne varient pas d'un essai entre les deux moitiés au banc de saisie et dépôt, et pas davantage au banc d'alimentation, où une seule des neuf cellules recule d'au moins $20$ points. La cause n'est pas identifiée. Sa conséquence est que les colonnes de succès et de temps de complétion des cellules xArm7 sont biaisées vers le bas et doivent être lues comme des bornes inférieures. La colonne $h^{\star}$ n'est pas concernée, la barrière étant mesurée cycle par cycle indépendamment de l'issue de l'épisode. Une cellule fait exception au sens de la dérive, celle du banc de saisie et dépôt sans filtre, dont le taux progresse de $2$ à $10$ succès sur $15$ entre les deux moitiés.
 
 \subsection*{Variations du plan d'expérience et données exclues}
 Deux réserves mineures complètent ce relevé. Trois épisodes de la cellule ablatant le dégagement postural sur le prisme ont perdu leur fiche d'issue à la suite d'une défaillance de l'infrastructure d'enregistrement, et cette cellule est rapportée à $N=27$. Une première tentative de la cellule sans bol a produit $30$ échecs sur $30$ pour une raison de mise en scène, le directeur d'épisode plaçant le cube relativement à un contenant absent : elle est écartée et remplacée par la cellule reprise en groupe distinct, seule rapportée ici.
@@ -739,7 +780,7 @@ La Figure~\ref{fig:res_sankey} en donne d'abord la vue d'ensemble : le devenir d
 \end{figure}
 
 \subsection*{Synthèse des critères de validation}
-Le critère de sécurité est satisfait sur son énoncé exact. Aucune collision n'est relevée avec le filtre dans les scénarios où le nominal en produit, alors que celui-ci en produit $47$ sur $60$ essais des deux bancs. La durée cumulée des franchissements de marge suit la même échelle : mesurée sur la géométrie exacte, elle couvre $59$~\% des cycles d'exécution sans filtre sur chacun des deux bancs, et se réduit à $21$ cycles au total avec le filtre, soit une demi-seconde cumulée sur les $30$ essais du banc d'alimentation, et à aucun cycle au banc de saisie et dépôt. La mesure repose sur le juge à maillages exacts que le critère exige, appliqué à la totalité des $795$ épisodes des cellules rapportées.
+Le critère de sécurité est satisfait sur son énoncé exact. Aucune collision n'est relevée avec le filtre dans les scénarios où le nominal en produit, alors que celui-ci en produit $51$ sur $60$ essais des deux bancs. La durée cumulée des franchissements de marge suit la même échelle : mesurée sur la géométrie exacte, elle couvre $61{,}8$~\% des cycles d'exécution sans filtre au banc d'alimentation et $59{,}2$~\% au banc de saisie et dépôt, et se réduit à aucun cycle sur l'un comme sur l'autre avec le filtre. La mesure repose sur le juge à maillages exacts que le critère exige, appliqué à la totalité des $765$ épisodes des cellules rapportées.
 
 Le critère de préservation de la tâche est évalué séparément par banc. Il requiert une dégradation du taux de réussite inférieure à $10$ points de pourcentage entre la scène sans obstacle interférent et la scène qui en contient un, sous la condition déployée. Il est satisfait au banc de saisie et dépôt du Panda, où la réussite passe de $29/30$ à $30/30$ : ajouter le prisme ne dégrade rien, l'écart d'un essai relevant du bruit d'échantillonnage. Il n'est pas satisfait au banc xArm7, où elle tombe de $30/30$ à $16/30$, soit $46{,}7$ points ; la Section~\ref{sec:res_xarm} impute cet écart à la portée utile du bras et à la dérive du protocole plutôt qu'au filtre, mais le critère tel qu'énoncé ne fait pas cette distinction. Il n'est enfin pas évaluable au banc d'alimentation, dont les deux cellules ne partagent pas le même critère de complétion : le rebord disparaissant avec le bol, la réussite y devient le piquage suivi d'une livraison plutôt que l'extraction au-dessus du rebord (Section~\ref{subsec:res_ab}). La seconde clause du critère est en revanche satisfaite sans réserve : en l'absence d'obstacle interférent, la contrainte n'est active que sur $0{,}2$~\% des cycles au banc de saisie et dépôt et sur aucun cycle au banc xArm7, avec une déviation de l'outil de $0{,}46$ et $0{,}18$~cm. Cette transparence se lit sur le nombre de demi-espaces de sécurité qui contraignent la solution et non sur l'amplitude de la correction, laquelle n'est jamais exactement nulle, la mémoire exponentielle du lissage étant reportée dans l'objectif du problème de projection (Section~\ref{subsec:commande}).
 
@@ -755,7 +796,7 @@ Ces coûts se paient là où ils étaient prévus. Aucun d'eux ne provient d'une
 \subsection*{Enseignements de l'étude d'ablation sur l'architecture}
 Les enseignements des cinq ablations révèlent des contributions contrastées au sein de l'architecture.
 
-Deux mécanismes sont fondamentaux pour la sécurité. La carte persistante constitue la contre-mesure principale contre la découverte tardive d'obstacle, seul mode d'échec de sécurité que la campagne observe dans la configuration déployée. La réparation de la commande filtrée est ce qui rend la commande émise admissible : sans elle, la contrainte resserrée est violée dans la totalité des essais des deux bancs, avec un résidu de contrainte qui passe de la précision machine à $0{,}2$.
+Deux mécanismes sont fondamentaux pour la sécurité. La carte persistante constitue la contre-mesure principale contre la découverte tardive d'obstacle, seul mode d'échec de sécurité que la campagne observe dans la configuration déployée. La réparation de la commande filtrée est ce qui rend la commande émise admissible : sans elle, la contrainte resserrée est violée dans la totalité des essais des deux bancs, avec un résidu de contrainte qui passe de la précision machine à $0{,}2$~m/s.
 
 L'utilité des mécanismes dépend de la dynamique de perception propre à chaque banc d'essai. Le frein réflexe n'apporte pas de gain de sécurité mesurable au banc de saisie et dépôt, où l'obstacle est visible dès le départ et où le bouclier suffit ; il évite la seule collision du banc d'alimentation, où l'information arrive dans une fenêtre de quelques dizaines de millisecondes que seule une couche à $1$~kHz peut exploiter. La réparation multi-lignes suit la même logique : inutile là où les contraintes actives ne se contrarient pas, elle gagne $8{,}5$~mm de dégagement réel sur la graine la plus difficile du banc d'alimentation.
 
