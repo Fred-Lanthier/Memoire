@@ -915,6 +915,16 @@ où $\dot{\mathbf{q}}_{\mathrm{cible},k}$ est la vitesse cible lissée de l'obje
 
 La vitesse projetée $\dot{\mathbf{q}}_{\mathrm{proj}}$ est ensuite saturée aux limites de vitesse articulaire du robot, produisant la vitesse saturée $\dot{\mathbf{q}}_{f} = \operatorname{sat}_{\mathrm{lim}}(\dot{\mathbf{q}}_{\mathrm{proj}})$. Cette saturation, comme la troncature des balayages de Dykstra, pouvant réintroduire une violation, la contrainte est réévaluée sur la vitesse résultante $\dot{\mathbf{q}}_{f}$ avec le même second membre resserré complet $r_l$. Toute violation résiduelle est corrigée par une réparation $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$, définie comme une projection corrective dans la même métrique $\mathbf{W}$, qui répartit sa correction comme le solveur au lieu de défaire la préférence pour le noyau de tâche par un pas euclidien.
 
+% TODO (chapitre 4) : ajouter ici la seconde passe de Dykstra de la réparation.
+% Avec une seule ligne active, la réparation est le pas analytique fermé le long
+% de W^-1 grad h donné ci-dessus. Avec plusieurs lignes actives, elle réexécute
+% les balayages de Dykstra sur tout l'ensemble actif A, pour ne pas rouvrir une
+% contrainte voisine en corrigeant la ligne violée. Seule l'Annexe annexe:cbf_details
+% le dit aujourd'hui ; le corps du chapitre laisse croire à un pas unique.
+% C'est aussi ce que sépare l'ablation A5 de la Section subsec:res_abl_reparation
+% (« toutes lignes » contre « ligne critique »), dont le résultat découle
+% directement de ce mécanisme.
+
 Pour éviter qu'une mise à jour brutale ne commande une vitesse violente en un seul cycle (notamment lors de l'apparition soudaine d'un obstacle), la norme de cette réparation est plafonnée à $\Delta v_{\max} = 0{,}50\text{ rad/s}$ lorsque $h \ge 0$, et à un plafond de récupération $\Delta v_{\max}^{\mathrm{rec}} = 0{,}50\text{ rad/s}$ lorsque $h < 0$. Les contraintes dont la norme de gradient s'effondre sous le seuil $g_{\min}$ en sont exclues plutôt qu'atténuées, afin de préserver l'exactitude des projections de Dykstra. En effet, la norme $\|\nabla h_l\|$ mesure l'efficacité physique de la vitesse articulaire sur le taux de variation de la barrière $\dot{h}_l$. Sous $g_{\min}$, même la vitesse articulaire maximale ne produit plus qu'un dégagement dérisoire (inférieur à $2$~cm/s, calcul détaillé à l'Annexe~\ref{annexe:cbf_details}), rendant l'action sur cette contrainte inefficace.
 
 Pour corriger cet effondrement du gradient, une simple normalisation de la contrainte $(\nabla h_l, r_l)$ s'avérerait inefficace : la projection étant invariante par changement d'échelle, diviser par la norme ne modifierait pas le demi-espace. Ce phénomène survient lorsque deux obstacles entourent un même lien (leurs gradients opposés s'annulant dans l'agrégation soft-min) ou lorsqu'un obstacle s'approche d'un axe de rotation. La direction du gradient n'est alors plus qu'un résidu dominé par le bruit de mesure. Le filtre retire donc temporairement la contrainte concernée plutôt que de commander un mouvement articulaire brusque et mal orienté (Annexe~\ref{annexe:cbf_details}).

@@ -1210,9 +1210,29 @@ L'exemption des lignes en récupération est propre à ce veto, le frein les cer
 
 \section*{Identification de la borne : campagne et estimateur}
 
+\subsection*{Distribution mesurée et position de la borne}
+
+La borne déployée est confrontée à une campagne d'identification dédiée : $30$ trajectoires indépendantes de saisie et dépôt. Chaque trajectoire fournit à $100$~Hz le pire échantillon par fenêtre de $10$~ms de la perturbation projetée, séparé en deux régimes selon l'état du frein réflexe.
+
+La Figure~\ref{fig:res_epsilon_calibration}(a) présente la distribution mesurée, fenêtre par fenêtre. Sur les fenêtres d'exécution effective ($\alpha>0{,}9$ ; $31\,094$ fenêtres), la médiane vaut $0{,}0005$~rad/s et le 99\textsuperscript{e} centile $0{,}032$~rad/s : la borne déployée $\varepsilon_{\mathrm{p}}=0{,}025$~rad/s couvre $97{,}9\,\%$ des fenêtres, fraction qui majore celle des cycles en dépassement puisque chaque fenêtre retient son pire échantillon.
+
+Le paramètre $\varepsilon_{\mathrm{p}}$ constitue un seuil de déclenchement du moniteur (fixé au 98\textsuperscript{e} centile de la distribution) et non un majorant strict. Le resserrement $\varepsilon_{\mathrm{p}}\lVert\nabla h_l\rVert$ certifie le flux réel sur les fenêtres où la perturbation projetée $-\nabla h_l^{\top}\mathbf{d}/\lVert\nabla h_l\rVert$ demeure sous $\varepsilon_{\mathrm{p}}$ ; les dépassements résiduels sont détectés en ligne et pris en charge par le frein réflexe (Section~\ref{subsubsec:reflexe}). La sécurité s'appuie ainsi sur cette séparation entre la masse de la distribution et sa queue, complétée par la marge $d_{\mathrm{safe}}$ (Section~\ref{subsec:contrainte}).
+
+Sur les fenêtres de freinage, l'écart mesuré est supérieur ($10{,}4\,\%$ au-dessus de $\varepsilon_{\mathrm{p}}$), la vitesse mesurée précédant la commande atténuée en raison du retard d'asservissement. Ces fenêtres sont exclues du critère de veto, la commande maintenue étant déjà couverte par le certificat propre du frein.
+
+La Figure~\ref{fig:res_epsilon_calibration}(b) illustre le coût d'une approche alternative. Chaque point représente le maximum d'une trajectoire (agrégeant environ $3\,000$ fenêtres). En appliquant l'estimateur par statistique d'ordre décrit plus bas, le pire dépassement d'une nouvelle trajectoire n'excède pas $0{,}092$~rad/s en exécution effective avec une probabilité d'au moins $30/31\approx 0{,}968$.
+
+Ces grandeurs correspondent au resserrement qu'une majoration statique non surveillée devrait imposer dans l'équation~\eqref{eq:issf_tightening} pour couvrir une trajectoire entière, soit de $3{,}7$ à $6{,}9$ fois la borne déployée. C'est ce surcoût que la formulation surveillée évite.
+
+\begin{figure}[htpb]
+    \centering
+    \includesvg[inkscapelatex=false]{images/Results/epsilon_calibration.svg}
+    \caption{Calibration de la borne de poursuite $\varepsilon_{\mathrm{p}}$ sur 30 trajectoires de saisie et dépôt. (a)~Fonction de répartition de la perturbation projetée ; (b)~perturbation maximale par trajectoire et bornes de prédiction non paramétriques.}\label{fig:res_epsilon_calibration}
+\end{figure}
+
 \subsection*{Biais d'échantillonnage et dépendance temporelle}
 
-La valeur de $\varepsilon_{\mathrm{p}}$ est positionnée dans la distribution mesurée par la campagne rapportée à la Section~\ref{subsec:res_issf_monitor}, dont le protocole est conçu pour éviter deux biais majeurs.
+La valeur de $\varepsilon_{\mathrm{p}}$ est positionnée dans cette distribution par un protocole conçu pour éviter deux biais majeurs.
 
 Le premier concerne la pseudo-réplication. Les pas de temps successifs d'une même trajectoire sont fortement corrélés et ne peuvent pas compter comme des observations indépendantes. L'unité statistique retenue est donc la trajectoire, résumée par le maximum de $\hat{\varepsilon}_k$ sur sa durée.
 
@@ -1226,7 +1246,7 @@ Si les maxima $M_1,\dots,M_N$ des trajectoires de calibration et le maximum $M_{
 \end{equation}
 pour la $k$\textsuperscript{e} valeur ordonnée, et ce sans aucune hypothèse sur la distribution sous-jacente. C'est le cadre des bornes de tolérance non paramétriques~\cite{Wilks1941Tolerance} et de la prédiction conforme~\cite{Vovk2005Algorithmic}.
 
-Une couverture cible $c$ exige donc $N\geq\lceil c/(1-c)\rceil$ essais, soit $19$ pour $c=0{,}95$. La campagne en compte $N=26$ et retient $k=N$, d'où la couverture $26/27\approx 0{,}963$ pour le maximum observé. Les bornes qui en résultent, séparées par régime du frein, figurent à la Figure~\ref{fig:res_epsilon_calibration}(b).
+Une couverture cible $c$ exige donc $N\geq\lceil c/(1-c)\rceil$ essais, soit $19$ pour $c=0{,}95$. La campagne en compte $N=30$ et retient $k=N$, d'où la couverture $30/31\approx 0{,}968$ pour le maximum observé. Les bornes qui en résultent, séparées par régime du frein, figurent à la Figure~\ref{fig:res_epsilon_calibration}(b).
 
 \section*{Chiens de garde et disponibilité}
 
@@ -1435,7 +1455,7 @@ La sélection s'adapte à la géométrie du bras plutôt qu'une simple boule aut
 
 \section*{Chaîne de commande détaillée sur le banc d'alimentation}
 
-Les détails de la chaîne de commande pour l'essai représentatif du banc d'alimentation (complétant la Section~\ref{subsec:res_feeding_deep}) sont formalisés ci-dessous : la construction de la vitesse nominale articulation par articulation, l'action du filtre sur cette vitesse, l'effet du fonctionnement en horizon glissant, et la mesure qui a guidé le choix de l'interface de commande. L'essai illustré est celui de la première valeur d'initialisation de la cellule déployée, et les grandeurs agrégées portent sur ses $30$ essais, soit $13\,835$ cycles de bouclier.
+Les détails de la chaîne de commande pour l'essai représentatif du banc d'alimentation (complétant la Section~\ref{subsec:res_feeding_deep}) sont formalisés ci-dessous : la construction de la vitesse nominale articulation par articulation, l'action du filtre sur cette vitesse, l'effet du fonctionnement en horizon glissant, et la mesure qui a guidé le choix de l'interface de commande. L'essai illustré est celui de la première valeur d'initialisation de la cellule déployée, et les grandeurs agrégées portent sur ses $30$ essais, soit $15\,458$ cycles de bouclier.
 
 \subsection*{Décomposition des vitesses articulaires}\label{subsec:res_decomposition}
 La Figure~\ref{fig:vel_nominal_joints} déroule, articulation par articulation, la construction de la vitesse nominale des Sections~\ref{subsec:vitesse_nominale} à~\ref{subsec:commande} : la consigne anticipatrice en boucle ouverte réajustée temporellement $\dot{\mathbf{q}}_{\mathrm{ff}}$, la correction de suivi $\dot{\mathbf{q}}_{\mathrm{fb}}$ et la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ qui en résulte, entrée du filtre de sécurité.
@@ -1448,9 +1468,9 @@ La Figure~\ref{fig:vel_nominal_joints} déroule, articulation par articulation, 
 
 L'analyse quantitative des signaux enregistrés sur la cellule complète établit trois propriétés :
 
-Premièrement, $\|\dot{\mathbf{q}}_{\mathrm{ff}}\|$ vaut exactement $0{,}300$~rad/s, du dixième au quatre-vingt-dixième centile de sa distribution sur les $13\,835$ cycles : le réajustement temporel à vitesse articulaire constante (Section~\ref{subsec:dqff}) atteint sa consigne $v^{\star}$ sans écart mesurable et fournit au filtre une référence régulée. La correction de suivi s'y ajoute avec une composante moyenne de $+0{,}078$~rad/s le long de la consigne anticipatrice, ce qui porte la vitesse nominale filtrée à $0{,}337$~rad/s en médiane : le suivi accélère légèrement la référence au lieu de la freiner.
+Premièrement, $\|\dot{\mathbf{q}}_{\mathrm{ff}}\|$ vaut exactement $0{,}300$~rad/s, du dixième au quatre-vingt-dixième centile de sa distribution sur les $15\,458$ cycles : le réajustement temporel à vitesse articulaire constante (Section~\ref{subsec:dqff}) atteint sa consigne $v^{\star}$ sans écart mesurable et fournit au filtre une référence régulée. La correction de suivi s'y ajoute avec une composante moyenne de $+0{,}078$~rad/s le long de la consigne anticipatrice, ce qui porte la vitesse nominale filtrée à $0{,}337$~rad/s en médiane : le suivi accélère légèrement la référence au lieu de la freiner.
 
-Deuxièmement, la transparence du filtre doit se lire sur la contrainte et non sur l'amplitude de la correction. Le signal $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ n'est jamais exactement nul, y compris lorsqu'aucune contrainte de sécurité n'est active, parce que la mémoire exponentielle du lissage est reportée dans l'objectif du problème de projection (Section~\ref{subsec:commande}) et que les barrières de limites articulaires figurent en permanence dans le problème : sa médiane vaut $0{,}034$~rad/s sur les cycles où la vitesse nominale satisfait déjà la contrainte, contre $0{,}076$~rad/s sur les cycles où elle ne la satisfait pas. Ce qui est nul hors de la bande d'activation est le nombre de demi-espaces de sécurité qui contraignent effectivement la solution, et la cellule sans bol du même banc en donne la mesure directe : la contrainte est active sur $25$~\% des cycles au lieu de $70$~\%, avec la seule table pour obstacle.
+Deuxièmement, la transparence du filtre doit se lire sur la contrainte et non sur l'amplitude de la correction. Le signal $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}}$ n'est jamais exactement nul, y compris lorsqu'aucune contrainte de sécurité n'est active, parce que la mémoire exponentielle du lissage est reportée dans l'objectif du problème de projection (Section~\ref{subsec:commande}) et que les barrières de limites articulaires figurent en permanence dans le problème : sa médiane vaut $0{,}034$~rad/s sur les cycles où la vitesse nominale satisfait déjà la contrainte, contre $0{,}076$~rad/s sur les cycles où elle ne la satisfait pas. Ce qui est nul hors de la bande d'activation est le nombre de demi-espaces de sécurité qui contraignent effectivement la solution, et la cellule sans bol du même banc en donne la mesure directe : la contrainte est active sur $27{,}9$~\% des cycles au lieu de $62{,}7$~\%, avec la seule table pour obstacle.
 
 Troisièmement, la vitesse nominale filtrée porte un bruit dont l'analyse spectrale situe la puissance dominante à $1{,}04$~Hz en médiane sur les essais de la cellule, soit une fréquence bien inférieure à la cadence de regénération du planificateur, fixée à $5$~Hz sur ce banc. La constante de lissage de la vitesse nominale, $0{,}05$~s sur le banc d'alimentation, filtre donc effectivement les impulsions que le gain de suivi $K_p$ produit à chaque nouvelle trajectoire générée ; le contenu résiduel suit la dynamique de la tâche elle-même plutôt que celle de la replanification. Les conséquences de ce lissage sur la vitesse réellement parcourue sont analysées à la Section~\ref{subsec:res_replan}.
 
