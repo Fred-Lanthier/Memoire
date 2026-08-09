@@ -1150,24 +1150,44 @@ lien 6        & $12$ & $6{,}18\times10^{3}$ & $79{,}3$  & $21{,}8$  & $21{,}8$ \
 lien 7        & $12$ & $9{,}37\times10^{3}$ & $77{,}0$  & $32{,}0$  & $32{,}0$ \\
 main          & $12$ & $5{,}54\times10^{3}$ & $44{,}3$  & $19{,}7$  & $19{,}7$ \\
 doigt droit   & $12$ & $2{,}15\times10^{4}$ & $423{,}5$ & $116{,}4$ & $20$ \\
-doigt gauche  & $12$ & $2{,}05\times10^{4}$ & $508{,}1$ & $110{,}7$ & $20$ \\
+doigt gauche  & $12$ & $2{,}05\times10^{4}$ & $508{,}1$ & $116{,}7$ & $20$ \\
+fourchette    & $12$ & $6{,}50\times10^{3}$ & $110{,}6$ & $43{,}1$  & $43{,}1$ \\
 \hline
 \end{tabular}
 \end{table}
 
-Les résultats mettent en évidence une forte dispersion : les liens du corps du bras culminent entre $2$ et $26$~m/rad$^2$, les liens distaux entre $44$ et $79$, tandis que les doigts dépassent $400$~m/rad$^2$. La distance exacte d'un doigt (corps convexe) étant convexe à l'extérieur, cet excès sur les doigts s'explique par l'oscillation du polynôme autour des arêtes vives dans la coquille de $10$ à $40$~mm. Ce constat a motivé le réentraînement des modèles de doigts à $n=12$ (Annexe~\ref{annexe:sdf_training}), réduisant leur pire cas de $840$ à $508$~m/rad$^2$.
+Les résultats mettent en évidence une forte dispersion : les liens du corps du bras culminent entre $2$ et $26$~m/rad$^2$, les liens distaux entre $44$ et $79$, la fourchette à $110{,}6$, tandis que les doigts dépassent $400$~m/rad$^2$. La distance exacte d'un doigt (corps convexe) étant convexe à l'extérieur, cet excès sur les doigts s'explique par l'oscillation du polynôme autour des arêtes vives dans la coquille de $10$ à $40$~mm. Ce constat a motivé le réentraînement des modèles de doigts à $n=12$ (Annexe~\ref{annexe:sdf_training}), réduisant leur pire cas de $840$ à $508$~m/rad$^2$.
 
 \section*{Sélection des constantes, surveillance en ligne et limites}
 
-Les constantes retenues pour les liens du bras correspondent aux $99^{\text{e}}$ centiles échantillonnés ($L_l \in [1{,}0,\ 32{,}0]$~m/rad$^2$). Les doigts font l'objet d'une réduction ciblée à $20$~m/rad$^2$ pour le frein réflexe (et $5$~m/rad$^2$ pour le resserrement du solveur), motivée par le fait que leur courbure négative élevée est liée aux oscillations d'arêtes vives dans une coquille distante peu fréquentée.
+Les constantes retenues pour les liens du bras correspondent aux $99^{\text{e}}$ centiles échantillonnés ($L_l \in [1{,}0,\ 32{,}0]$~m/rad$^2$). Les doigts font l'objet d'une réduction ciblée à $20$~m/rad$^2$ pour le frein réflexe (et $5$~m/rad$^2$ pour le resserrement du solveur), motivée par le fait que leur courbure négative élevée est liée aux oscillations d'arêtes vives dans une coquille distante peu fréquentée. La fourchette du banc d'alimentation suit la même règle que les liens du bras : sa constante est son $99^{\text{e}}$ centile, $43{,}1$~m/rad$^2$, sans réduction ciblée. Sa courbure négative reste près de trois fois inférieure à celle des doigts, et le resserrement qui en découle demeure négligeable devant la marge $d_{\mathrm{safe}}$ (Section~\ref{sec:res_echecs}).
 
 Pour garantir la sécurité malgré cette réduction, la validité de l'hypothèse est surveillée en temps réel par l'estimateur empirique $\hat{L} = \|\Delta\nabla h_l\|/\|\Delta\mathbf{q}_0\|$, différencié entre cycles consécutifs du filtre. Tout dépassement persistant de la constante par $\hat{L}$ déclenche automatiquement le freinage réflexe.
 
-Deux limites du domaine de validité sont enfin documentées :
-\begin{enumerate}
-  \item \textbf{Raccords du prolongement hors domaine :} Le prolongement de distance $\hat{d}$ hors du cube $[-1,1]^3$ est $C^0$ mais non $C^1$ sur la frontière ; la variation du gradient à travers ce raccord produit des pics de courbure à plus de $40$~mm de dégagement, là où le certificat dispose d'une marge largement suffisante.
-  \item \textbf{Dépendance au modèle :} Les constantes sont spécifiques aux modèles réentraînés à $n=12$ du Tableau~\ref{tab:lipschitz_links}. Tout réentraînement d'un lien exige de relancer la campagne automatisée sur GPU.
-\end{enumerate}
+\subsection*{Extension au manipulateur uFactory xArm7 et ses outils}
+
+En suivant la même méthodologie d'échantillonnage hors ligne sur GPU et la même logique de sélection basée sur les valeurs au $99^{\text{e}}$ centile de la courbure négative, les constantes de Lipschitz $L_l$ obtenues pour le manipulateur uFactory xArm7, la pince et la fourchette sont présentées au Tableau~\ref{tab:lipschitz_xarm7}.
+
+\begin{table}[htbp]
+\centering
+\caption{Constantes de Lipschitz $L_l$ retenues au $99^{\text{e}}$ centile pour le manipulateur uFactory xArm7, la pince et la fourchette.}
+\label{tab:lipschitz_xarm7}
+\small
+\begin{tabular}{lc}
+\hline
+\textbf{Lien / Outil} & $L_l$ \textbf{(99\textsuperscript{e} centile)} [m/rad$^2$] \\ \hline
+xarm7\_link2       & $1{,}09$  \\
+xarm7\_link3       & $3{,}43$  \\
+xarm7\_link4       & $6{,}65$  \\
+xarm7\_link5       & $20{,}36$ \\
+xarm7\_link6       & $25{,}42$ \\
+xarm7\_link7       & $33{,}92$ \\
+panda\_hand        & $19{,}7$ \\
+panda\_rightfinger & $116{,}4$ \\
+panda\_leftfinger  & $116{,}7$ \\
+fourchette         & $43{,}1$ \\ \hline
+\end{tabular}
+\end{table}
 
 \Annexe{Surveillance en ligne des hypothèses du certificat}\label{annexe:surveillance}
 

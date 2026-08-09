@@ -1,0 +1,117 @@
+<svg height="450" width="800" xmlns="http://www.w3.org/2000/svg">
+<title>Your Diagram Title</title>
+<!-- Generated with SankeyMATIC: 8/9/2026, 5:11:40 PM -->
+<rect height="450" width="800" fill="#ffffff"></rect>
+<g transform="translate(198.82774,18)">
+<g id="sankey_flows">
+<path id="flow1" d="M12 59.22313v208L70.22451 268.02386v-208z" fill="#2ecc71" stroke-width="0.5" stroke="#2ecc71" opacity="0.45"><title>Essais du système complet → Perception valide: 254</title></path>
+<path id="flow3" d="M82.22451 60.02386v205.54331L182.44901 263.9073v-205.54331z" fill="#2ecc71" stroke-width="0.5" stroke="#2ecc71" opacity="0.45"><title>Perception valide → Sécurité tenue: 251</title></path>
+<path id="flow5" d="M194.44901 147.62384C234.06127 147.62384 234.06127 140.25984 273.67352 140.25984" fill="none" stroke-width="178.51969" stroke="#2ecc71" opacity="0.45"><title>Sécurité tenue → Progression: 218</title></path>
+<path id="flow7" d="M285.67352 151.31496C325.28577 151.31496 325.28577 160.51654 364.89803 160.51654" fill="none" stroke-width="156.40945" stroke="#2ecc71" opacity="0.45"><title>Progression → Réussite sûre: 191</title></path>
+<path id="flow4" d="M194.44901 250.39549C234.06127 250.39549 234.06127 270.0315 273.67352 270.0315" fill="none" stroke-width="27.02362" stroke="#e74c3c" opacity="0.45"><title>Sécurité tenue → Arrêt sans progression: 33</title></path>
+<path id="flow10" d="M285.67352 268.3937C325.28577 268.3937 325.28577 301.59528 364.89803 301.59528" fill="none" stroke-width="23.74803" stroke="#e74c3c" opacity="0.45"><title>Arrêt sans progression → Blocage devant la poche concave: 29</title></path>
+<path id="flow6" d="M285.67352 62.05512C325.28577 62.05512 325.28577 20.2567 364.89803 20.2567" fill="none" stroke-width="22.11024" stroke="#e74c3c" opacity="0.45"><title>Progression → Tâche non complétée: 27</title></path>
+<path id="flow12" d="M376.89803 18.20946C416.51028 18.20946 416.51028 9.00787 456.12253 9.00787" fill="none" stroke-width="18.01575" stroke="#e74c3c" opacity="0.45"><title>Tâche non complétée → Préhension ratée: 22</title></path>
+<path id="flow13" d="M376.89803 29.26457C416.51028 29.26457 416.51028 71.06299 456.12253 71.06299" fill="none" stroke-width="4.09449" stroke="#e74c3c" opacity="0.45"><title>Tâche non complétée → Piquage raté: 5</title></path>
+<path id="flow11" d="M285.67352 281.90551C325.28577 281.90551 325.28577 340.10709 364.89803 340.10709" fill="none" stroke-width="3.27559" stroke="#e74c3c" opacity="0.45"><title>Arrêt sans progression → Blocage inexpliqué: 4</title></path>
+<path id="flow2" d="M82.22451 266.79551C132.33676 266.79551 132.33676 333.28306 182.44901 333.28306" fill="none" stroke-width="2.45669" stroke="#e74c3c" opacity="0.45"><title>Perception valide → Sécurité non tenue: 3</title></path>
+<path id="flow8" d="M194.44901 332.87361C239.56127 332.87361 239.56127 372.3622 284.67352 372.3622" fill="none" stroke-width="1.6378" stroke="#e74c3c" opacity="0.45"><title>Sécurité non tenue → Artefact de télémesure: 2</title></path>
+<path id="flow0" d="M12 267.63258C53.61225 267.63258 53.61225 370.43331 95.22451 370.43331" fill="none" stroke-width="1" stroke="#e74c3c" opacity="0.45"><title>Essais du système complet → Cible jamais détectée: 1</title></path>
+<path id="flow9" d="M194.44901 334.10196C235.06127 334.10196 235.06127 411.59055 275.67352 411.59055" fill="none" stroke-width="1" stroke="#e74c3c" opacity="0.45"><title>Sécurité non tenue → Franchissement de barrière: 1</title></path>
+</g>
+<g id="sankey_nodes">
+<g class="node">
+<rect id="r0" class="for_r0" x="0" y="59.22313" height="208.8189" width="12" fill="#7f8c8d" fill-opacity="1"><title>Essais du système complet:
+255</title></rect>
+</g>
+<g class="node">
+<rect id="r1" class="for_r1" x="91.22451" y="318.02386" height="0.8189" width="12" fill="#e74c3c" fill-opacity="1" transform="translate(4,52)"><title>Cible jamais détectée:
+1</title></rect>
+</g>
+<g class="node">
+<rect id="r2" class="for_r2" x="91.22451" y="59.02386" height="208" width="12" fill="#2ecc71" fill-opacity="1" transform="translate(-21,1)"><title>Perception valide:
+254</title></rect>
+</g>
+<g class="node">
+<rect id="r3" class="for_r3" x="182.44901" y="320.05471" height="2.45669" width="12" fill="#e74c3c" fill-opacity="1" transform="translate(0,12)"><title>Sécurité non tenue:
+3</title></rect>
+</g>
+<g class="node">
+<rect id="r4" class="for_r4" x="182.44901" y="58.364" height="205.54331" width="12" fill="#2ecc71" fill-opacity="1"><title>Sécurité tenue:
+251</title></rect>
+</g>
+<g class="node">
+<rect id="r5" class="for_r5" x="273.67352" y="280.51969" height="27.02362" width="12" fill="#e74c3c" fill-opacity="1" transform="translate(0,-24)"><title>Arrêt sans progression:
+33</title></rect>
+</g>
+<g class="node">
+<rect id="r6" class="for_r6" x="273.67352" y="51" height="178.51969" width="12" fill="#2ecc71" fill-opacity="1"><title>Progression:
+218</title></rect>
+</g>
+<g class="node">
+<rect id="r7" class="for_r7" x="364.89803" y="9.20158" height="22.11024" width="12" fill="#e74c3c" fill-opacity="1"><title>Tâche non complétée:
+27</title></rect>
+</g>
+<g class="node">
+<rect id="r8" class="for_r8" x="364.89803" y="82.31182" height="156.40945" width="12" fill="#2ecc71" fill-opacity="1"><title>Réussite sûre:
+191</title></rect>
+</g>
+<g class="node">
+<rect id="r9" class="for_r9" x="273.67352" y="358.54331" height="1.6378" width="12" fill="#e74c3c" fill-opacity="1" transform="translate(11,13)"><title>Artefact de télémesure:
+2</title></rect>
+</g>
+<g class="node">
+<rect id="r10" class="for_r10" x="273.67352" y="411.1811" height="0.8189" width="12" fill="#e74c3c" fill-opacity="1" transform="translate(2,0)"><title>Franchissement de barrière:
+1</title></rect>
+</g>
+<g class="node">
+<rect id="r11" class="for_r11" x="364.89803" y="289.72127" height="23.74803" width="12" fill="#e74c3c" fill-opacity="1"><title>Blocage devant la poche concave:
+29</title></rect>
+</g>
+<g class="node">
+<rect id="r12" class="for_r12" x="364.89803" y="364.4693" height="3.27559" width="12" fill="#e74c3c" fill-opacity="1" transform="translate(0,-26)"><title>Blocage inexpliqué:
+4</title></rect>
+</g>
+<g class="node">
+<rect id="r13" class="for_r13" x="456.12253" y="0" height="18.01575" width="12" fill="#e74c3c" fill-opacity="1"><title>Préhension ratée:
+22</title></rect>
+</g>
+<g class="node">
+<rect id="r14" class="for_r14" x="456.12253" y="69.01575" height="4.09449" width="12" fill="#e74c3c" fill-opacity="1"><title>Piquage raté:
+5</title></rect>
+</g>
+</g>
+<g id="sankey_labels" font-family="sans-serif" font-size="16px" fill="#000000">
+<text text-anchor="middle" x="201.17226" y="427" font-size="12px" font-weight="400" fill="#336781">Made at SankeyMATIC.com</text>
+<rect id="label0_bg" class="for_r0" x="-185.83098" y="142.11258" width="185.19506" height="42.32001" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0"></rect>
+<text id="label0" class="for_r0" text-anchor="end" x="-6.29754" y="163.63258" font-weight="400" font-size="14.4px" dy="-5.52">Essais du système complet<tspan x="-6.29754" dy="19.32" font-weight="400" font-size="17.6px">255</tspan></text>
+<rect id="label1_bg" class="for_r1" x="104.85721" y="296.91333" width="147.40141" height="42.31998" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0" transform="translate(4,52)"></rect>
+<text id="label1" class="for_r1" text-anchor="start" x="109.52205" y="318.43331" font-weight="400" font-size="14.4px" dy="-5.52" transform="translate(4,52)">Cible jamais détectée<tspan x="109.52205" dy="19.32" font-weight="400" font-size="17.6px">1</tspan></text>
+<rect id="label2_bg" class="for_r2" x="37.32528" y="141.50386" width="120.19828" height="42.32001" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0" transform="translate(-21,1)"></rect>
+<text id="label2" class="for_r2" text-anchor="middle" x="97.22451" y="163.02386" font-weight="400" font-size="14.4px" dy="-5.52" transform="translate(-21,1)">Perception valide<tspan x="97.22451" dy="19.32" font-weight="400" font-size="17.6px">254</tspan></text>
+<rect id="label3_bg" class="for_r3" x="123.33885" y="299.76306" width="130.62016" height="42.31998" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0" transform="translate(0,12)"></rect>
+<text id="label3" class="for_r3" text-anchor="middle" x="188.44901" y="321.28306" font-weight="400" font-size="14.4px" dy="-5.52" transform="translate(0,12)">Sécurité non tenue<tspan x="188.44901" dy="19.32" font-weight="400" font-size="17.6px">3</tspan></text>
+<rect id="label4_bg" class="for_r4" x="137.34666" y="139.61565" width="102.60453" height="42.32001" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0"></rect>
+<text id="label4" class="for_r4" text-anchor="middle" x="188.44901" y="161.13565" font-weight="400" font-size="14.4px" dy="-5.52">Sécurité tenue<tspan x="188.44901" dy="19.32" font-weight="400" font-size="17.6px">251</tspan></text>
+<rect id="label5_bg" class="for_r5" x="201.57118" y="272.51151" width="155.60453" height="42.31998" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0" transform="translate(0,-24)"></rect>
+<text id="label5" class="for_r5" text-anchor="middle" x="279.67352" y="294.0315" font-weight="400" font-size="14.4px" dy="-5.52" transform="translate(0,-24)">Arrêt sans progression<tspan x="279.67352" dy="19.32" font-weight="400" font-size="17.6px">33</tspan></text>
+<rect id="label6_bg" class="for_r6" x="236.5868" y="118.73984" width="86.57328" height="42.32001" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0"></rect>
+<text id="label6" class="for_r6" text-anchor="middle" x="279.67352" y="140.25984" font-weight="400" font-size="14.4px" dy="-5.52">Progression<tspan x="279.67352" dy="19.32" font-weight="400" font-size="17.6px">218</tspan></text>
+<rect id="label7_bg" class="for_r7" x="296.9832" y="-1.2633" width="148.22953" height="42.32" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0"></rect>
+<text id="label7" class="for_r7" text-anchor="middle" x="370.89803" y="20.2567" font-weight="400" font-size="14.4px" dy="-5.52">Tâche non complétée<tspan x="370.89803" dy="19.32" font-weight="400" font-size="17.6px">27</tspan></text>
+<rect id="label8_bg" class="for_r8" x="378.53071" y="138.99654" width="97.77641" height="42.32001" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0"></rect>
+<text id="label8" class="for_r8" text-anchor="start" x="383.19556" y="160.51654" font-weight="400" font-size="14.4px" dy="-5.52">Réussite sûre<tspan x="383.19556" dy="19.32" font-weight="400" font-size="17.6px">191</tspan></text>
+<rect id="label9_bg" class="for_r9" x="286.30623" y="337.84222" width="155.60453" height="42.31998" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0" transform="translate(11,13)"></rect>
+<text id="label9" class="for_r9" text-anchor="start" x="291.97106" y="359.3622" font-weight="400" font-size="14.4px" dy="-5.52" transform="translate(11,13)">Artefact de télémesure<tspan x="291.97106" dy="19.32" font-weight="400" font-size="17.6px">2</tspan></text>
+<rect id="label10_bg" class="for_r10" x="287.30623" y="390.07056" width="185.80766" height="42.31998" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0" transform="translate(2,0)"></rect>
+<text id="label10" class="for_r10" text-anchor="start" x="291.97106" y="411.59055" font-weight="400" font-size="14.4px" dy="-5.52" transform="translate(2,0)">Franchissement de barrière<tspan x="291.97106" dy="19.32" font-weight="400" font-size="17.6px">1</tspan></text>
+<rect id="label11_bg" class="for_r11" x="378.53071" y="280.07529" width="225.08891" height="42.31998" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0"></rect>
+<text id="label11" class="for_r11" text-anchor="start" x="383.19556" y="301.59528" font-weight="400" font-size="14.4px" dy="-5.52">Blocage devant la poche concave<tspan x="383.19556" dy="19.32" font-weight="400" font-size="17.6px">29</tspan></text>
+<rect id="label12_bg" class="for_r12" x="377.53071" y="344.5871" width="131.62016" height="42.31998" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0" transform="translate(0,-26)"></rect>
+<text id="label12" class="for_r12" text-anchor="start" x="383.19556" y="366.10709" font-weight="400" font-size="14.4px" dy="-5.52" transform="translate(0,-26)">Blocage inexpliqué<tspan x="383.19556" dy="19.32" font-weight="400" font-size="17.6px">4</tspan></text>
+<rect id="label13_bg" class="for_r13" x="469.75523" y="-12.51213" width="119.417" height="42.32" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0"></rect>
+<text id="label13" class="for_r13" text-anchor="start" x="474.42007" y="9.00787" font-weight="400" font-size="14.4px" dy="-5.52">Préhension ratée<tspan x="474.42007" dy="19.32" font-weight="400" font-size="17.6px">22</tspan></text>
+<rect id="label14_bg" class="for_r14" x="469.75523" y="49.54299" width="91.40138" height="42.32" rx="4" fill="#fff" fill-opacity="0.75" stroke="none" stroke-width="0" stroke-opacity="0"></rect>
+<text id="label14" class="for_r14" text-anchor="start" x="474.42007" y="71.06299" font-weight="400" font-size="14.4px" dy="-5.52">Piquage raté<tspan x="474.42007" dy="19.32" font-weight="400" font-size="17.6px">5</tspan></text>
+</g>
+</g></svg>
