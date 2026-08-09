@@ -30,7 +30,7 @@ Le protocole d'évaluation lance, pour chacun des neuf corps protégés, des ray
 
 Les échantillons situés hors du domaine d'entraînement du modèle d'un corps sont par ailleurs exclus ($22{,}8$~\% des points), car le modèle y retourne une borne géométrique plutôt que le \ac{SDF} appris (Section~\ref{subsec:barriere}). Au total, $6952$ points extérieurs vérifiés sont retenus. La Figure~\ref{fig:sdf_isosurface} donne un aperçu qualitatif du modèle évalué.
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/SDF/fig_sdf_iso_preview.svg}
     \caption{Visualisation qualitative du \ac{SDF} de Bernstein pour trois configurations articulaires avec les gradients $\nabla d$ évalués le long des normales à la surface du \ac{SDF}.}\label{fig:sdf_isosurface}
@@ -131,7 +131,7 @@ La fidélité de reproduction, mesurée sur $200$ fenêtres régulièrement espa
 
 Le profil de l'erreur le long de l'horizon importe davantage que sa valeur agrégée, car il valide la stratégie de régénération glissante du Chapitre~\ref{sec:Theme2}. La Figure~\ref{fig:fm_horizon} en donne l'allure complète. L'erreur médiane de position vaut $0{,}09$~cm au premier point de l'horizon et $0{,}14$~cm au deuxième, puis croît jusqu'à $1{,}26$~cm au seizième, l'écart interquartile passant de $0{,}07$ à $2{,}02$~cm : l'incertitude d'une trajectoire en boucle ouverte se concentre en queue d'horizon, et la replanification continue empêche cette queue d'être atteinte.
 
-\begin{figure}[htpb]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/fm_erreur_horizon.svg}
     \caption{Erreur de prédiction du planificateur \ac{FM} le 
@@ -146,7 +146,7 @@ où $\mathrm{VP}$, $\mathrm{FP}$ et $\mathrm{FN}$ dénombrent respectivement les
 
 Enfin, en ne faisant varier que le tirage de bruit initial à observation fixée, le modèle produit des trajectoires distinctes et lisses plutôt qu'une trajectoire moyenne unique (Figure~\ref{fig:fm_trajectoire_multimodale}). Cette variabilité conservée distingue une politique générative d'une régression par clonage de comportement sous perte quadratique, laquelle moyenne les modes de la démonstration (Chapitre~\ref{sec:RevLitt}). L'Annexe~\ref{annexe:resultats_complementaires} quantifie cette multimodalité deux générations issues d'une même observation s'écartent en moyenne de $0{,}50$~cm, là où un modèle effondré sur un mode unique donnerait zéro et où deux démonstrations expertes de configurations voisines s'écartent de $1{,}04$~cm.
 
-\begin{figure}[htpb]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/FM/fm_trajectoire_multimodale.svg}
     \caption{Générations multiples du planificateur pour une même observation du banc d'alimentation, en ne faisant varier que le tirage de bruit initial, superposées à la vérité terrain et à leur moyenne. (a)~Plan $XY$ ; (b)~plan $XZ$.}\label{fig:fm_trajectoire_multimodale}
@@ -298,14 +298,9 @@ La condition « frein seul » borne ce que la couche à $1$~kHz obtient sans le 
 \subsubsection{Impact du filtrage sur l'accomplissement de la tâche}
 Au banc de saisie et dépôt, le système complet réussit $27$ essais sur $30$ contre $0$ sans filtre, et le rapport est de $26$ contre $0$ au banc d'alimentation : sans filtre, aucun essai ne satisfait la condition de sécurité. Sur les essais menés à terme, la déviation de l'outil par rapport à la trajectoire nominale consignée vaut $0{,}60$~cm au banc de saisie et dépôt et $0{,}26$~cm au banc d'alimentation, en deçà de la tolérance géométrique des outils employés, plusieurs centimètres pour l'ouverture de la pince comme pour les dents de la fourchette.
 
-Les cellules sans obstacle critique complètent l'évaluation de la transparence. Au banc de saisie et dépôt, la barrière ne contraint que $0{,}2$~\% des cycles et la déviation vaut $0{,}46$~cm ; au banc xArm7, $0{,}5$~\% des cycles et la déviation tombe à $0{,}18$~cm (Section~\ref{sec:res_xarm}). Au banc d'alimentation, où la table reste le seul obstacle, la contrainte porte encore sur $27{,}9$~\% des cycles contre $62{,}7$~\% avec le bol : la rotation de la fourchette s'y fait à moins de $h_{\mathrm{act}}=80$ mm de la table.
+Les cellules sans obstacle critique complètent l'évaluation de la transparence. Au banc de saisie et dépôt, la barrière ne contraint que $0{,}2$~\% des cycles et la déviation vaut $0{,}46$~cm ; au banc xArm7, $0{,}5$~\% des cycles et la déviation tombe à $0{,}18$~cm (Section~\ref{sec:res_xarm}). Au banc d'alimentation, où la table reste le seul obstacle, la contrainte porte encore sur $27{,}9$~\% des cycles contre $62{,}7$~\% avec le bol. La Figure~\ref{fig:comparaison_avec_sans} superpose les quatre conditions sur une même graine du banc de saisie et dépôt. Les deux conditions comportant le bouclier font franchir au préhenseur le sommet du prisme, à $0{,}43$ et $0{,}45$~m contre les $0{,}36$~m de l'obstacle, et leur barrière reste positive ; le nominal exécuté brut longe la face du prisme et plonge à $-15$~mm sans en ressortir ; le frein seul immobilise le bras à la frontière.
 
-\subsubsection{Évaluation de la marge de sécurité effective}
-Sur les cinq cellules déployées, la barrière publiée demeure positive du début à la fin de chaque essai (Section~\ref{subsec:garanties}). Son minimum vaut $0{,}52$~mm au banc d'alimentation avec bol et $1{,}04$~mm sur le prisme statique : là où un obstacle barre la trajectoire de l'outil, le filtre suit la frontière à environ un millimètre. Les trois autres cellules restent plus haut, à $2{,}8$, $3{,}5$ et $6{,}60$~mm. Le calcul à maillages exacts corrobore ces valeurs : $h^{\star}_{\mathrm{ex}}$ dépasse $h^{\star}$ de $0{,}7$ à $8{,}9$~mm dans les cinq cellules, le champ appris ayant sous-estimé la distance à l'instant le plus serré de chacune. Le dégagement réel en pire cas sur ces cinq cellules vaut $19{,}2$~mm. Les rares franchissements de la campagne tiennent à la découverte tardive d'un obstacle (Section~\ref{sec:res_echecs}).
-
-La Figure~\ref{fig:comparaison_avec_sans} superpose les quatre conditions sur une même graine du banc de saisie et dépôt. Les deux conditions comportant le bouclier font franchir au préhenseur le sommet du prisme, à $0{,}43$ et $0{,}45$~m contre les $0{,}36$~m de l'obstacle, et leur barrière reste positive ; le nominal exécuté brut longe la face du prisme et plonge à $-15$~mm sans en ressortir ; le frein seul immobilise le bras à la frontière.
-
-\begin{figure}[htpb]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/ablation/fig_master_filtre.svg}
     \caption{Comparaison des quatre conditions sur une même graine du banc de saisie et dépôt (prisme statique). (a)~Trajectoire de la pointe de l'outil dans le plan $yz$, superposée au nuage d'obstacles ; (b)~barrière $h_{\min,l}$ au cours de l'essai.}\label{fig:comparaison_avec_sans}
@@ -316,25 +311,31 @@ Les grandeurs agrégées de cette sous-section proviennent de la cellule déploy
 
 La Figure~\ref{fig:h_ev} présente l'évolution de la barrière publiée $h_{\min,l}$, celle que le filtre transmet au second membre de la contrainte (Section~\ref{subsec:barriere}). Les bandes ombrées marquent les cycles où la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ (Section~\ref{subsec:vitesse_nominale}) viole la contrainte critique et où le bouclier la projette, soit $68{,}7$~\% des cycles de cet essai et $62{,}7$~\% de ceux de la cellule.
 
-Les sept premiers dixièmes de seconde sont une descente libre depuis $59{,}1$~mm : la barrière est dans la bande d'activation dès le premier cycle, mais la première correction n'intervient qu'à $0{,}71$~s, à $15{,}6$~mm de marge. Elle atteint ensuite son minimum de $1{,}75$~mm à $4{,}15$~s, près d'une seconde après le piquage de la cible survenant à $3{,}29$~s pour une barrière de $8{,}09$~mm : le point le plus serré de l'essai n'est donc pas le piquage lui-même mais le mouvement qui le suit, quand le modèle \ac{FM} amène les dents de la fourchette à l'horizontal. Au-delà de $7$~s, $h_{\min,l}$ se maintient entre $2{,}0$ et $9{,}6$~mm, pour une médiane de $6{,}5$~mm, pendant que le robot progresse tangentiellement le long des surfaces vers la cible. C'est le comportement attendu de la projection, qui n'annule que la composante normale interdite (Section~\ref{subsec:projection}). La barrière publiée ne franchit zéro à aucun cycle de l'essai illustré, et l'invariance avant de la contrainte est respectée sur l'ensemble des essais de la cellule.
-
-\begin{figure}[htpb]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/v6/h_evolution.svg}
     \caption{Évolution de la barrière $h_{\min,l}$ pour une tâche en présence d'obstacles ; les bandes ombrées indiquent les cycles où la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ viole la contrainte critique.}\label{fig:h_ev}
 \end{figure}
 
+Les sept premiers dixièmes de seconde sont une descente libre depuis $59{,}1$~mm : la barrière est dans la bande d'activation dès le premier cycle, mais la première correction n'intervient qu'à $0{,}71$~s, à $15{,}6$~mm de marge. Elle atteint ensuite son minimum de $1{,}75$~mm à $4{,}15$~s, près d'une seconde après le piquage de la cible survenant à $3{,}29$~s pour une barrière de $8{,}09$~mm : le point le plus serré de l'essai n'est donc pas le piquage lui-même mais le mouvement qui le suit, quand le modèle \ac{FM} amène les dents de la fourchette à l'horizontal. Au-delà de $7$~s, $h_{\min,l}$ se maintient entre $2{,}0$ et $9{,}6$~mm, pour une médiane de $6{,}5$~mm, pendant que le robot progresse tangentiellement le long des surfaces vers la cible. C'est le comportement attendu de la projection, qui n'annule que la composante normale interdite (Section~\ref{subsec:projection}). La barrière publiée ne franchit zéro à aucun cycle de l'essai illustré, et l'invariance avant de la contrainte est respectée sur l'ensemble des essais de la cellule.
+
 La Figure~\ref{fig:constraint_ev} compare la contrainte de sécurité évaluée sur $\dot{\mathbf{q}}_{\mathrm{base}}$ (avant projection) et sur la commande finale (après filtrage et réparation). La courbe nominale passe sous zéro sur $68{,}7$~\% des cycles de l'essai et y descend jusqu'à $-0{,}134$~m/s, jusqu'à $-0{,}167$~m/s en pire cas sur la cellule : laissée seule, la trajectoire générée par \textit{Flow Matching} refermerait la distance aux obstacles plus vite que la contrainte ne l'autorise et ferait en sorte que le robot entre en collision avec son environnement. La courbe finale, elle, ne descend jamais sous zéro sur l'essai illustré, son minimum valant $-6{,}5\times10^{-9}$~m/s : le résidu introduit par le lissage et les saturations est entièrement résorbé, de sorte que la contrainte résolue, $\nabla h_l^{\top}\dot{\mathbf{q}} \geq r_l$, est satisfaite à chaque cycle. Sur la cellule entière, il ne franchit jamais le seuil de $-10^{-7}$~m/s qui sépare le bruit numérique d'une violation mesurée, son minimum valant $-3{,}91\times10^{-8}$~m/s sur les $15\,458$ cycles.
 
-L'étape de réparation (Section~\ref{subsec:commande}) intervient sur $17{,}2$~\% des cycles où la contrainte est active dans cet essai, sur $23{,}79$~\% de ceux de la cellule, et sur $0{,}7$~\% seulement des cycles où la contrainte n'est pas active. Le lissage étant reporté dans l'objectif du problème de projection plutôt qu'appliqué en aval, la vitesse lissée demeure admissible par construction dans la majorité des cycles, et la réparation ne rattrape que ce que les saturations et la troncature des balayages laissent passer. Son rôle est établi par ablation à la Section~\ref{subsec:res_abl_reparation}, où sa suppression fait quitter la précision machine au résidu de contrainte.
-
-\begin{figure}[htpb]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/v6/constraint_residual.svg}
     \caption{Contrainte de sécurité évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ (avant projection) et sur la commande finale (après réparation). Les valeurs négatives de la courbe nominale marquent les cycles où $\dot{\mathbf{q}}_{\mathrm{base}}$ ne satisfait pas la contrainte.}\label{fig:constraint_ev}
 \end{figure}
 
+L'étape de réparation (Section~\ref{subsec:commande}) intervient sur $17{,}2$~\% des cycles où la contrainte est active dans cet essai, sur $23{,}79$~\% de ceux de la cellule, et sur $0{,}7$~\% seulement des cycles où la contrainte n'est pas active. Le lissage étant reporté dans l'objectif du problème de projection plutôt qu me appliqué en aval, la vitesse lissée demeure admissible par construction dans la majorité des cycles, et la réparation ne rattrape que ce que les saturations et la troncature des balayages laissent passer. Son rôle est établi par ablation à la Section~\ref{subsec:res_abl_reparation}, où sa suppression fait quitter la précision machine au résidu de contrainte.
+
 Les Figures~\ref{fig:feeding_vel_joints} et~\ref{fig:feeding_vel_decomp} déroulent le même essai articulation par articulation. La première superpose la vitesse nominale, la commande publiée et la vitesse mesurée : le mouvement est porté par les articulations $2$, $4$ et $6$, et la commande publiée s'écarte de la nominale pendant les bandes ombrées sans revenir exactement sur elle ailleurs, où la projection est nulle et le lissage porte seul l'écart.
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false]{images/Results/v6/feeding_vel_joints.svg}
+    \caption{Vitesses articulaires du même essai que la Figure~\ref{fig:h_ev}, relevées articulation par articulation : vitesse nominale $\dot{q}_{\mathrm{base}}$, commande publiée $\dot{q}_{\mathrm{final}}$ et vitesse mesurée $\dot{q}_{\mathrm{mes}}$. L'échelle verticale est commune aux sept articulations et les bandes ombrées sont celles de la Figure~\ref{fig:h_ev}.}\label{fig:feeding_vel_joints}
+\end{figure}
 
 La seconde scinde cet écart en deux termes mesurés, sans modèle intermédiaire. Le n\oe ud journalise la vitesse cible que le problème de projection reçoit effectivement, de sorte que l'identité
 \begin{equation}
@@ -349,13 +350,7 @@ Ainsi mesuré, le partage est fortement déséquilibré. Sur les cycles contrain
 
 Puisque la cible vaut $(1-\gamma)\dot{\mathbf{q}}_{\mathrm{final}}[k-1] + \gamma\dot{\mathbf{q}}_{\mathrm{base}}[k]$, la part de lissage se réécrit $(1-\gamma)(\dot{\mathbf{q}}_{\mathrm{final}}[k-1] - \dot{\mathbf{q}}_{\mathrm{base}}[k])$ : elle est proportionnelle à l'écart que le bouclier a lui-même produit au cycle précédent, d'où viennent $84$~\% de son amplitude, le reste des variations propres de la nominale entre deux cycles. Le lissage reconduit donc la correction déjà obtenue, atténuée du facteur $1-\gamma \approx 0{,}82$ par cycle, et le solveur n'a besoin que d'une action fraîche modeste parce que le gain statique de cette mémoire, $1/\gamma \approx 5{,}5$, maintient en place ce qu'il a corrigé aux cycles antérieurs. L'équation~\eqref{eq:decomp_vitesse} mesure l'action du solveur à un cycle donné, et non son autorité sur la trajectoire, que les conditions sans bouclier chiffrent en collisions (Tableau~\ref{tab:res_master}).
 
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false]{images/Results/v6/feeding_vel_joints.svg}
-    \caption{Vitesses articulaires du même essai que la Figure~\ref{fig:h_ev}, relevées articulation par articulation : vitesse nominale $\dot{q}_{\mathrm{base}}$, commande publiée $\dot{q}_{\mathrm{final}}$ et vitesse mesurée $\dot{q}_{\mathrm{mes}}$. L'échelle verticale est commune aux sept articulations et les bandes ombrées sont celles de la Figure~\ref{fig:h_ev}.}\label{fig:feeding_vel_joints}
-\end{figure}
-
-\begin{figure}[htpb]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/v6/feeding_vel_decomp.svg}
     \caption{Décomposition, articulation par articulation, de l'écart de la commande à la nominale $\dot{q}_{\mathrm{final}}-\dot{q}_{\mathrm{base}}$ pour le même essai, suivant l'identité~\eqref{eq:decomp_vitesse}. Les deux parts sont les grandeurs instantanées relevées à chaque cycle, la somme des deux courbes valant exactement la courbe totale. La part du lissage domine parce qu'elle reconduit la correction obtenue aux cycles antérieurs ; elle n'est pas une action d'évitement autonome. Les contributions étant vectorielles, elles peuvent se compenser partiellement.}\label{fig:feeding_vel_decomp}
@@ -365,12 +360,38 @@ Le frein réflexe intervient sur la majorité des cycles à 1 kHz sans jamais pr
 
 Le reste de la chaîne de commande, de la consigne réajustée temporellement jusqu'à l'analyse de l'interface, est traité à l'Annexe~\ref{annexe:resultats_complementaires}. La norme du feedforward vaut exactement $0{,}300$~rad/s, du dixième au quatre-vingt-dixième centile de sa distribution sur les $15\,458$ cycles de la cellule : le réajustement temporel de la Section~\ref{subsec:dqff} atteint sa consigne sans écart mesurable. Rapportée à la vitesse cible qu'elle prend pour centre, l'action propre du solveur est mesurée exactement nulle hors des zones d'activation.
 
+\FloatBarrier
+
 \subsection{Étude détaillée : tâche de saisie et dépôt}\label{subsec:res_pp_deep}
 Sur le banc de saisie et dépôt, le prisme barre le transport du cube, la contrainte est portée par la main et les doigts, et l'obstacle est visible dès le premier instant : le comportement du filtre s'y observe sans latence de perception. Les Figures~\ref{fig:pp_deep} à~\ref{fig:pp_vel_decomp} présentent un même essai de la cellule déployée et les grandeurs agrégées ci-dessous portent sur ses $30$ essais, soit $20\,430$ cycles de bouclier. Le filtre est transparent les deux tiers du temps. La contrainte de sécurité évaluée sur $\dot{\mathbf{q}}_{\mathrm{base}}$ demeure satisfaite sur $66{,}5$~\% des cycles : sur ceux-là, la commande traverse le bouclier sans correction de sécurité.
 
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_h_only.svg}
+    \caption{Essai représentatif de la tâche de saisie et dépôt en présence du prisme statique : évolution de la barrière $h_{\min,l}$. Les bandes ombrées marquent les cycles où la contrainte critique, évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$, est violée.}\label{fig:pp_deep}
+\end{figure}
+
 Sur les $33{,}5$~\% restants, le résidu de cette contrainte descend jusqu'à $-0{,}205$~m/s en pire cas et à $-0{,}117$~m/s au premier centile : la trajectoire générée y referme la distance à l'obstacle plus vite que la contrainte resserrée ne le permet. La Figure~\ref{fig:pp_constraint} met les deux régimes en regard sur l'essai illustré : les deux courbes se confondent tant que la vitesse nominale satisfait la contrainte, puis la nominale descend jusqu'à $-0{,}101$~m/s pendant que la commande publiée demeure exactement à zéro.
 
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_constraint.svg}
+    \caption{Contrainte de sécurité du même essai que la Figure~\ref{fig:pp_deep}, évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ (avant projection) puis sur la commande réellement transmise (après réparation). Les valeurs négatives de la courbe nominale correspondent aux cycles ombrés de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_constraint}
+\end{figure}
+
 L'écart de la commande à la nominale se partage suivant l'identité~\eqref{eq:decomp_vitesse}, entre ce que le solveur ajoute au centre qui lui est fourni et ce que le lissage a déjà retranché en amont. Sur l'essai illustré, l'écart total vaut $0{,}195$~rad/s en médiane sur les cycles contraints, dont $0{,}032$~rad/s pour le bouclier et $0{,}169$~rad/s pour le lissage ; hors contrainte, la part du bouclier est exactement nulle sur la totalité des cycles et le lissage porte seul les $0{,}061$~rad/s restants. La Figure~\ref{fig:pp_vel_decomp} déroule ce partage articulation par articulation : la correction du bouclier se concentre sur les articulations $7$, $1$ et $3$ ($0{,}021$, $0{,}017$ et $0{,}010$~rad/s en médiane sur les cycles contraints) et culmine à $0{,}069$~rad/s à l'articulation $1$ pendant le contournement.
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_vel_decomp.svg}
+    \caption{Décomposition, articulation par articulation, de l'écart de la commande à la nominale $\dot{q}_{\mathrm{final}}-\dot{q}_{\mathrm{base}}$ pour le même essai, suivant l'identité~\eqref{eq:decomp_vitesse}. Les deux parts sont les grandeurs instantanées relevées à chaque cycle, la somme des deux courbes valant exactement la courbe totale. Comme au banc d'alimentation, la part du lissage domine parce qu'elle reconduit la correction obtenue aux cycles antérieurs ; elle n'est pas une action d'évitement autonome. Les contributions étant vectorielles, elles peuvent se compenser partiellement.}\label{fig:pp_vel_decomp}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_vel_joints.svg}
+    \caption{Vitesses articulaires du même essai que la Figure~\ref{fig:pp_deep}, relevées articulation par articulation : vitesse nominale $\dot{q}_{\mathrm{base}}$, commande publiée $\dot{q}_{\mathrm{final}}$ et vitesse mesurée $\dot{q}_{\mathrm{mes}}$. L'échelle verticale est commune aux sept articulations et les bandes ombrées sont celles de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_vel_joints}
+\end{figure}
 
 L'action du solveur est plus vive ici qu'au banc d'alimentation, d'un ordre de grandeur ($0{,}032$ contre $0{,}003$~rad/s), ce que la géométrie du conflit explique : le prisme barre franchement le transport du cube là où la fourchette longe la paroi du bol. Le cosinus entre la vitesse cible du problème et la vitesse publiée demeure néanmoins à $0{,}994$ sur ces mêmes cycles : la correction est d'amplitude appréciable mais réoriente peu, ce qui caractérise la projection minimale de la Section~\ref{subsec:projection}.
 
@@ -380,29 +401,7 @@ Le frein réflexe est sollicité en continu sans devenir prépondérant. Le fact
 
 La vitesse commandée vaut $0{,}283$~rad/s en médiane pour une nominale de $0{,}297$~rad/s, et la vitesse articulaire mesurée $0{,}212$~rad/s. L'écart entre commande et exécution mesure l'atténuation $\alpha$ du frein et non une erreur de poursuite : sa distribution fortement asymétrique donne une moyenne de $0{,}80$ là où sa médiane vaut $0{,}984$ (Section~\ref{subsubsec:reflexe}). C'est donc à la commande atténuée que la fidélité doit être rapportée. La tâche aboutit dans $27$ essais sur $30$, en $30{,}1$~s en médiane, pour une déviation de l'outil de $0{,}60$~cm.
 
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_h_only.svg}
-    \caption{Essai représentatif de la tâche de saisie et dépôt en présence du prisme statique : évolution de la barrière $h_{\min,l}$. Les bandes ombrées marquent les cycles où la contrainte critique, évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$, est violée.}\label{fig:pp_deep}
-\end{figure}
-
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_constraint.svg}
-    \caption{Contrainte de sécurité du même essai que la Figure~\ref{fig:pp_deep}, évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ (avant projection) puis sur la commande réellement transmise (après réparation). Les valeurs négatives de la courbe nominale correspondent aux cycles ombrés de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_constraint}
-\end{figure}
-
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_vel_joints.svg}
-    \caption{Vitesses articulaires du même essai que la Figure~\ref{fig:pp_deep}, relevées articulation par articulation : vitesse nominale $\dot{q}_{\mathrm{base}}$, commande publiée $\dot{q}_{\mathrm{final}}$ et vitesse mesurée $\dot{q}_{\mathrm{mes}}$. L'échelle verticale est commune aux sept articulations et les bandes ombrées sont celles de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_vel_joints}
-\end{figure}
-
-\begin{figure}[htpb]
-    \centering
-    \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_vel_decomp.svg}
-    \caption{Décomposition, articulation par articulation, de l'écart de la commande à la nominale $\dot{q}_{\mathrm{final}}-\dot{q}_{\mathrm{base}}$ pour le même essai, suivant l'identité~\eqref{eq:decomp_vitesse}. Les deux parts sont les grandeurs instantanées relevées à chaque cycle, la somme des deux courbes valant exactement la courbe totale. Comme au banc d'alimentation, la part du lissage domine parce qu'elle reconduit la correction obtenue aux cycles antérieurs ; elle n'est pas une action d'évitement autonome. Les contributions étant vectorielles, elles peuvent se compenser partiellement.}\label{fig:pp_vel_decomp}
-\end{figure}
+\FloatBarrier
 
 % =================================================================
 \section{Ablations des mécanismes}\label{sec:res_ablations}
@@ -453,7 +452,7 @@ Deux conséquences découlent de cette absence de mémoire spatiale. La réparat
 
 Dans la cellule ablatée, les six franchissements signalés sont tous imputables à un obstacle découvert tardivement (Section~\ref{sec:res_echecs}), ce qui explique son résidu minimal de $-6{,}1\times10^{-2}$~m/s. Le critère de persistance du Tableau~\ref{tab:criteres_validation} est donc rempli par la carte, qui maintient la contrainte d'évitement pendant toute l'occlusion, à condition de détecter les obstacles auparavant.
 
-\begin{figure}[htpb]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/ablation/fig_persistance.svg}
     \caption{Ablation de la carte persistante sur le banc d'alimentation. (a)~Barrière publiée en ligne ; (b)~barrière exacte recalculée hors ligne.}\label{fig:res_persistance}
@@ -596,6 +595,8 @@ L'autre ablation montre quant à elle un effet dépendant du banc. Sur la tâche
 
 L'exécution hors du graphe n'est pas neutre pour autant. À mécanisme égal, réparation restreinte à la contrainte critique, le résidu vaut $-1{,}12\times10^{-8}$~m/s hors du graphe contre $-2{,}78\times10^{-2}$ dans le graphe, et la barrière publiée $-3{,}03$~mm au lieu de $-11{,}04$~mm. Le chemin d'exécution déplace donc l'amplitude du franchissement sans l'empêcher, et c'est de l'effet du mécanisme que la cellule de contrôle le sépare.
 
+\FloatBarrier
+
 % =================================================================
 \section{Généralisation inter-morphologies}\label{sec:res_xarm}
 % =================================================================
@@ -632,58 +633,59 @@ En revanche, le taux de réussite sur la tâche ne se maintient pas au même niv
 
 Ces résultats expérimentaux confirment la propriété de généralisation (\ac{OS}5). L'architecture de sécurité se transporte d'un manipulateur à un autre moyennant le seul transfert de la cinématique et le réentraînement des champs de distance par lien, en conservant la totalité de ses garanties. L'élément présentant des limites de transférabilités concerne la politique générative, entraînée sur des démonstrations du Panda et confrontée à des limites cinématiques sur le xarm7.
 
-\begin{figure}[htpb]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/ablation/fig_xarm_compare.svg}
     \caption{Panda et xArm7 sur un même tirage aléatoire du scénario à prisme statique. (a)~Trajectoire de la pointe de l'outil dans le plan $yz$, superposée au nuage d'obstacles ; (b)~barrière $h_{\min,l}$ au cours de l'essai.}\label{fig:res_xarm}
 \end{figure}
 
+\FloatBarrier
+
 % =================================================================
 \section{Performance et temps de calcul}\label{sec:res_temps}
 % =================================================================
-La méthodologie présentée au Chapitre~\ref{sec:Theme2} est une hiérarchie de cadences : une boucle de commande et un bouclier à $50$~Hz, un frein réflexe à $1$~kHz, une replanification bridée à $5$~Hz. Cette section vérifie que l'implémentation respecte ces spécifications. L'évaluation repose sur la confrontation stricte des durées mesurées aux bornes théoriques allouées. Tenir une période plus courte que la période nominale confirme le certificat, puisque le resserrement échantillonné~\eqref{eq:sampled_margin} et le budget de la marge $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}) sont dimensionnés sur un majorant de la durée de maintien ; seul un dépassement les met en défaut.
+La méthodologie présentée au Chapitre~\ref{sec:Theme2} est une hiérarchie de cadences : une replanification de trajectoire à $5$~Hz, un bouclier à $50$~Hz, un frein réflexe et une commande moteur à $1$~kHz. Cette section vérifie que l'implémentation respecte ces spécifications. Tenir une période plus courte que la période nominale confirme le certificat, puisque le resserrement échantillonné~\eqref{eq:sampled_margin} et le budget de la marge $d_{\mathrm{safe}}$ (Section~\ref{subsec:garanties}) sont dimensionnés sur un majorant de la durée de maintien ; seul un dépassement les met en défaut.
 
-Les temps de calcul des composants pris isolément ont déjà été rapportés auprès de leur validation : l'évaluation du \ac{SDF} et de son gradient à la Section~\ref{subsec:res_sdf_temps}, avec la comparaison à la différentiation automatique. La présente section porte exclusivement sur le système intégré, mesuré en boucle fermée sur la plateforme de la Section~\ref{subsec:plateforme}.
+Les temps de calcul du \ac{SDF} et de son gradient, ainsi que leur comparaison à la différentiation automatique, ont déjà été rapportés à la Section~\ref{subsec:res_sdf_temps}. La présente section porte exclusivement sur le système intégré, mesuré en boucle fermée sur la plateforme de la Section~\ref{subsec:plateforme}.
 
 \subsection{Protocole de mesure}
-Les durées sont relevées par instrumentation directe des n\oe uds, sur la cellule déployée du banc de saisie et dépôt avec prisme statique de la campagne gelée, soit $30$ essais exécutés avec la configuration du Tableau~\ref{tab:cbf_params}. Le Tableau~\ref{tab:stage_stats} en rapporte les statistiques descriptives.
+Les durées sont relevées par instrumentation directe des n\oe uds, sur l'ensemble des cellules de la campagne gelée. Le Tableau~\ref{tab:stage_stats} en rapporte les statistiques descriptives.
 
-La colonne des maxima recense des valeurs isolées du régime permanent, et non des cycles d'amorçage : elles surviennent en cours d'essai et demeurent incluses dans l'ensemble des statistiques rapportées. Leur poids est marginal, le cycle complet dépassant $50$~ms sur $0{,}34$~\% des cycles et $100$~ms sur $0{,}06$~\%. Les étages hôtes du bouclier sont par ailleurs emboîtés : la préparation des entrées, le regroupement de la sortie et l'attente de la fin du calcul sont comptés dans le cycle complet. Le calcul du bouclier y échappe : il est relevé sur l'horloge du processeur graphique, entre deux événements \ac{CUDA} encadrant le rejeu du graphe, dont l'exécution commence pendant la préparation des entrées et s'achève pendant l'attente. Les étages hôtes chronomètrent donc la mise en file du travail, et non son exécution. La sélection des points critiques est en revanche exclue du cycle complet : elle s'exécute dans le fil de prétraitement, à sa propre cadence.
+La colonne des maxima recense des valeurs isolées du régime permanent, à l'exception du maximum du frein réflexe, relevé à l'initialisation ; toutes demeurent incluses dans l'ensemble des statistiques rapportées. Le cycle complet dépasse $50$~ms sur $0{,}34$~\% des cycles et $100$~ms sur $0{,}06$~\%. Les étages du bouclier sont emboîtés : la préparation des entrées, le regroupement de la sortie et le calcul du bouclier sont comptés dans le cycle complet. Le calcul du bouclier est relevé sur l'horloge du processeur graphique, entre deux événements \ac{CUDA} encadrant le rejeu du graphe, dont l'exécution commence pendant la préparation des entrées ; les étages sur \ac{CPU} chronomètrent donc la mise en file du travail et non son exécution. La sélection des points critiques est en revanche exclue du cycle complet : elle s'exécute dans le fil de prétraitement, à sa propre cadence. Les deux étages de la chaîne de planification sont disjoints et chacun contient ses sous-étages : la génération complète couvre l'encodage du conditionnement et les évaluations du réseau, la conversion couvre la cinématique inverse.
 
 \begin{table}[htbp]
 \centering
-\caption{Statistiques descriptives des temps de calcul par étage du système intégré (durées en millisecondes), mesurées sur les $30$ essais de la cellule déployée du prisme statique. Tous les étages sont chronométrés sur l'horloge de l'hôte, à l'exception du calcul du bouclier, relevé par deux événements \ac{CUDA} sur l'horloge du processeur graphique. Les étages hôtes du bouclier sont emboîtés dans le cycle complet ; le calcul du bouclier ne l'est pas, son intervalle recouvrant partiellement les autres. La sélection des points critiques et la projection du nuage de points relèvent d'autres fils d'exécution et ne sont pas incluses. Les maxima sont conservés dans toutes les statistiques.}
+\caption{Statistiques descriptives des temps de calcul par étage du système intégré (en millisecondes).}
 \label{tab:stage_stats}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcccccc}
+\begin{tabular}{lccccc}
 \toprule
-\textbf{Étage} & \textbf{n} & \textbf{Moy.} & \textbf{É.-t.} & \textbf{Méd.} & \textbf{p95} & \textbf{Max} \\
+\textbf{Étage} & \textbf{Moy.} & \textbf{É.-t.} & \textbf{Méd.} & \textbf{p99} & \textbf{Max} \\
 \midrule
-\multicolumn{7}{l}{\textbf{Frein réflexe (Section~\ref{subsubsec:reflexe})}} \\
-Période du cycle temps réel & 53102 & 1,00 & 0,00 & 1,00 & 1,00 & 1,00 \\
-Calcul du frein sur un cycle & 53084 & 0,02 & 0,19 & 0,02 & 0,03 & 24,63 \\
+\multicolumn{6}{l}{\textbf{Frein réflexe (Section~\ref{subsubsec:reflexe})}} \\
+Période du cycle temps réel & 1,00 & 0,00 & 1,00 & 1,00 & 1,00 \\
+Calcul du frein sur un cycle & 0,02 & 0,19 & 0,02 & 0,03 & 24,63 \\
 \addlinespace
-\multicolumn{7}{l}{\textbf{Bouclier \acs{SDF}-\acs{CBF} (Sections~\ref{subsec:selection} à~\ref{subsec:commande})}} \\
-Sélection des K points minimaux & 47117 & 0,67 & 1,23 & 0,38 & 1,79 & 34,35 \\
-Préparation des entrées du graphe & 20420 & 1,49 & 2,47 & 0,87 & 4,78 & 59,70 \\
-Regroupement de la sortie du graphe & 20300 & 0,03 & 0,32 & 0,01 & 0,03 & 17,47 \\
-Calcul du bouclier (graphe \ac{CUDA}) & 19913 & 9,58 & 5,02 & 8,32 & 16,38 & 58,12 \\
-Attente de la fin du calcul & 20150 & 9,21 & 4,86 & 7,95 & 18,64 & 57,33 \\
-Cycle complet du bouclier & 19966 & 13,58 & 7,12 & 10,90 & 26,32 & 120,58 \\
+\multicolumn{6}{l}{\textbf{Bouclier \acs{SDF}-\acs{CBF} (Sections~\ref{subsec:selection} à~\ref{subsec:commande})}} \\
+Sélection des K points minimaux & 0,67 & 1,23 & 0,38 & 1,79 & 34,35 \\
+Préparation des entrées du graphe & 1,49 & 2,47 & 0,87 & 4,78 & 59,70 \\
+Regroupement de la sortie du graphe & 0,03 & 0,32 & 0,01 & 0,03 & 17,47 \\
+Calcul du bouclier (graphe \ac{CUDA}) & 9,58 & 5,02 & 8,32 & 13,62 & 58,12 \\
+Cycle complet du bouclier & 13,58 & 7,12 & 10,90 & 20,84 & 120,58 \\
 \addlinespace
-\multicolumn{7}{l}{\textbf{Chaîne de planification (Sections~\ref{sec:CFM} et~\ref{sec:Conversion})}} \\
-Encodage du conditionnement & 1593 & 1,76 & 1,80 & 1,27 & 4,45 & 30,26 \\
-Intégration de l'\acs{ODE} & 1593 & 7,02 & 5,70 & 5,16 & 17,76 & 52,78 \\
-Encodage et génération & 1586 & 9,83 & 7,10 & 7,77 & 23,55 & 66,47 \\
-Cinématique inverse ($H=16$) & 1588 & 6,72 & 5,08 & 5,04 & 16,74 & 44,44 \\
-Conversion et réajustement & 1588 & 25,41 & 12,05 & 21,88 & 50,33 & 99,64 \\
+\multicolumn{6}{l}{\textbf{Chaîne de planification (Sections~\ref{sec:CFM} et~\ref{sec:Conversion})}} \\
+Génération complète & 9,83 & 7,10 & 7,77 & 23,55 & 66,47 \\
+\quad Encodage du conditionnement & 1,76 & 1,80 & 1,27 & 4,45 & 30,26 \\
+\quad Évaluations du réseau ($N=5$) & 7,02 & 5,70 & 5,16 & 17,76 & 52,78 \\
+Conversion et réajustement & 25,41 & 12,05 & 21,88 & 50,33 & 99,64 \\
+\quad Cinématique inverse ($H=16$) & 6,72 & 5,08 & 5,04 & 16,74 & 44,44 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Vérification des cadences annoncées}
-Le Tableau~\ref{tab:res_budget} confronte chaque cadence spécifiée au Chapitre~\ref{sec:Theme2} à la mesure correspondante. Une seule est dépassée en médiane, la période effective du bouclier, qui excède de $15$~\% la valeur sur laquelle le resserrement échantillonné est dimensionné. L'obsolescence de l'ensemble des points critiques la respecte en médiane et ne la dépasse que dans sa queue de distribution. Cet écart est isolé et quantifié à la Section~\ref{sec:res_echecs}.
+Le Tableau~\ref{tab:res_budget} confronte chaque cadence spécifiée au Chapitre~\ref{sec:Theme2} à la mesure correspondante. Toutes sont tenues en médiane. Une seule borne est franchie, et seulement dans la queue de distribution : le cycle du bouclier dépasse la période de $20$~ms sur un peu plus de $1$~\% des cycles. Cet écart est isolé et quantifié à la Section~\ref{sec:res_echecs}.
 
 \begin{table}[htbp]
 \centering
@@ -694,58 +696,53 @@ Le Tableau~\ref{tab:res_budget} confronte chaque cadence spécifiée au Chapitre
 \toprule
 \textbf{Spécification} & \textbf{Borne} & \textbf{Mesure} \\
 \midrule
-Cadence du frein réflexe & $1$~kHz & Période de $1{,}00$~ms, écart-type nul sur $53\,102$ cycles \\ \addlinespace[0.2em]
-Calcul du frein sur son cycle & $< 1$~ms & Médiane $0{,}02$~ms, p95 $0{,}03$~ms \\ \addlinespace[0.2em]
-Calcul du cycle du bouclier & $T = 20$~ms & Médiane $10{,}90$~ms, p95 $26{,}32$~ms (p95 dépassé) \\ \addlinespace[0.2em]
-Période effective du bouclier & $T = 20$~ms & Médiane $23$~ms, p95 $49$~ms (dépassée) \\ \addlinespace[0.2em]
-Calcul de la sélection des points critiques & $T = 20$~ms & Médiane $0{,}38$~ms, p95 $1{,}79$~ms \\ \addlinespace[0.2em]
-Obsolescence de l'ensemble actif & $T = 20$~ms & Médiane $10$~ms, p95 $22$~ms (p95 dépassé) \\ \addlinespace[0.2em]
-Chaîne de planification complète & $200$~ms ($5$~Hz) & ${\approx}42$~ms en moyenne, ${\approx}79$~ms au p95 \\
+Cadence du frein réflexe & $1$~kHz & Période de $1{,}00$~ms \\ \addlinespace[0.2em]
+Calcul du frein sur son cycle & $< 1$~ms & Médiane $0{,}02$~ms, p99 $0{,}03$~ms \\ \addlinespace[0.2em]
+Calcul du cycle du bouclier & $T = 20$~ms & Médiane $10{,}90$~ms, p99 $20{,}84$~ms (p99 dépassé) \\ \addlinespace[0.2em]
+Calcul de la sélection des points critiques & Cadence propre du fil de prétraitement & Médiane $0{,}38$~ms, p99 $1{,}79$~ms \\ \addlinespace[0.2em]
+Chaîne de planification complète & $200$~ms ($5$~Hz) & $35$~ms en moyenne, $74$~ms en cumulant les p99 des deux étages \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Lecture des résultats}
-L'analyse du Tableau~\ref{tab:stage_stats} met en évidence quatre éléments principaux, à commencer par le comportement de la couche temps réel.
+\subsection*{Frein réflexe temps réel}
+Le calcul hébergé par le pas temps réel requiert $0{,}02$~ms de médiane et $0{,}03$~ms au 99\textsuperscript{e} centile, pour une période de $1$~ms. La re-vérification de la commande maintenue entre deux résolutions du solveur dispose donc d'une réserve telle qu'une contention du \ac{GPU} partagé, qui affecte les étages Python, ne peut pas la compromettre. Cette isolation temporelle découle du déport de la couche en C++ dans la boucle temps réel dur (Section~\ref{subsubsec:reflexe}). Le maximum de $24{,}63$~ms est celui d'un cycle d'initialisation, où $\alpha$ n'a pas été réévalué pendant vingt-cinq pas.
 
-\subsection*{Marge de calcul du frein réflexe temps réel}
-Le calcul hébergé par le pas temps réel requiert $0{,}02$~ms de médiane et $0{,}03$~ms au 95\textsuperscript{e} centile, pour une période de $1$~ms. La re-vérification de la commande maintenue entre deux résolutions du solveur dispose donc d'une réserve telle qu'une contention du \ac{GPU} partagé, qui affecte les étages Python, ne peut pas la compromettre. Cette isolation temporelle découle du déport de la couche en C++ dans la boucle temps réel dur (Section~\ref{subsubsec:reflexe}).
+\subsection*{Bouclier \acs{SDF}-\acs{CBF}}
+L'étage hôte du cycle, qui prépare les entrées du graphe et en déclenche le rejeu, s'exécute en $0{,}87$~ms de médiane et $4{,}78$~ms au 99\textsuperscript{e} centile ; le regroupement de la sortie y est négligeable. Ces durées mesurent la mise en file du travail et non son exécution : l'assemblage des contraintes, les balayages de Dykstra et la réparation se déroulent sur le processeur graphique. Le graphe étant capturé une fois pour toutes, à dimension fixe et sans branchement (Section~\ref{subsec:graphes_cuda}), son coût ne dépend pas de la présence d'une contrainte active : la queue de distribution de ces étages vient de la contention du \ac{GPU} partagé.
 
-\subsection*{Temps de calcul du bouclier et latence de cycle complet}
-L'étage hôte du cycle, qui prépare les entrées du graphe et en déclenche le rejeu, s'exécute en $0{,}87$~ms de médiane et $4{,}78$~ms au 95\textsuperscript{e} centile, très en deçà de la période nominale de $20$~ms ; le regroupement de la sortie y est négligeable. Ces durées mesurent la mise en file du travail et non son exécution : l'assemblage des contraintes, les balayages de Dykstra et la réparation se déroulent sur le processeur graphique. Le solveur n'a de correction à produire que sur $33{,}5$~\% des cycles, ceux où la vitesse nominale ne satisfait pas la contrainte resserrée. Cette proportion mesure directement la transparence annoncée à la Section~\ref{subsec:projection}, et elle explique l'écart entre la médiane et le 95\textsuperscript{e} centile : la queue de la distribution est celle des cycles sous contrainte, non celle d'une contention.
+Le cycle complet, mesuré du début de la résolution à la publication de la commande, coûte $10{,}90$~ms de médiane, soit $54$~\% de la période de $20$~ms, et $20{,}84$~ms au 99\textsuperscript{e} centile : un peu plus de $1$~\% des cycles la dépassent. Le rejeu du graphe \ac{CUDA} en porte l'essentiel, avec $9{,}58$~ms des $13{,}58$~ms du cycle moyen ; son intervalle étant compris dans le cycle, tout le reste, transferts et publication compris, tient dans les $4{,}0$~ms restantes. C'est ce cycle que le resserrement échantillonné suppose borné par $20$~ms, la commande étant maintenue d'une résolution à la suivante ; le dépassement et sa conséquence sur la marge sont quantifiés à la Section~\ref{sec:res_echecs}. La sélection des points critiques s'exécute en $0{,}38$~ms de médiane dans son propre fil, grâce à la fusion de la cinématique directe, de l'évaluation du \ac{SDF} et de la sélection des K points minimaux dans un graphe \ac{CUDA} unique à dimension fixe (Section~\ref{subsec:selection}).
 
-Le cycle complet, en revanche, ne tient pas ce budget. Mesuré du début de la résolution à la publication de la commande, \texttt{cbf\_total} coûte $10{,}90$~ms de médiane et $26{,}32$~ms au 95\textsuperscript{e} centile, soit un ordre de grandeur de plus que son étage dominant. La différence provient de l'exécution du graphe \ac{CUDA} lui-même : \texttt{cbf\_gpu} coûte $8{,}32$~ms de médiane, que la lecture bloquante du résultat (\texttt{cbf\_d2h}, $7{,}95$~ms) ne fait qu'attendre. Ces deux durées étant du même ordre, le processeur graphique est réellement occupé et le coût n'est pas imputable aux transferts. La période effective entre deux résolutions s'établit en conséquence à $23$~ms de médiane et $49$~ms au 95\textsuperscript{e} centile. C'est cette période, et non le coût de la correction, que le resserrement échantillonné suppose bornée par $20$~ms ; l'écart et sa conséquence sur la marge sont quantifiés à la Section~\ref{sec:res_echecs}. La sélection des points critiques, elle, s'exécute en $0{,}38$~ms de médiane et n'entame pas la réserve de $15$~mm : ce résultat tient à la fusion de la cinématique directe, de l'évaluation du \ac{SDF} et de la sélection des K points minimaux dans un graphe \ac{CUDA} unique à dimension fixe (Section~\ref{subsec:selection}).
+\subsection*{Planification de trajectoires}
+Les cinq évaluations du réseau de vitesse coûtent $5{,}16$~ms de médiane. La chaîne complète, de l'encodage du nuage de conditionnement jusqu'à la trajectoire articulaire horodatée, coûte $35$~ms en moyenne et $74$~ms en cumulant les 99\textsuperscript{es} centiles de ses deux étages, soit $37$~\% de la période de $200$~ms.
 
-\subsection*{Performance temporelle de la chaîne de planification}
-L'intégration de l'\ac{ODE} du modèle génératif coûte $5{,}16$~ms de médiane, et la chaîne complète qui la précède et la suit, de l'encodage du nuage de conditionnement jusqu'à la trajectoire articulaire horodatée, environ $42$~ms en moyenne et $79$~ms au 95\textsuperscript{e} centile. Rapportée à la période de $200$~ms de la cadence retenue, cette chaîne requiert moins de la moitié de son budget dans sa queue de distribution : le facteur limitant de la replanification n'est pas le coût de la génération mais la capacité de suivi du contrôleur, conformément à ce qu'annonce la Section~\ref{sec:CFM}. La faible latence du FM atteste sa compatibilité avec la replanification en boucle fermée face aux modèles de diffusion du Chapitre~\ref{sec:RevLitt}, grâce à une intégration en un nombre réduit de pas.
-
-L'analyse temporelle montre que l'intégration du modèle génératif ne constitue pas l'étape la plus coûteuse de la chaîne. La conversion de la sortie du modèle en trajectoire articulaire exécutable (\texttt{trajectory\_build}, $21{,}88$~ms de médiane) coûte plus de quatre fois l'intégration de l'ODE elle-même, et la cinématique inverse sur les $H=16$ points de passage ($5{,}04$~ms) presque autant que la génération. Le modèle génératif, réputé l'étage coûteux d'une politique de ce type, n'est en réalité ni l'étage dominant ni même le deuxième de sa propre chaîne. Cette observation reste sans conséquence sur les garanties, la chaîne entière respectant le budget temporel alloué, mais elle désigne l'étage à optimiser si une cadence supérieure devenait souhaitable.
+La conversion de la sortie du modèle en trajectoire articulaire exécutable porte $72$~\% de la moyenne de la chaîne, soit $25{,}41$~ms. La cinématique inverse sur les $H=16$ points de passage en occupe $6{,}72$~ms, le reste allant au décodage des poses, au réajustement temporel et à la construction des messages. C'est l'étage à optimiser si une cadence supérieure devenait souhaitable.
 
 \subsection*{Remarques méthodologiques sur la mesure des temps de calcul}
-La valeur rapportée pour \texttt{fm\_generation} n'est pas le coût \ac{GPU} de la génération : le compteur du n\oe ud n'appelle pas \texttt{torch.cuda.synchronize()} et ne chronomètre donc que la mise en file des noyaux du côté \ac{CPU}. Sur le banc dédié de l'Annexe~\ref{annexe:resultats_complementaires}, où le \ac{GPU} n'est sollicité par rien d'autre, ce même compteur relève $1{,}62$~ms à $N=5$ alors que le coût synchronisé vaut $8{,}69$~ms. La valeur de $7{,}02$~ms mesurée ici se situe entre ces deux bornes, l'explication la plus probable étant le partage du \ac{GPU} en boucle fermée : la mise en file cesse de rendre la main immédiatement et le compteur absorbe une partie de l'attente. Cette grandeur est donc un minorant du coût réel, sans effet sur la conclusion, puisqu'en lui substituant le coût synchronisé la chaîne de planification passe d'environ $42$ à $44$~ms en moyenne, très loin de la période de $200$~ms qui lui est allouée.
+Le compteur des évaluations du réseau ne chronomètre que la mise en file des noyaux du côté \ac{CPU}, faute d'appel à \texttt{torch.cuda.synchronize()}. La première synchronisation de la chaîne est la lecture de la trajectoire générée vers l'hôte, au début de l'étage de conversion, qui se voit donc facturer le coût \ac{GPU} de l'intégration. Sur le banc dédié de l'Annexe~\ref{annexe:resultats_complementaires}, où le \ac{GPU} n'est sollicité par rien d'autre, ce même compteur relève $1{,}62$~ms à $N=5$ alors que le coût synchronisé vaut $8{,}69$~ms. Seule leur somme est indépendante du placement de cette synchronisation.
 
 \section{Cas d'échec et limites}\label{sec:res_echecs}
 % =================================================================
 Les échecs et limitations observés au cours des campagnes expérimentales sont présentés de manière rigoureuse et transparente, chacun rattaché à une limitation déjà annoncée, qu'il s'agisse de la portée des garanties (Section~\ref{subsec:garanties}) ou des exclusions du Chapitre~\ref{sec:Metho}. Deux d'entre eux mettent en défaut une hypothèse du certificat et sont énoncés comme tels.
 
 \subsection*{Comportement face aux obstacles concaves et limites de vivacité}
-Le scénario du croissant matérialise la limite que la Section~\ref{subsec:garanties} assume explicitement : le filtre garantit l'invariance de l'ensemble sûr, non l'atteinte de la cible. Sur le croissant de $0{,}36$~m, la tâche aboutit dans $12$ essais sur $30$, avec $18$ essais qui atteignent le plafond de durée et $12$ blocages. Sur sa variante de $1$~m, qui interdit le franchissement par le dessus, elle n'aboutit jamais, $0$ sur $15$.
+Le scénario du croissant matérialise la limite que la Section~\ref{subsec:garanties} assume explicitement : le filtre garantit l'invariance de l'ensemble sûr, non l'atteinte de la cible. Sur le croissant de $0{,}36$~m, la tâche aboutit dans $12$ essais sur $30$, avec $18$ essais qui atteignent le plafond de durée. Sur sa variante de $1$~m, qui empêche le franchissement par le dessus, elle n'aboutit jamais, $0$ sur $15$.
 
-La lecture des grandeurs internes montre un système qui respecte scrupuleusement sa formulation. La barrière minimale de la variante de $1$~m demeure à $+0{,}4$~mm en pire cas et le résidu de contrainte final à la précision machine : le bouclier tient la marge sur toute la durée de l'essai. Le cosinus entre la vitesse nominale et la vitesse filtrée tombe à $0{,}68$ et la commande publiée à $0{,}21$~rad/s pour une nominale de $0{,}41$~rad/s : le robot est retenu contre la poche concave, à demi-vitesse et à l'opposé de la consigne nominale, et s'y immobilise. La politique générative, aveugle aux obstacles, réémet la même consigne à chaque replanification, et l'équilibre entre cette consigne et la correction de sécurité immobilise le bras. C'est le blocage de l'effecteur décrit à la Section~\ref{subsec:minima}, pour lequel aucun déblocage heuristique n'est implanté par choix de conception, la résolution d'une impasse topologique relevant du planificateur et non du filtre.
+La lecture des grandeurs internes montre un système qui respecte scrupuleusement sa formulation. La barrière minimale de la variante de $1$~m demeure à $+0{,}4$~mm en pire cas et le résidu de contrainte final à la précision machine : le bouclier tient la marge sur toute la durée de l'essai. Le cosinus entre la vitesse nominale et la vitesse filtrée tombe à $0{,}68$ et la commande publiée à $0{,}21$~rad/s pour une nominale de $0{,}41$~rad/s : le robot est retenu contre la poche concave, à demi-vitesse et à l'opposé de la consigne nominale, et s'y immobilise. La politique générative, aveugle aux obstacles, réémet la même consigne à chaque replanification, et l'équilibre entre cette consigne et la correction de sécurité immobilise le bras. C'est le blocage de l'effecteur décrit à la Section~\ref{subsec:minima}, pour lequel aucun déblocage heuristique n'est implanté pour éviter de générer des trajectoires hors distribustions, la résolution d'une impasse topologique relevant du planificateur et non du filtre.
 
 Un seul essai du croissant de $0{,}36$~m franchit réellement la barrière, à $-7{,}9$~mm mesurés au maillage, soit $7{,}1$~mm de dégagement physique restant, sans contact. Les quatre autres franchissements enregistrés sont des surestimations conservatrices confirmées par la vérification exacte.
 
 \subsection*{Impact de la découverte tardive des obstacles}
-Le second mode d'échec est propre au banc d'alimentation et à sa caméra au poignet. Sur les $270$ épisodes couverts par l'analyse de latence, toutes conditions confondues, $68$ des $73$ franchissements de barrière sont attribuables à un point d'obstacle perçu pour la première fois moins de $300$~ms avant le franchissement, la médiane de ce délai valant $115$~ms et son minimum $0$~ms. Le filtre ne peut pas contraindre ce qu'il ne connaît pas encore ; sa réponse est celle d'un système en régime de récupération, qui commande une vitesse de sortie croissant avec la pénétration.
+Le second mode d'échec est propre au banc d'alimentation et à sa caméra au poignet. Sur les $270$ épisodes couverts par l'analyse de latence, toutes conditions confondues, $68$ des $73$ franchissements de barrière sont attribuables à un point d'obstacle perçu pour la première fois moins de $30$~ms avant le franchissement, la médiane de ce délai valant $17$~ms et son minimum $\approx 0$~ms. Le filtre ne peut pas contraindre ce qu'il ne connaît pas encore ; sa réponse est celle d'un système en régime de récupération, qui commande une vitesse de sortie croissant avec la pénétration.
 
 Les cinq franchissements que l'analyse n'impute pas à la perception se produisent tous dans les deux cellules où le bouclier est délibérément coupé, trois en mode observation et deux sans filtre. Dans les cinq cellules où le filtre est actif, aucun franchissement ne lui est imputable, et la configuration déployée n'en produit aucun sur ses trente essais. Ce mode devient en revanche dominant dès que la mémoire spatiale est retirée (Section~\ref{subsec:res_abl_persistance}), ce qui identifie la carte persistante comme la contre-mesure effective plutôt que la marge statique.
 
-\subsection*{Écart entre période effective et hypothèse du certificat}
-Le resserrement échantillonné~\eqref{eq:sampled_margin} est dimensionné sur une durée de maintien $T = 20$~ms, et le Chapitre~\ref{sec:Theme2} précise que le certificat n'est mis en défaut que si la période effective la dépasse. La campagne établit qu'elle la dépasse. La période mesurée entre deux résolutions du bouclier vaut $23$~ms en médiane et $49$~ms au 95\textsuperscript{e} centile sur les deux bancs Panda, et le cycle complet du bouclier, du début de la résolution à la publication de la commande, coûte $10{,}9$~ms en médiane et $26{,}3$~ms au 95\textsuperscript{e} centile. Le facteur limitant n'est pas l'étage de correction lui-même, dont la médiane est de $0{,}87$~ms, mais les transferts entre le processeur graphique et l'hôte qui l'encadrent.
+\subsection*{Dépassement de la durée de maintien dans la queue de distribution}
+Le resserrement échantillonné~\eqref{eq:sampled_margin} est dimensionné sur une durée de maintien $T = 20$~ms, et le Chapitre~\ref{sec:Theme2} précise que le certificat n'est mis en défaut que si la durée réelle la dépasse. Cette durée est celle du cycle du bouclier, qui coûte $10{,}90$~ms en médiane et $20{,}84$~ms au 99\textsuperscript{e} centile : la borne est tenue en médiane et franchie sur un peu plus de $1$~\% des cycles. Le terme dominant est le rejeu du graphe \ac{CUDA}, qui pèse $9{,}58$~ms des $13{,}58$~ms du cycle moyen, et non l'étage hôte de préparation, dont la médiane est de $0{,}87$~ms.
 
-Le resserrement couvre une chute de barrière de $\tfrac{1}{2}L_l\|\dot{\mathbf{q}}\|^2T^2$ sur la période de maintien ; avec la plus grande constante retenue au solveur ($32$~m/rad$^2$) et la vitesse articulaire nominale médiane ($0{,}30$~rad/s), le budget provisionné vaut $0{,}58$~mm alors que la période réelle en demande $0{,}76$~mm en médiane et $3{,}5$~mm au 95\textsuperscript{e} centile. Le découvert est donc de l'ordre de $0{,}2$~mm en régime courant et de $2{,}9$~mm dans la queue, à comparer aux $15$~mm de la marge $d_{\mathrm{safe}}$ : il est absorbé, mais par la réserve statique et non par le terme censé le couvrir.
+Le resserrement couvre une chute de barrière de $\tfrac{1}{2}L_l\|\dot{\mathbf{q}}\|^2T^2$ sur la période de maintien ; avec la plus grande constante retenue au solveur ($32$~m/rad$^2$) et la vitesse articulaire nominale médiane ($0{,}30$~rad/s), le budget provisionné vaut $0{,}58$~mm, là où le cycle médian en demande $0{,}17$~mm et le 99\textsuperscript{e} centile $0{,}63$~mm. Le découvert se limite donc à $0{,}05$~mm, à comparer aux $15$~mm de la marge $d_{\mathrm{safe}}$. Le même calcul situe à $100$~ms la durée de maintien qui épuiserait cette marge, soit au-delà du 99,9\textsuperscript{e} centile du cycle.
 
-Deux éléments limitent la portée de ce défaut sans l'effacer. Le frein réflexe n'en souffre pas : il mesure à chaque micro-cycle le temps réellement écoulé depuis la publication du paquet et certifie sur cet horizon-là, de sorte qu'une latence du solveur allonge son horizon au lieu d'invalider son certificat. Sa propre période est tenue exactement, à $1{,}00$~ms de période ordonnancée sur les $53\,102$ relevés. De plus, la mesure empirique ne montre aucun franchissement imputable à ce mécanisme, les franchissements observés s'expliquant tous par la perception ou par l'artefact du signal. Néanmoins, la valeur de $T$ retenue au Chapitre~\ref{sec:Theme2} est sous-estimée d'environ $15$~\% en médiane, ce qui impliquerait, dans le cadre d'un déploiement physique hors simulation, d'augmenter cette marge ou d'optimiser le temps de cycle du bouclier pour rejoindre la période nominale.
+Deux éléments limitent la portée de ce défaut sans l'effacer. Le frein réflexe n'en souffre pas : il mesure à chaque micro-cycle le temps réellement écoulé depuis la publication du paquet et certifie sur cet horizon-là, de sorte qu'une latence du solveur allonge son horizon au lieu d'invalider son certificat. Sa période ordonnancée est de $1{,}00$~ms et son calcul de $0{,}02$~ms en médiane. De plus, la mesure empirique ne montre aucun franchissement imputable à ce mécanisme, les franchissements observés s'expliquant tous par la perception ou par l'artefact du signal. Néanmoins, le $T$ retenu au Chapitre~\ref{sec:Theme2} n'est pas un majorant du cycle mesuré, ce qui impliquerait, dans le cadre d'un déploiement physique hors simulation, de le porter au niveau de la queue mesurée ou d'optimiser le rejeu du graphe.
 
 \subsection*{Statut de la borne de poursuite}
 La borne $\varepsilon_{\mathrm{p}} = 0{,}025$~rad/s du resserrement~\eqref{eq:issf_tightening} est un seuil de déclenchement du moniteur et non un majorant de la perturbation d'exécution. Mesurée sur une campagne d'identification dédiée de $30$ trajectoires de saisie et dépôt, elle couvre $97{,}9$~\% des fenêtres d'exécution effective ; la queue restante est détectée en ligne et prise en charge par le veto du frein réflexe. Une majoration statique qui couvrirait une trajectoire entière demanderait de $3{,}7$ à $6{,}9$ fois cette valeur : c'est ce surcoût que la surveillance évite. Le protocole, la distribution mesurée et l'estimateur par statistique d'ordre sont détaillés à l'Annexe~\ref{annexe:surveillance}.
@@ -756,11 +753,10 @@ Le signal de barrière que le n\oe ud publie à destination du frein réflexe pr
 \subsection*{Variabilité des taux de réussite au cours des essais}
 Un biais de protocole affecte une partie des taux rapportés. Sur le banc xArm7, le taux de réussite de la seconde moitié des essais est nettement inférieur à celui de la première, la cellule du prisme passant de $15$ succès sur $15$ à un seul. Les deux bancs Panda sont en revanche stables : leurs cellules déployées ne varient pas d'un essai entre les deux moitiés au banc de saisie et dépôt, et pas davantage au banc d'alimentation, où une seule des neuf cellules recule d'au moins $20$ points. La cause n'est pas identifiée. Sa conséquence est que les colonnes de succès et de temps de complétion des cellules xArm7 sont biaisées vers le bas et doivent être lues comme des bornes inférieures. La colonne $h^{\star}$ n'est pas concernée, la barrière étant mesurée cycle par cycle indépendamment de l'issue de l'épisode. Une cellule fait exception au sens de la dérive, celle du banc de saisie et dépôt sans filtre, dont le taux progresse de $2$ à $10$ succès sur $15$ entre les deux moitiés.
 
-\subsection*{Variations du plan d'expérience et données exclues}
-Deux réserves mineures complètent ce relevé. Trois épisodes de la cellule ablatant le dégagement postural sur le prisme ont perdu leur fiche d'issue à la suite d'une défaillance de l'infrastructure d'enregistrement, et cette cellule est rapportée à $N=27$. Une première tentative de la cellule sans bol a produit $30$ échecs sur $30$ pour une raison de mise en scène, le directeur d'épisode plaçant le cube relativement à un contenant absent : elle est écartée et remplacée par la cellule reprise en groupe distinct, seule rapportée ici.
-
 \subsection*{Conditions expérimentales non évaluées et limites}
-Deux modes d'échec anticipés ne se sont pas manifestés et ne peuvent donc pas être documentés. La chaîne de perception n'a subi aucune perte de suivi prolongée : l'écart maximal entre deux nuages de cible vaut $0{,}14$~s en médiane et $0{,}17$~s au 95\textsuperscript{e} centile sur l'ensemble des cellules, et aucun épisode n'atteint la seconde. La temporisation de repli des redétections n'a donc jamais été sollicitée dans son régime long. Enfin, l'ensemble de la campagne est conduit en simulation, avec des nuages échantillonnés sur la surface exacte des objets : aucun de ces résultats ne caractérise le comportement du système sous bruit de profondeur, erreur de calibration ou obstacle en mouvement, tous exclus de la portée au Chapitre~\ref{sec:Metho}.
+Deux modes d'échec anticipés ne se sont pas manifestés et ne peuvent donc pas être documentés. La chaîne de perception n'a subi aucune perte de suivi prolongée : l'écart maximal entre deux nuages de cible vaut $0{,}14$~s en médiane et $0{,}17$~s au 95\textsuperscript{e} centile sur l'ensemble des cellules, et aucun épisode n'atteint la seconde. La temporisation de repli des redétections n'a donc jamais été sollicitée dans son régime long. Enfin, l'ensemble de la campagne est conduit en simulation, avec des nuages échantillonnés par une caméra parfaite : aucun de ces résultats ne caractérise le comportement du système sous bruit de profondeur ou erreur de calibration, tous exclus de la portée au Chapitre~\ref{sec:Metho}.
+
+\FloatBarrier
 
 % =================================================================
 \section{Discussion}\label{sec:res_discussion}
@@ -769,7 +765,7 @@ Cette section relit l'ensemble des mesures à travers les quatre critères de va
 
 La Figure~\ref{fig:res_sankey} en donne d'abord la vue d'ensemble : le devenir des $255$ essais conduits sous la condition déployée, répartis selon l'étage de la chaîne où l'échec survient.
 
-\begin{figure}[htbp!]
+\begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/sankeymatic_20260803_221430.svg}
     \caption{Diagramme de flux (Sankey) de la répartition des 255 essais de la campagne expérimentale selon l'étage de défaillance.}

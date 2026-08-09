@@ -1268,7 +1268,7 @@ La Section~\ref{subsec:res_sdf_precision} rapporte la précision du modèle de d
 
 Cette décomposition met en évidence la régularité du modèle. Les maillons intermédiaires, de forme quasi cylindrique, présentent la meilleure précision, tandis que les corps aux géométries plus complexes ou asymétriques, le poignet et l'effecteur, enregistrent une incertitude supérieure. L'erreur au 99\textsuperscript{e} centile demeure dans tous les cas inférieure à la marge de sécurité $d_{\mathrm{safe}} = 15$~mm, condition que le budget de la Section~\ref{subsec:garanties} impose au modèle.
 
-La Figure~\ref{fig:sdf_per_link} présente la décomposition, en séparant la précision de distance et l'erreur angulaire du gradient. La Figure~\ref{fig:surface_error_map} projette cette même erreur géométrique sur l'enveloppe de surface du robot, ce qui localise les zones où le polynôme s'écarte le plus de la géométrie exacte.
+La Figure~\ref{fig:sdf_per_link} présente cette décomposition, en séparant la précision de distance (Figure~\ref{fig:per_link_distance}) et l'erreur angulaire du gradient (Figure~\ref{fig:per_link_gradient}). La Figure~\ref{fig:surface_error_map} projette cette même erreur géométrique sur l'enveloppe de surface du robot, ce qui localise les zones où le polynôme s'écarte le plus de la géométrie exacte.
 
 \begin{figure}[!htbp]
     \centering
@@ -1300,7 +1300,7 @@ La validation du Chapitre~\ref{sec:Theme3} juge le planificateur par sa sortie, 
 
 Le protocole d'entraînement de la Section~\ref{sec:CFM} retient le point de contrôle qui minimise la perte de validation sous les poids moyennés par moyenne mobile exponentielle. Les courbes de perte documentent cette sélection sur deux plans. L'écart entre la courbe d'entraînement et celle de validation mesure le surapprentissage résiduel sur l'ensemble restreint de démonstrations disponibles, et la position du point de contrôle retenu sur la courbe de validation atteste que le modèle déployé n'est ni sous-entraîné ni mémorisé.
 
-La Figure~\ref{fig:fm_loss_curves} rapporte ces courbes pour les deux tâches. Le point de contrôle retenu se situe à l'époque $93$ pour la tâche d'alimentation et à l'époque $417$ pour la tâche de saisie et dépôt, sur un budget de $500$ époques (Annexe~\ref{annexe:unet_details}).
+La Figure~\ref{fig:fm_loss_curves} rapporte ces courbes pour la tâche d'alimentation (Figure~\ref{fig:fm_loss_feed}) et pour la tâche de saisie et dépôt (Figure~\ref{fig:fm_loss_pp}). Le point de contrôle retenu se situe à l'époque $93$ pour la tâche d'alimentation et à l'époque $417$ pour la tâche de saisie et dépôt, sur un budget de $500$ époques (Annexe~\ref{annexe:unet_details}).
 
 Cet écart produit des conséquences distinctes selon la tâche considérée. Sur la tâche d'alimentation, la perte de validation atteint son minimum au cinquième du budget : les quatre cinquièmes restants de l'entraînement n'améliorent plus le modèle déployé, et la moyenne mobile exponentielle des poids assortie de la sélection sur validation est ce qui empêche que cette poursuite ne le dégrade. Sur la tâche de saisie et dépôt, le budget est au contraire consommé presque entièrement, ce qui indique que la sélection n'y est pas contrainte par un arrêt prématuré du calendrier.
 
@@ -1324,7 +1324,7 @@ Cet écart produit des conséquences distinctes selon la tâche considérée. Su
 
 Le déploiement intègre l'\ac{ODE}~\eqref{eq:euler} en $N=5$ pas d'Euler explicite, valeur fixée au Chapitre~\ref{sec:Theme2} au nom de la latence de replanification. Cette analyse balaie $N \in \{1, 2, 3, 5, 10, 20\}$ sur $60$ fenêtres de validation et $3$ prédictions par fenêtre, et rapporte la déviation de position mesurée par \ac{DTW} vis-à-vis de la vérité terrain ainsi que le coût de génération.
 
-La qualité du chemin, mesurée par la déviation \ac{DTW} moyenne, présente une faible sensibilité au nombre de pas $N$ ($0{,}90$~cm pour $N=1$ et $0{,}93$~cm pour $N=20$, soit une variation inférieure à $12$~\%). Le coût, lui, est strictement linéaire : le temps par pas demeure constant à $1{,}73$~ms, de sorte que la génération passe de $1{,}9$~ms à $N=1$ à $34{,}7$~ms à $N=20$. La Figure~\ref{fig:fm_euler_steps} rapporte les deux grandeurs.
+La qualité du chemin, mesurée par la déviation \ac{DTW} moyenne, présente une faible sensibilité au nombre de pas $N$ ($0{,}90$~cm pour $N=1$ et $0{,}93$~cm pour $N=20$, soit une variation inférieure à $12$~\%). Le coût, lui, est strictement linéaire : le temps par pas demeure constant à $1{,}73$~ms, de sorte que la génération passe de $1{,}9$~ms à $N=1$ à $34{,}7$~ms à $N=20$. La Figure~\ref{fig:fm_euler_steps} rapporte ces deux grandeurs, soit la déviation de position (Figure~\ref{fig:fm_steps_dtw}) et le temps de génération (Figure~\ref{fig:fm_steps_temps}).
 
 \begin{figure}[!htbp]
     \centering
@@ -1400,7 +1400,7 @@ La tâche de saisie et dépôt donne un comportement analogue, avec une dispersi
 
 \section*{Validation du planificateur nominal : figures de la tâche d'alimentation}
 
-Les distributions et trajectoires associées à la validation du planificateur nominal sur la tâche d'alimentation (Section~\ref{subsec:res_fm}) sont présentées dans les figures ci-après, complétées par les résultats de la tâche de saisie et dépôt.
+La Figure~\ref{fig:dist_err_FM} présente la distribution des erreurs de reconstruction sur le jeu de validation pour la tâche d'alimentation, tant pour la déviation de position (Figure~\ref{fig:dist_err_dtw}) que pour l'erreur de rotation finale à l'effecteur (Figure~\ref{fig:dist_err_rotation}). Par ailleurs, la Figure~\ref{fig:denoising} illustre l'évolution du segment $X_t$ au cours du processus d'intégration du flot pour cette même tâche. Les résultats correspondants de la tâche de saisie et dépôt sont complétés plus loin dans cette annexe.
 
 \begin{figure}[htbp]
     \centering
@@ -1511,7 +1511,7 @@ La Section~\ref{subsec:res_fm} caractérise le planificateur sur la tâche d'ali
 
 \subsection*{Fidélité de reproduction}
 
-La Figure~\ref{fig:pp_dist_err_FM} présente la distribution des erreurs de reconstruction sur le jeu de validation, en position et en rotation finale à l'effecteur. La déviation de position affiche une médiane de $0{,}42$~cm pour une moyenne de $0{,}45$~cm, et l'erreur de rotation finale une médiane de $0{,}46^\circ$ pour une moyenne de $0{,}52^\circ$.
+La Figure~\ref{fig:pp_dist_err_FM} présente la distribution des erreurs de reconstruction sur le jeu de validation, pour la déviation de position (Figure~\ref{fig:pp_dist_err_dtw}) et pour l'erreur de rotation finale à l'effecteur (Figure~\ref{fig:pp_dist_err_rotation}). La déviation de position affiche une médiane de $0{,}42$~cm pour une moyenne de $0{,}45$~cm, et l'erreur de rotation finale une médiane de $0{,}46^\circ$ pour une moyenne de $0{,}52^\circ$.
 
 L'écart de position inférieur ($0{,}42$~cm contre $0{,}67$~cm pour la tâche d'alimentation) s'explique par le profil géométrique plus régulier de la tâche de saisie-dépôt. L'erreur de rotation finale ($0{,}46^\circ$) découle du fait que la politique experte de saisie et dépôt ne commande que la position et la pince, l'orientation verticale de celle-ci demeurant fixée par la configuration initiale et maintenue par le contrôleur (Annexe~\ref{annexe:data_protocol}). La cible d'orientation y est donc quasi constante sur toute la trajectoire, et l'erreur de $0{,}46^\circ$ atteste la stabilité de la représentation 6D plutôt qu'une performance de suivi. Les deux chiffres ne sont pas comparables entre eux.
 
@@ -1533,7 +1533,7 @@ L'écart de position inférieur ($0{,}42$~cm contre $0{,}67$~cm pour la tâche d
 
 \subsection*{Erreur le long de l'horizon de prédiction}
 
-La Figure~\ref{fig:pp_err_horizon} détaille le profil de dérive le long de l'horizon glissant $k$. L'erreur médiane de position part de $0{,}09$~cm au premier point, identique à celle de la tâche d'alimentation, mais y croît beaucoup plus lentement : $0{,}21$~cm au sixième point contre $0{,}48$~cm, et $0{,}44$~cm au seizième contre $1{,}26$~cm. L'écart interquartile suit la même tendance, atteignant $0{,}35$~cm en fin d'horizon là où la tâche d'alimentation atteint $2{,}02$~cm.
+La Figure~\ref{fig:pp_err_horizon} détaille le profil de dérive le long de l'horizon glissant $k$, en séparant l'erreur de position (Figure~\ref{fig:pp_err_horizon_pos}) et l'erreur de rotation (Figure~\ref{fig:pp_err_horizon_rot}). L'erreur médiane de position part de $0{,}09$~cm au premier point, identique à celle de la tâche d'alimentation, mais y croît beaucoup plus lentement : $0{,}21$~cm au sixième point contre $0{,}48$~cm, et $0{,}44$~cm au seizième contre $1{,}26$~cm. L'écart interquartile suit la même tendance, atteignant $0{,}35$~cm en fin d'horizon là où la tâche d'alimentation atteint $2{,}02$~cm.
 
 Cette dérive trois fois moindre en fin d'horizon est cohérente avec une tâche géométriquement plus contrainte, dont la trajectoire experte suit un arc prescrit entre deux points imposés. Le profil de rotation confirme cette lecture d'une autre manière : il demeure plat sur tout l'horizon, entre $0{,}35$ et $0{,}47^\circ$, sans la croissance monotone observée en position. L'orientation n'étant pas commandée activement par la politique experte, aucune dérive temporelle ne s'y accumule.
 
@@ -1577,7 +1577,7 @@ Le balayage du nombre de pas d'Euler conduit plus haut sur la tâche d'alimentat
 
 La régularité géométrique s'y comporte de la même façon, en partant de plus près (Figure~\ref{fig:pp_fm_structure}) : la rugosité passe de $0{,}80$~cm à $N=1$ à $0{,}23$~cm à $N=5$, pour $0{,}17$~cm chez les démonstrations, et l'excès de longueur d'arc de $9$~\% à $1$~\%. La trajectoire étant plus courte et plus contrainte, l'oscillation à faible nombre de pas y écarte moins du chemin expert qu'en alimentation, où cet excès atteignait $65$~\%. La rectitude des chemins d'intégration est identique, à $1{,}000$ de médiane et $1{,}001$ de moyenne (Figure~\ref{fig:pp_fm_straightness}).
 
-La différence porte sur la déviation \ac{DTW} (Figure~\ref{fig:pp_fm_euler_steps}). Là où elle demeurait plate en alimentation, elle décroît ici de $0{,}65$~cm à $N=1$ à $0{,}45$~cm à $N=5$, soit $30$~\%, avant de se stabiliser. Sur cette tâche, la métrique de fidélité départage donc les faibles valeurs de $N$, et elle place son optimum au même endroit que les critères de régularité. Le coût, lui, croît linéairement comme au banc d'alimentation.
+La différence porte sur la déviation \ac{DTW} (Figure~\ref{fig:pp_fm_euler_steps}, subfigure~\ref{fig:pp_fm_steps_dtw}), tandis que le temps d'inférence (Figure~\ref{fig:pp_fm_steps_temps}) croît linéairement. Là où la déviation demeurait plate en alimentation, elle décroît ici de $0{,}65$~cm à $N=1$ à $0{,}45$~cm à $N=5$, soit $30$~\%, avant de se stabiliser. Sur cette tâche, la métrique de fidélité départage donc les faibles valeurs de $N$, et elle place son optimum au même endroit que les critères de régularité.
 
 La dispersion des générations suit ce profil (Figures~\ref{fig:pp_fm_dispersion_pas} et~\ref{fig:pp_fm_multimodalite_xy}) : elle décroît jusqu'à un minimum à $N=5$ puis remonte légèrement. Les vues dans le plan $XY$ appellent la même lecture qu'en alimentation, l'écart mesuré à $N=1$ relevant de la rugosité des chemins plutôt que de modes distincts.
 

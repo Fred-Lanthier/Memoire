@@ -15,7 +15,7 @@ Cet ordre suit le flux des données, de la perception à la commande : chaque bl
 % =================================================================
 Cette section porte sur la fondation du système : la plateforme expérimentale et l'architecture d'ensemble sur lesquelles tous les modules (\acs{OS}1 à \acs{OS}3) sont implantés et testés. Elle couvre les données d'entrée et de sortie de chacun des modules utilisés pour réaliser l'ensemble des objectifs listés au Chapitre~\ref{sec:Metho}.
 \subsection{Plateforme matérielle et logicielle}\label{subsec:plateforme}
-Le système est développé et vérifié sur un manipulateur Franka Emika Panda à sept degrés de liberté, dont la redondance cinématique est exploitée tant par la cinématique inverse que par le filtre de sécurité. La méthode se transpose à tout manipulateur redondant décrit par un modèle \ac{URDF}, moyennant l'adaptation de trois éléments propres à la plateforme : le modèle \ac{URDF} lui-même, les \ac{SDF} par lien à réentraîner sur ses maillages, et l'interface du contrôleur de vitesse.
+Le système est développé et vérifié sur un manipulateur Franka Emika Panda à sept degrés de liberté, dont la redondance cinématique est exploitée tant par la cinématique inverse que par le filtre de sécurité. La méthode se transpose à tout manipulateur redondant décrit par un modèle \ac{URDF}, moyennant l'adaptation de trois éléments propres à la plateforme : le modèle \ac{URDF} lui-même, les \ac{SDF} par lien à réentraîner sur ses maillages, et l'interface du contrôleur.
 
 Pour la tâche d'alimentation, le robot porte une fourchette fixée à sa pince, intégrée par composition de son modèle \ac{URDF}, et une caméra \ac{RGB-D} Intel RealSense D415 ($640\times480$ pixels) est montée au poignet, répliquant le montage utilisé pour la collecte des démonstrations (Section~\ref{subsec:Protocol}).
 
@@ -24,7 +24,7 @@ L'ensemble logiciel repose sur \ac{ROS}~1 Noetic sous Ubuntu 20.04, la scène é
 Au sein de cet environnement, tous les modules sont implémentés en Python, à l'exception de la lecture d'état du robot, de la cinématique inverse (écrites en C++ avec la bibliothèque \texttt{Pinocchio}~\cite{Carpentier2019Pinocchio}) et du frein réflexe (intégré en C++ dans la boucle temps réel \texttt{ros\_control} à ${\sim}1$~kHz, Section~\ref{subsubsec:reflexe}), afin d'en minimiser la latence. Les composantes d'apprentissage (modèle de Flow Matching, \ac{SDF} de Bernstein, bouclier \ac{CBF}) s'appuient sur \texttt{PyTorch}~2.10 avec \ac{CUDA}~12.6 et s'exécutent sur un unique \ac{GPU} NVIDIA RTX~3090 (24~Go), partagé par l'ensemble des modules. Le serveur de segmentation \ac{SAM}~3, qui charge un modèle de fondation volumineux, demeure un nœud dédié, exposé au reste du système comme un service \ac{ROS} et invoqué à la demande (Section~\ref{subsec:SAM2_tracking}). Les démonstrations simulées sont collectées avec la bibliothèque \textit{ManiSkill~3} (Section~\ref{subsec:Protocol}) et la visualisation s'effectue dans RViz.
 
 \subsection{Architecture modulaire du système}\label{subsec:architecture_modulaire}
-La Figure~\ref{fig:architecture_systeme_final_v12} illustre l'architecture modulaire du système et le trajet des données, des images \ac{RGB-D} jusqu'à la commande de vitesse articulaire. Le flux se sépare en deux chemins dès la perception. Le premier conditionne la génération de trajectoire : la cible, détectée par \ac{SAM}~3 puis suivie par \ac{SAM}~2, est projetée en un nuage de points 3D, fusionnée au maillage de l'outil, et le nuage résultant conditionne le modèle de \textit{Flow Matching}, qui replanifie la trajectoire nominale en boucle fermée. Le second garantit la sécurité : les pixels restants forment le nuage d'obstacles qui, nettoyé puis accumulé dans la carte persistante, alimente le bouclier \ac{CBF}. Celui-ci corrige à la fréquence de commande la trajectoire nominale interpolée par l'exécuteur, puis le frein réflexe re-vérifie la commande maintenue entre deux résolutions avant de l'envoyer au contrôleur de vitesse du robot.
+La Figure~\ref{fig:architecture_systeme_final_v12} illustre l'architecture modulaire du système et le trajet des données, des images \ac{RGB-D} jusqu'à la commande de vitesse articulaire. Le flux se sépare en deux chemins dès la perception. Le premier conditionne la génération de trajectoire : la cible, détectée par \ac{SAM}~3 puis suivie par \ac{SAM}~2, est projetée en un nuage de points 3D, fusionnée au maillage de l'outil, et le nuage résultant conditionne le modèle de \textit{Flow Matching}, qui replanifie la trajectoire nominale en boucle fermée. Le second garantit la sécurité : les pixels restants forment le nuage d'obstacles qui, nettoyé puis accumulé dans la carte persistante, alimente le bouclier \ac{CBF}. Celui-ci corrige à la fréquence de commande la trajectoire nominale interpolée par l'exécuteur, puis le frein réflexe re-vérifie la commande maintenue entre deux résolutions avant de l'envoyer au contrôleur du robot.
 
 Deux liaisons secondaires ferment le système. Le nœud de saisie soude la cible à l'outil au moment du contact et publie le nuage saisi, que le bouclier protège dès lors comme un lien supplémentaire du robot. L'état articulaire mesuré revient par ailleurs à tous les modules par le bus de retour de droite, la boucle physique se refermant à travers la simulation.
 
@@ -111,7 +111,7 @@ Le système comportant de nombreux mécanismes secondaires, le Tableau~\ref{tab:
 \node[plan] (exe)     at (0, -0.2)  {Exécuteur de trajectoire\\interpolation\\{\footnotesize 50~Hz}};
 \node[safe] (cbf)     at (0, -3.8)  {Bouclier \ac{CBF} multi-contraintes\\{\footnotesize 50~Hz}};
 \node[safe] (rfx)     at (0, -6.2)  {Frein réflexe\\re-vérification de la commande\\{\footnotesize $\sim$1~kHz}};
-\node[sim]  (ctrl)    at (0, -9.4) {Contrôleur de vitesse\\Panda / Gazebo};
+\node[sim]  (ctrl)    at (0, -9.4) {Contrôleur\\Panda / Gazebo};
 
 
 % ===================== GROUPES ASYNCHRONES ====================
@@ -414,6 +414,9 @@ Le réseau de vitesse recevant ce conditionnement est le U-Net 1D conditionnel p
 Le segment est ensuite dénormalisé et converti en consignes exécutables : positions absolues par inversion du centrage, matrices de rotation par orthonormalisation de Gram--Schmidt des six composantes d'orientation~\cite{Zhou2020Continuity}, état de la pince par seuillage. Le résultat, une séquence de $H=16$ poses de l'outil et de commandes de pince, est transmis à la chaîne de la Section~\ref{sec:Conversion}. La génération est répétée en boucle fermée, à $5$~Hz pour les deux tâches : chaque segment est régénéré depuis l'observation courante et remplace le précédent, l'exécution reprenant à son premier point de passage, ce qui fait en sorte que seuls les premiers pas de l'horizon sont donc parcourus.
 
 Cette cadence n'est pas dictée par le coût de la génération, qui en autorise une bien supérieure (Section~\ref{sec:res_temps}), mais par la capacité de suivi du robot. Chaque regénération déplace la consigne et redéfinit la direction du feedforward ; au-delà de quelques hertz, ces sauts se succèdent plus vite que le contrôleur ne les rattrape, l'erreur de poursuite se creuse et la vitesse effectivement exécutée s'effondre par annulation entre consignes successives. La replanification est donc délibérément bridée à la cadence que le suivi tolère, la marge de calcul restante étant laissée aux modules qui partagent le \ac{GPU}.
+
+\paragraph{Accélération par graphes CUDA.}
+L'inférence s'appuie sur la compilation du réseau de vitesse $u_t^{\theta}$ au moyen de la commande \texttt{torch.compile} avec l'option \texttt{mode="reduce-overhead"}. Le réseau U-Net 1D présentant des dimensions fixes et aucun branchement dépendant des données, il est capturé sous forme de graphe CUDA sans interruption du flux de calcul. La génération d'un segment en $N=5$ pas d'Euler exécute ainsi cinq fois ce graphe pour l'évaluation du champ de vitesses.
 
 
 \subsection{Entraînement du modèle}
@@ -733,11 +736,11 @@ Cette formulation garantit que la condition originale $\nabla h_l^{\top}\dot{\ma
 
 Au lieu d'imposer un majorant théorique pessimiste, la borne $\varepsilon_{\mathrm{p}}$ est calibrée sur la distribution empirique des perturbations projetées (Chapitre~\ref{sec:Theme3}) et intégrée comme une hypothèse surveillée à l'exécution. À chaque pas de temps, le moniteur en ligne calcule la perturbation réelle projetée sur les gradients des contraintes actives. Tout dépassement de $\varepsilon_{\mathrm{p}}$ déclenche immédiatement une intervention du frein réflexe (Section~\ref{subsubsec:reflexe}), qui retient la commande jusqu'à ce que la perturbation réintègre l'enveloppe certifiée. La sécurité globale est ainsi garantie par cette assurance en temps réel (Annexe~\ref{annexe:surveillance}).
 
-\paragraph{Régime échantillonné.} Entre deux résolutions, la commande est maintenue par un bloqueur d'ordre zéro et l'état parcourt un segment rectiligne à vitesse constante. La condition instantanée ne garantit donc la sécurité qu'aux instants d'échantillonnage, et non en continu sur toute la période. Suivant l'approche des CBF échantillonnés de Breeden et al.~\cite{Breeden2022Sampled}, chaque demi-espace actif est resserré d'un terme dépendant de la vitesse :
+\paragraph{Régime échantillonné.} Entre deux résolutions, la commande est maintenue par un bloqueur d'ordre zéro. La condition instantanée ne garantit donc la sécurité qu'aux instants d'échantillonnage, et non en continu sur toute la période. Suivant l'approche des CBF échantillonnés de Breeden et al.~\cite{Breeden2022Sampled}, chaque demi-espace actif est resserré d'un terme dépendant de la vitesse :
 \begin{equation}\label{eq:sampled_margin}
 \mu_l(\dot{\mathbf{q}}) = \tfrac{1}{2}\,L_l\,\|\dot{\mathbf{q}}\|^{2}\,T,
 \end{equation}
-où $L_l$ est la constante de Lipschitz du gradient du lien $l$ (Annexe~\ref{annexe:lipschitz}) et $T$ la durée de maintien de la commande. Cette durée intervient ici comme un majorant : le resserrement doit couvrir l'intervalle réellement parcouru sous bloqueur d'ordre zéro, de sorte que toute période effective inférieure à $T$ rend la contrainte plus conservatrice que nécessaire, jamais plus permissive. La valeur retenue, $T = 20$~ms, est la période nominale de la boucle de commande. La période effectivement mesurée lui est supérieure (Section~\ref{sec:res_temps}) : le resserrement $\mu_l$ est alors sous-dimensionné, et la couverture de l'intervalle de maintien revient au frein réflexe, dont l'horizon est mesuré plutôt que supposé (Section~\ref{subsubsec:reflexe}).
+où $L_l$ est la constante de Lipschitz du gradient du lien $l$ (Annexe~\ref{annexe:lipschitz}) et $T$ la durée de maintien de la commande. Cette durée intervient ici comme un majorant : le resserrement doit couvrir l'intervalle réellement parcouru sous bloqueur d'ordre zéro, de sorte que toute période effective inférieure à $T$ rend la contrainte plus conservatrice que nécessaire, jamais plus permissive. La valeur retenue, $T = 20$~ms, est la période nominale de la boucle de commande.
 
 La contrainte effectivement résolue dans le QP rassemble alors les deux resserrements :
 \begin{equation}\label{eq:constraint_full}
@@ -924,7 +927,7 @@ Hors de ces régimes dégradés, l'admissibilité de la commande émise est une 
 \begin{equation}
 \dot{\mathbf{q}}_{\mathrm{final}} = \operatorname{sat}\!\left(\dot{\mathbf{q}}_{f} + \Delta\dot{\mathbf{q}}_{\mathrm{rep}}\right).
 \end{equation}
-Comme la saturation finale peut à son tour amputer la réparation, le filtre réévalue une dernière fois l'admissibilité sur la vitesse réellement transmise $\dot{\mathbf{q}}_{\mathrm{final}}$. Le pire résidu parmi l'ensemble des contraintes actives est alors extrait et enregistré sous le signal de télémétrie \texttt{constr\_\allowbreak final} (Chapitre~\ref{sec:Theme3}). Ainsi, une éventuelle violation résiduelle est empiriquement mesurée en direct plutôt que supposée nulle, et sa résorption s'effectue automatiquement lors des cycles suivants (Annexe~\ref{annexe:cbf_details}).
+Comme la saturation finale peut à son tour amputer la réparation, le filtre réévalue une dernière fois l'admissibilité sur la vitesse réellement transmise $\dot{\mathbf{q}}_{\mathrm{final}}$. Le pire résidu parmi l'ensemble des contraintes actives est alors extrait et enregistré. Ainsi, une éventuelle violation résiduelle est empiriquement mesurée en direct plutôt que supposée nulle, et sa résorption s'effectue automatiquement lors des cycles suivants (Annexe~\ref{annexe:cbf_details}).
 
 La vitesse réelle exécutée n'est donc pas strictement identique à la vitesse commandée. Cet écart dynamique est précisément pris en compte par le modèle de perturbation $\dot{\mathbf{q}} = \dot{\mathbf{q}}_{\mathrm{cmd}} + \boldsymbol{\delta}$ et le resserrement $\varepsilon_{\mathrm{p}}\|\nabla h_l\|$ (Section~\ref{subsec:contrainte}), puis surveillé en ligne par le moniteur. Toutefois, la garantie de cette commande entre deux instants de calcul successifs nécessite un contrôle continu, présenté ci-après.
 
@@ -991,6 +994,26 @@ Le dégagement postural exploite la redondance cinématique du manipulateur (noy
 où $\mathbf{N}$ désigne le projecteur amorti sur le noyau de la Jacobienne du lien contrôlé, $\rho(h) = \operatorname{clip}\!\big((h_{\mathrm{ns}}-h)/h_{\mathrm{ns}},\,0,\,1\big)$ la rampe de proximité active pour $h < h_{\mathrm{ns}}$, et $a = \min\!\big(\|\mathbf{N}\nabla h\|/(\sigma_{\mathrm{clear}}\,\|\nabla h\|),\,1\big)$ la rampe d'autorité. Le seuil $\sigma_{\mathrm{clear}} = 0{,}30$ permet à l'autorité de saturer à pleine puissance ($a=1$) dès que $30\,\%$ de la norme du gradient est disponible dans le noyau, puis de décroître linéairement vers zéro si la composante dans le noyau devient négligeable. 
 
 Le bras s'écarte ainsi de l'obstacle par un pivot naturel du coude, à pose de l'effecteur inchangée au premier ordre, tout en continuant de suivre la trajectoire de tâche au lieu de se bloquer contre la frontière. La rampe $a$ s'éteint automatiquement lorsque la contrainte touche l'effecteur, désactivant le terme lorsqu'aucune déformation posturale ne peut la desserrer.
+
+\subsection{Exécution sur le processeur graphique}\label{subsec:graphes_cuda}
+Toutes les opérations de cette section, de la sélection des $K$ points critiques à l'intégration de la commande publiée, s'exécutent sur le processeur graphique sous forme de graphes \ac{CUDA}. Un tel graphe capture une fois pour toutes, à l'initialisation, la séquence d'opérations d'un cycle, puis la rejoue ensuite en un seul lancement : le coût de soumission, payé opération par opération dans un flot d'exécution ordinaire, disparaît. C'est cette capture qui impose la dimension fixe des tenseurs et l'absence de branchement dynamique invoquées aux Sections~\ref{subsec:barriere} et~\ref{subsec:projection}, deux exigences autrement arbitraires. Le Tableau~\ref{tab:cuda_graphs} récapitule le contenu de chacun.
+
+Le frein réflexe fait exception. Il ne s'exécute pas sur le processeur graphique mais en C++ au sein du contrôleur temps réel (Section~\ref{subsubsec:reflexe}), ce qui l'affranchit de la latence d'ordonnancement et de la contention que ces graphes servent précisément à contenir.
+
+\begin{table}[htpb]
+\centering
+\caption{Contenu des deux graphes \acs{CUDA} du filtre de sécurité. Chacun est capturé une seule fois à l'initialisation, puis rejoué à chaque cycle de son fil d'exécution.}
+\label{tab:cuda_graphs}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{7.4cm}>{\raggedright\arraybackslash}p{2.6cm}}
+\toprule
+\textbf{Graphe} & \textbf{Opérations capturées} & \textbf{Fil d'exécution} \\
+\midrule
+Sélection des points critiques (Section~\ref{subsec:selection}) & Cinématique directe des liens protégés, évaluation du \ac{SDF} appris sur la carte persistante, sélection des $K$ points de plus faible distance & Prétraitement, cadence propre \\ \addlinespace[0.3em]
+Cycle de commande (Sections~\ref{subsec:contrainte} à~\ref{subsec:minima}) & Composition du dégagement postural, resserrements $\mu_l$ et $\varepsilon_{\mathrm{p}}$, évaluation de la barrière et de son gradient, balayages de Dykstra, saturation et lissage, réparation, intégration de la commande publiée & Boucle de commande, $50$~Hz \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{table}[htpb]
 \centering
