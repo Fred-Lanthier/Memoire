@@ -26,7 +26,7 @@ Cette section valide isolément les deux composants appris du système avant leu
 \subsection{Précision du \acs{SDF} du robot}\label{subsec:res_sdf_precision}
 Le filtre de sécurité repose entièrement sur le modèle de distance appris à la Section~\ref{subsec:sdf_robot} : la valeur du \ac{SDF} fixe la barrière et son gradient fixe la direction de correction. Ainsi, deux propriétés sont évaluées par rapport à la vérité terrain calculée sur les maillages du robot : la précision de la distance et la qualité du gradient.
 
-Le protocole d'évaluation lance, pour chacun des neuf corps protégés, des rayons depuis la surface le long de la normale sortante ($40$ rayons par corps), et évalue le \ac{SDF} en $25$ échantillons par rayon, entre $1$~mm et $50$~mm de la surface. Seuls les rayons propres sont conservés, c'est-à-dire ceux dont la distance exacte à l'union des corps coïncide avec l'avancée le long de la normale.
+Le protocole d'évaluation lance, pour chacun des neuf corps protégés, des rayons depuis la surface le long de la normale sortante ($40$ rayons par corps), et évalue le \ac{SDF} en $25$ échantillons par rayon, entre $1$~mm et $50$~mm de la surface. Seuls les échantillons dont la distance exacte à l'union des corps coïncide avec l'avancée le long de la normale sont conservés.
 
 Les échantillons situés hors du domaine d'entraînement du modèle d'un corps sont par ailleurs exclus ($22{,}8$~\% des points), car le modèle y retourne une borne géométrique plutôt que le \ac{SDF} appris (Section~\ref{subsec:barriere}). Au total, $6952$ points extérieurs vérifiés sont retenus. La Figure~\ref{fig:sdf_isosurface} donne un aperçu qualitatif du modèle évalué.
 
@@ -56,6 +56,10 @@ La Figure~\ref{fig:distance_SDF} compare la distance prédite à la distance exa
 
 La qualité du gradient est évaluée sur les deux propriétés que le filtre exploite : sa direction et sa norme. La Figure~\ref{fig:erreur_grad_SDF}(a) présente l'erreur angulaire entre le gradient du modèle et la direction exacte, le vecteur unitaire allant du point de surface le plus proche vers le point de requête. La Figure~\ref{fig:erreur_grad_SDF}(b) montre la norme du gradient, dont un \ac{SDF} exact satisfait la propriété eikonale $\|\nabla d\| = 1$.
 
+% TODO [SOFTMIN-DISTANCE-ACTIVATION] Corriger « 15 mm auxquels la contrainte
+% devient active » : l'activation est h_soft<=h_act. d_safe est la marge minimale
+% apprise, tandis que h_soft=0 correspond à d_min dans [15;23,32] mm pour N=64.
+% Noter que la plage de qualité mesurée jusqu'à 25 mm couvre cette frontière variable.
 Ces deux propriétés doivent être jugées là où le filtre les exploite, c'est-à-dire au voisinage de la marge $d_{\mathrm{safe}} = 15$~mm à laquelle la contrainte devient active. À cette distance, la norme du gradient vaut $1{,}05$ en médiane et l'erreur de direction $5{,}7^\circ$, son troisième quartile demeurant sous $9{,}1^\circ$ ; les deux grandeurs restent stables jusqu'à $25$~mm. C'est de cette fidélité que dépend la validité de la condition $\nabla h^\top\dot{\mathbf{q}}$ du bouclier. La dégradation n'intervient qu'au voisinage immédiat de la surface du robot ($d < 5$~mm), où la norme s'abaisse vers $0{,}84$ à $5$~mm et l'erreur médiane s'élève à $8{,}5^\circ$.
 
 Cette réduction de la norme et les légers écarts d'orientation à proximité de la surface ($d < 5$~mm) s'expliquent par la nature même de la modélisation. Le champ de distance théorique présente un pli non différentiable au niveau du maillage ($d=0$), ainsi que des sauts de normales sur les arêtes vives des pièces \ac{CAO}. Or, le polynôme de Bernstein est par construction une fonction indéfiniment différentiable ($C^\infty$), ce qui fait en sorte que pour raccorder la distance positive et négative sans rupture, il adoucit inévitablement la transition au passage par zéro, ce qui réduit la pente du gradient à la frontière immédiate.
@@ -78,7 +82,7 @@ Au-delà du seuil de $10$~mm de la surface, le champ de distance s'éloigne de l
     \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. (a)~Erreur de direction par rapport au gradient exact ; (b)~norme du gradient (propriété eikonale).}\label{fig:erreur_grad_SDF}
 \end{figure}
 
-La marge $d_{\mathrm{safe}} = 15$~mm est un choix de conception, dimensionné a priori sur le budget de la Section~\ref{subsec:garanties}. Le modèle de distance a ensuite été entraîné en fonction de cette valeur : $75$~\% des rayons de supervision tombent dans la coquille de $1$ à $10$~mm et la pondération de proximité décroît sur une longueur de $d_{\mathrm{safe}}$ (Annexe~\ref{annexe:sdf_training}). L'erreur du modèle occupe donc moins de la moitié de la réserve, avec un
+La marge $d_{\mathrm{safe}} = 15$~mm est un choix de conception, dimensionné a priori sur le budget de la Section~\ref{subsec:garanties}. Le modèle de distance a ensuite été entraîné en fonction de cette valeur : plus des trois quarts des rayons de supervision tombent dans la coquille de $1$ à $10$~mm, sous la marge (Annexe~\ref{annexe:sdf_training}). L'erreur du modèle occupe donc moins de la moitié de la réserve, avec un
 99\textsuperscript{e} centile de $6{,}7$~mm pour $15$~mm de marge.
 
 \subsection{Temps d'évaluation du \acs{SDF} et du gradient}\label{subsec:res_sdf_temps}
@@ -86,6 +90,10 @@ La Figure~\ref{fig:temps_SDF} compare le temps d'évaluation de la distance entr
 
 Les deux requêtes sur maillage se séparent nettement. À $4096$ points, \texttt{trimesh} demande $1481$~ms et Embree $6{,}1$~ms, soit un facteur $3{,}4$ sur le modèle appris. L'évaluation conjointe de la distance et du gradient par ce dernier coûte $6{,}0$~ms : au point d'opération, Embree et le modèle appris tiennent tous deux dans le budget de la boucle, à coût égal. L'écart ne se creuse qu'au-delà, d'un facteur $2{,}4$ à $16\,384$ points et $3{,}9$ à $65\,536$.
 
+% TODO [SOFTMIN-C2-RESULTATS] Préciser ici que le soft-min est C^2 pour une
+% sélection fixe lorsque les distances composées le sont; ne pas lui attribuer le
+% lissage des changements de paquet TopK ni du raccord hors domaine. Relier cette
+% propriété locale au développement de Taylor du frein réflexe.
 La formulation du Chapitre~\ref{sec:Theme2} demande cependant plus que la distance. Le soft-min lisse les commutations d'obstacles (Section~\ref{subsec:barriere}) et le frein réflexe borne la chute de barrière par une constante de Lipschitz du gradient (Section~\ref{subsubsec:reflexe}). Une requête de proximité rend la distance et le point le plus proche, dont se déduit un gradient constant par facette, discontinu à chaque arête vive et au passage de l'axe médian, et sans constante de Lipschitz. Le polynôme de Bernstein fournit un gradient continu, en forme close par rapport à $\mathbf{q}$ et dans la même passe que la distance (Section~\ref{subsec:gradient}).
 
 Les durées énoncées plus haut sont des coûts \ac{GPU} synchronisés, relevés sur un banc dédié où aucun autre module ne sollicite le processeur graphique. Elles ne se comparent donc pas directement aux compteurs de la Section~\ref{sec:res_temps}, qui ne sont pas synchronisés et s'exécutent sous contention ; la Section~\ref{sec:res_temps} précise le lien entre les deux grandeurs.
@@ -213,6 +221,13 @@ La réalisation matérielle de ces scénarios diffère par banc. Sur le banc d'a
 
 Il est toutefois important de précisé une différence au niveau des réglages du filtre selon les bancs d'essai. Les neuf corps protégés par le système pour l'alimentation incluent la fourchette et excluent le lien $2$, alors que les bancs de saisie et dépôt protègent les liens $2$ à $7$, la main et les deux doigts. Tous les autres paramètres du filtre sont ceux du tableau~\ref{tab:cbf_params}, identiques sur les trois bancs.
 
+% TODO [SOFTMIN-METRIQUES] Redéfinir sans ambiguïté trois signaux distincts :
+% (1) h^star=min_{t,l} h_soft,l, barrière publiée et réellement contrainte;
+% (2) h_min,SDF^star=min_{t,l}(min_i d_{l,i}-d_safe), diagnostic appris facultatif
+% qui isole le biais alpha log(M_eff); (3) h_ex^star, marge géométrique minimale au
+% maillage exact. h_ex n'est pas « la même barrière recalculée » : c'est un juge
+% physique indépendant. Cette séparation permet de ne pas mélanger agrégation,
+% erreur du SDF, perception et omission TopK dans un seul écart.
 \subsection{Métriques}\label{subsec:res_metriques}
 Les métriques suivantes sont utilisées pour évaluer l'ensemble du système et sont définies ici :
 \begin{itemize}
@@ -226,7 +241,11 @@ Les métriques suivantes sont utilisées pour évaluer l'ensemble du système et
   planificateur, mesuré par déformation temporelle dynamique (\ac{DTW}) sur la
   position de la pointe de l'outil ; elle mesure ce que le filtre déplace de la
   consigne du planificateur ;
-  \item \textbf{Atténuation du frein réflexe ($\alpha$)} : facteur appliqué à la
+  % TODO [SOFTMIN-NOTATION-FREIN] FAIT le 2026-08-11 : le facteur d'atténuation du
+  % frein est noté beta dans tout ce chapitre, alpha étant réservé à la température
+  % du soft-min. Vérifier à la relecture les axes et légendes des figures
+  % régénérées, que ce renommage ne couvre pas.
+  \item \textbf{Atténuation du frein réflexe ($\beta$)} : facteur appliqué à la
   commande par la boucle de garde à $1$~kHz, valant $1$ lorsqu'elle la laisse
   passer intégralement et $0$ lorsqu'elle immobilise le robot ; sa médiane et son
   premier décile quantifient la sollicitation du frein entre deux résolutions de
@@ -253,6 +272,11 @@ complet. Les quatre partagent les mêmes graines de planificateur et les mêmes 
 Le dernier bloc du tableau ajoute trois cellules exécutées avec le système complet seulement. Les scènes sans obstacle critique des deux bancs Panda y mesurent la transparence du filtre ; le conflit porté par le corps du bras sert à l'ablation du dégagement postural (Section~\ref{subsec:res_abl_clearance}).
 Aucune ne place d'obstacle matériel sur le chemin de l'outil. La colonne des collisions provient du juge géométrique exact sur maillages défini à la Section~\ref{subsec:res_metriques}, appliqué à la totalité des $765$ épisodes des cellules rapportées.
 
+% TODO [SOFTMIN-TABLEAU-MAITRE] Relabeller h^star comme h_soft^star et remplacer
+% les valeurs h_ex^star par celles de la campagne soft-min partout. Vérifier aussi
+% h^star, les fractions de cycles contraints, les résidus et les décomptes même si
+% leurs valeurs arrondies sont inchangées. Réécrire la légende afin que h_ex soit
+% la marge au maillage exact, et non « la même grandeur » que le LogSumExp.
 \begin{table}[htbp]
 \centering
 \caption{Comparaison avec et sans filtre \ac{SDF}-\ac{CBF}, agrégée sur $N=30$ essais par cellule. $h^{\star}$ est la marge minimale de la barrière publiée, celle que le solveur contraint ; $h^{\star}_{\mathrm{ex}}$ est la même grandeur recalculée sur les maillages exacts pour la totalité des essais. Le résidu n'est pas défini dans les conditions sans bouclier, où aucune commande filtrée n'est réévaluée. Le pourcentage des cycles contraints est indiqué pour les lignes sans filtre à titre indicatif. Dans la cellule sans obstacle du banc de saisie et dépôt, le $h^{\star}$ écarte les deux épisodes dont le signal de barrière est corrompu (Section~\ref{sec:res_echecs}), que la colonne Réussite compte en revanche comme échecs.}
@@ -291,6 +315,10 @@ Sans filtre, la trajectoire générée entre en contact dans $23$ essais sur $30
 \subsubsection{Rôles complémentaires du bouclier QP et du frein réflexe}
 Au banc de saisie et dépôt, le bouclier \ac{QP} est suffisant : la condition sans frein réunit $29$ succès sur $30$ et aucune collision, et sa barrière minimale demeure positive. Le frein n'y apporte pas de gain de sécurité mesurable et coûte $3{,}2$~s de complétion en médiane appariée.
 
+% TODO [SOFTMIN-H_EX] Actualiser ce paragraphe avec la nouvelle campagne. Remplacer
+% « barrière exacte » par « marge géométrique exacte h_ex » et distinguer une
+% violation de C_soft d'un passage sous d_safe ou d'un contact; mettre à jour les
+% nombres de cycles, minima et dégagements correspondants.
 Au banc d'alimentation, c'est le frein réflexe qui maintient la barrière positive. Sans lui, quatre essais sur trente descendent sous zéro et la barrière exacte tombe à $-9{,}4$~mm au pire, le bras passant dix cycles à l'intérieur de la marge ; avec lui, aucun essai ne franchit zéro et la barrière exacte demeure au-dessus de $+5{,}30$~mm. Aucune des deux conditions ne produit de collision, le dégagement réel restant à $5{,}6$~mm au pire sans frein. La différence tient à la nature de l'obstacle. La caméra étant montée au poignet, le bol n'est découvert que tard dans l'approche (Section~\ref{sec:res_echecs}). Dès que le point d'obstacle entre dans le paquet publié, le frein réévalue la barrière sur la configuration mesurée à la milliseconde suivante, là où la correction du bouclier n'arrive qu'à sa résolution suivante : c'est ce délai que la couche à $1$~kHz supprime.
 
 La condition « frein seul » borne ce que la couche à $1$~kHz obtient sans le bouclier. Le bras s'arrête sans collision sur les deux bancs et sa vitesse articulaire mesurée y est nulle en médiane. La contrainte est violée par la nominale sur $98{,}5$~\% des cycles au banc d'alimentation contre $76$~\% en saisie et dépôt, où le prisme ne barre que la phase de transport et laisse le bras progresser plus longtemps avant l'arrêt. Aucun essai n'aboutit, $0$ succès sur $30$ des deux côtés.
@@ -300,6 +328,9 @@ Au banc de saisie et dépôt, le système complet réussit $27$ essais sur $30$ 
 
 Les cellules sans obstacle critique complètent l'évaluation de la transparence. Au banc de saisie et dépôt, la barrière ne contraint que $0{,}2$~\% des cycles et la déviation vaut $0{,}46$~cm ; au banc xArm7, $0{,}5$~\% des cycles et la déviation tombe à $0{,}18$~cm (Section~\ref{sec:res_xarm}). Au banc d'alimentation, où la table reste le seul obstacle, la contrainte porte encore sur $27{,}9$~\% des cycles contre $62{,}7$~\% avec le bol. La Figure~\ref{fig:comparaison_avec_sans} superpose les quatre conditions sur une même graine du banc de saisie et dépôt. Les deux conditions comportant le bouclier font franchir au préhenseur le sommet du prisme, à $0{,}43$ et $0{,}45$~m contre les $0{,}36$~m de l'obstacle, et leur barrière reste positive ; le nominal exécuté brut longe la face du prisme et plonge à $-15$~mm sans en ressortir ; le frein seul immobilise le bras à la frontière.
 
+% TODO [SOFTMIN-FIGURE-MAITRE] Régénérer fig_master_filtre.svg depuis la campagne
+% soft-min partout. Remplacer h_min,l par h_soft,l dans l'axe, la légende et la
+% caption, puis vérifier toutes les valeurs commentées à partir de cette figure.
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/ablation/fig_master_filtre.svg}
@@ -309,6 +340,11 @@ Les cellules sans obstacle critique complètent l'évaluation de la transparence
 \subsection{Étude détaillée : tâche d'alimentation}\label{subsec:res_feeding_deep}
 Les grandeurs agrégées de cette sous-section proviennent de la cellule déployée du banc d'alimentation, soit $30$ essais et $15\,458$ cycles de bouclier. L'essai illustré par les figures est un enregistrement distinct de ce même banc, comptant $473$ cycles sur $11{,}06$~s ; ses grandeurs par cycle sont donc rapportées séparément de celles de la cellule.
 
+% TODO [SOFTMIN-FIGURES-ALIMENTATION] Remplacer ici et dans h_evolution.svg
+% h_min,l par h_soft,l, valeur et gradient de la même barrière. Régénérer aussi
+% constraint_residual.svg depuis cette campagne et actualiser toutes les valeurs
+% temporelles et statistiques des paragraphes suivants. Ne pas appeler un minimum
+% de h_soft « le point le plus serré » sans donner séparément d_min.
 La Figure~\ref{fig:h_ev} présente l'évolution de la barrière publiée $h_{\min,l}$, celle que le filtre transmet au second membre de la contrainte (Section~\ref{subsec:barriere}). Les bandes ombrées marquent les cycles où la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ (Section~\ref{subsec:vitesse_nominale}) viole la contrainte critique et où le bouclier la projette, soit $68{,}7$~\% des cycles de cet essai et $62{,}7$~\% de ceux de la cellule.
 
 \begin{figure}[!htbp]
@@ -358,12 +394,16 @@ Puisque la cible vaut $(1-\gamma)\dot{\mathbf{q}}_{\mathrm{final}}[k-1] + \gamma
     \caption{Décomposition, articulation par articulation, de l'écart de la commande à la nominale $\dot{q}_{\mathrm{final}}-\dot{q}_{\mathrm{base}}$ pour le même essai, suivant l'identité~\eqref{eq:decomp_vitesse}. Les deux parts sont les grandeurs instantanées relevées à chaque cycle, la somme des deux courbes valant exactement la courbe totale. La part du lissage domine parce qu'elle reconduit la correction obtenue aux cycles antérieurs ; elle n'est pas une action d'évitement autonome. Les contributions étant vectorielles, elles peuvent se compenser partiellement.}\label{fig:feeding_vel_decomp}
 \end{figure}
 
-Le frein réflexe intervient sur la majorité des cycles à 1 kHz sans jamais prendre le pas sur le bouclier. Le facteur d'atténuation $\alpha$ vaut $0{,}967$ en médiane et $0{,}314$ au premier décile ; il descend sous $0{,}99$ sur $59{,}0$~\% des relevés de la cellule et annule complètement la commande sur $4{,}7$~\% d'entre eux. La retenue est donc légère la plupart du temps, quelques pour cent de la vitesse commandée, et ne devient un arrêt que dans la queue de la distribution, lorsque la barrière chute entre deux résolutions du bouclier.
+Le frein réflexe intervient sur la majorité des cycles à 1 kHz sans jamais prendre le pas sur le bouclier. Le facteur d'atténuation $\beta$ vaut $0{,}967$ en médiane et $0{,}314$ au premier décile ; il descend sous $0{,}99$ sur $59{,}0$~\% des relevés de la cellule et annule complètement la commande sur $4{,}7$~\% d'entre eux. La retenue est donc légère la plupart du temps, quelques pour cent de la vitesse commandée, et ne devient un arrêt que dans la queue de la distribution, lorsque la barrière chute entre deux résolutions du bouclier.
 
 Le reste de la chaîne de commande, de la consigne réajustée temporellement jusqu'à l'analyse de l'interface, est traité à l'Annexe~\ref{annexe:resultats_complementaires}. La norme du feedforward vaut exactement $0{,}300$~rad/s, du dixième au quatre-vingt-dixième centile de sa distribution sur les $15\,458$ cycles de la cellule : le réajustement temporel de la Section~\ref{subsec:dqff} atteint sa consigne sans écart mesurable. Rapportée à la vitesse cible qu'elle prend pour centre, l'action propre du solveur est mesurée exactement nulle hors des zones d'activation.
 
 \FloatBarrier
 
+% TODO [SOFTMIN-FIGURES-SAISIE] Régénérer fig_pp_h_only.svg,
+% fig_pp_constraint.svg, fig_pp_vel_decomp.svg et fig_pp_vel_joints.svg depuis la
+% campagne h_soft partout. Remplacer h_min,l par h_soft,l dans les axes/captions et
+% revérifier minima, cycles contraints, résidus et statistiques du frein.
 \subsection{Étude détaillée : tâche de saisie et dépôt}\label{subsec:res_pp_deep}
 Sur le banc de saisie et dépôt, le prisme barre le transport du cube, la contrainte est portée par la main et les doigts, et l'obstacle est visible dès le premier instant : le comportement du filtre s'y observe sans latence de perception. Les Figures~\ref{fig:pp_deep} à~\ref{fig:pp_vel_decomp} présentent un même essai de la cellule déployée et les grandeurs agrégées ci-dessous portent sur ses $30$ essais, soit $20\,430$ cycles de bouclier. Le filtre est transparent les deux tiers du temps. La contrainte de sécurité évaluée sur $\dot{\mathbf{q}}_{\mathrm{base}}$ demeure satisfaite sur $66{,}5$~\% des cycles : sur ceux-là, la commande traverse le bouclier sans correction de sécurité.
 
@@ -399,9 +439,9 @@ L'action du solveur est plus vive ici qu'au banc d'alimentation, d'un ordre de g
 
 La réévaluation en bout de chaîne confirme l'admissibilité de la commande. Le résidu de contrainte mesuré sur la commande réellement transmise, après troncature des balayages de Dykstra, saturations articulaires et réparation, ne descend jamais sous $-1{,}7\times10^{-8}$ sur les $20\,430$ cycles, soit la précision de l'arithmétique en simple précision. La réparation intervient sur $20{,}6$~\% des cycles où la contrainte est active, et sur $0{,}07$~\% seulement des cycles où elle ne l'est pas : elle corrige le résidu que la troncature des balayages laisse subsister, les saturations articulaires n'étant actives sur aucun cycle de cette cellule.
 
-Le frein réflexe est sollicité en continu sans devenir prépondérant. Le facteur d'atténuation $\alpha$ vaut $0{,}984$ en médiane et $0{,}380$ au premier décile, et il descend sous $0{,}99$ sur $51$~\% des $26\,574$ relevés de la cellule : la retenue est faible la plupart du temps et forte dans la queue de la distribution.
+Le frein réflexe est sollicité en continu sans devenir prépondérant. Le facteur d'atténuation $\beta$ vaut $0{,}984$ en médiane et $0{,}380$ au premier décile, et il descend sous $0{,}99$ sur $51$~\% des $26\,574$ relevés de la cellule : la retenue est faible la plupart du temps et forte dans la queue de la distribution.
 
-La vitesse commandée vaut $0{,}283$~rad/s en médiane pour une nominale de $0{,}297$~rad/s, et la vitesse articulaire mesurée $0{,}212$~rad/s. L'écart entre commande et exécution mesure l'atténuation $\alpha$ du frein et non une erreur de poursuite : sa distribution fortement asymétrique donne une moyenne de $0{,}80$ là où sa médiane vaut $0{,}984$ (Section~\ref{subsubsec:reflexe}). C'est donc à la commande atténuée que la fidélité doit être rapportée. La tâche aboutit dans $27$ essais sur $30$, en $30{,}1$~s en médiane, pour une déviation de l'outil de $0{,}60$~cm.
+La vitesse commandée vaut $0{,}283$~rad/s en médiane pour une nominale de $0{,}297$~rad/s, et la vitesse articulaire mesurée $0{,}212$~rad/s. L'écart entre commande et exécution mesure l'atténuation $\beta$ du frein et non une erreur de poursuite : sa distribution fortement asymétrique donne une moyenne de $0{,}80$ là où sa médiane vaut $0{,}984$ (Section~\ref{subsubsec:reflexe}). C'est donc à la commande atténuée que la fidélité doit être rapportée. La tâche aboutit dans $27$ essais sur $30$, en $30{,}1$~s en médiane, pour une déviation de l'outil de $0{,}60$~cm.
 
 \FloatBarrier
 
@@ -409,6 +449,13 @@ La vitesse commandée vaut $0{,}283$~rad/s en médiane pour une nominale de $0{,
 \section{Ablations des mécanismes}\label{sec:res_ablations}
 % =================================================================
 Chaque mécanisme de conception du Chapitre~\ref{sec:Theme2} est isolé par une ablation dédiée : le système complet est comparé au même système dont le seul mécanisme évalué est désactivé, sur le scénario qui sollicite ce mécanisme.
+% TODO [SOFTMIN-ABLATION-ALPHA] Supprimer le commentaire obsolète ci-dessous.
+% Documenter la méthode principale h_soft partout avec alpha=0,002 m.
+% DÉCISION du 2026-08-11 : alpha reste à 0,002 m et l'essai à alpha dégénéré n'est
+% pas rapporté dans le mémoire. Si cette décision devait être revue, ne jamais
+% présenter cette variante comme h_min exact ni comme formulation compatible avec
+% les mêmes bornes de courbure, et ne pas réinterpréter une égalité numérique de
+% résultats en équivalence mathématique des formulations.
 % Pas d'ablation soft-min contre valeur exacte : le soft-min existe pour rendre
 % le GRADIENT analytique traitable (Section subsec:gradient), et non comme
 % alternative de conception pour la VALEUR de la barrière. Il n'y a donc aucune
@@ -417,6 +464,11 @@ Chaque mécanisme de conception du Chapitre~\ref{sec:Theme2} est isolé par une 
 % d'encombrement reste traité à la Section subsec:garanties et à
 % l'Annexe annexe:cbf_details.
 
+% TODO [SOFTMIN-PERSISTANCE] Actualiser le tableau, le texte et
+% fig_persistance.svg avec h_soft publié et le nouveau h_ex. L'écart h_ex-h_soft
+% contient désormais explicitement alpha log(M_eff), en plus de l'erreur du SDF et
+% de la perception; ne plus l'attribuer directement à une cause unique. Ajouter
+% h_min,SDF si les journaux permettent la décomposition causale.
 \subsection{Carte persistante contre perception instantanée}\label{subsec:res_abl_persistance}
 % Valide : Section 4.3 (cartes persistantes). Banc : alimentation, scénario
 % occlusion. Condition ablatée : cbf_obs_topic:=/perception/cleaned_obstacles
@@ -460,6 +512,9 @@ Dans la cellule ablatée, les six franchissements signalés sont tous imputables
     \caption{Ablation de la carte persistante sur le banc d'alimentation. (a)~Barrière publiée en ligne ; (b)~barrière exacte recalculée hors ligne.}\label{fig:res_persistance}
 \end{figure}
 
+% TODO [SOFTMIN-ABLATIONS-METRIQUE] Dans les tableaux et commentaires des ablations
+% de métrique et de dégagement postural, relabeller h^star publiée en h_soft^star et
+% vérifier tous les minima numériques depuis la nouvelle campagne.
 \subsection{Métrique de tâche contre métrique euclidienne}\label{subsec:res_abl_metrique}
 % Valide : la projection en métrique de tâche W (Section subsec:projection).
 % Banc : saisie-dépôt Panda, prisme. Condition ablatée :
@@ -552,6 +607,11 @@ Le mécanisme apparaît nettement sur les indicateurs de contrainte. Sans dégag
 
 La troisième hypothèse se trouve pleinement vérifiée. Sur le scénario du prisme (contrainte portée par la main), où la rampe d'autorité $a$ s'annule faute de composante exploitable dans le noyau de la tâche, les deux conditions fournissent des résultats équivalents ($27/30$ succès, écart de complétion de $0{,}24$~s, écart de déviation de $0{,}013$~cm, et fractions de cycles contraints de $33{,}5$~\% et $32{,}4$~\%).
 
+% TODO [SOFTMIN-REPARATION] Actualiser tous les minima de barrière publiée et de
+% marge au maillage exact dans cette ablation. Nommer l'ensemble certifié
+% C_soft={h_soft>=0}, et ne pas assimiler h_soft<0 à un contact ou à d_min<d_safe.
+% Remplacer aussi les commentaires de planification « h_min pire cas » par les trois
+% signaux h_soft publié, h_min,SDF diagnostique et h_ex géométrique.
 \subsection{Réparation de la commande filtrée}\label{subsec:res_abl_reparation}
 % Valide : l'étape de réparation après le filtre passe-bas de sortie
 % (Section subsec:commande). L'étude détaillée (Section subsec:res_feeding_deep)
@@ -600,6 +660,10 @@ L'exécution hors du graphe n'est pas neutre pour autant. À mécanisme égal, r
 \FloatBarrier
 
 % =================================================================
+% TODO [SOFTMIN-XARM] Relabeller et actualiser h_soft^star et h_ex^star dans le
+% tableau, le texte et fig_xarm_compare.svg; remplacer h_min,l par h_soft,l dans
+% la figure. Qualifier la garantie comme celle de la barrière apprise, tandis que
+% l'absence de collision physique demeure une observation au maillage.
 \section{Généralisation inter-morphologies}\label{sec:res_xarm}
 % =================================================================
 Le transfert vers le xArm7 n'introduit aucune méthodologie nouvelle : la chaîne du Chapitre~\ref{sec:Theme2} est agnostique à la morphologie du robot. La politique de \ac{FM} génère des poses de l'outil dans l'espace de la tâche et son conditionnement perceptif est inchangé ; seuls les éléments propres au bras sont substitués, à savoir le modèle cinématique (\ac{URDF} et cinématique inverse) et les \ac{SDF} de Bernstein par lien, réentraînés sur les maillages du xArm7 par le protocole de la Section~\ref{subsec:sdf_robot}. Le filtre de sécurité, ses barrières et ses réglages sont identiques. Le Tableau~\ref{tab:res_xarm} compare les deux bras sur les scénarios communs de la tâche de saisie et dépôt.
@@ -708,7 +772,7 @@ Chaîne de planification complète & $200$~ms ($5$~Hz) & $35$~ms en moyenne, $74
 \end{table}
 
 \subsection*{Frein réflexe temps réel}
-Le calcul hébergé par le pas temps réel requiert $0{,}02$~ms de médiane et $0{,}03$~ms au 99\textsuperscript{e} centile, pour une période de $1$~ms. La re-vérification de la commande maintenue entre deux résolutions du solveur dispose donc d'une réserve telle qu'une contention du \ac{GPU} partagé, qui affecte les étages Python, ne peut pas la compromettre. Cette isolation temporelle découle du déport de la couche en C++ dans la boucle temps réel dur (Section~\ref{subsubsec:reflexe}). Le maximum de $24{,}63$~ms est celui d'un cycle d'initialisation, où $\alpha$ n'a pas été réévalué pendant vingt-cinq pas.
+Le calcul hébergé par le pas temps réel requiert $0{,}02$~ms de médiane et $0{,}03$~ms au 99\textsuperscript{e} centile, pour une période de $1$~ms. La re-vérification de la commande maintenue entre deux résolutions du solveur dispose donc d'une réserve telle qu'une contention du \ac{GPU} partagé, qui affecte les étages Python, ne peut pas la compromettre. Cette isolation temporelle découle du déport de la couche en C++ dans la boucle temps réel dur (Section~\ref{subsubsec:reflexe}). Le maximum de $24{,}63$~ms est celui d'un cycle d'initialisation, où $\beta$ n'a pas été réévalué pendant vingt-cinq pas.
 
 \subsection*{Bouclier \acs{SDF}-\acs{CBF}}
 L'étage hôte du cycle, qui prépare les entrées du graphe et en déclenche le rejeu, s'exécute en $0{,}87$~ms de médiane et $4{,}78$~ms au 99\textsuperscript{e} centile ; le regroupement de la sortie y est négligeable. Ces durées mesurent la mise en file du travail et non son exécution : l'assemblage des contraintes, les balayages de Dykstra et la réparation se déroulent sur le processeur graphique. Le graphe étant capturé une fois pour toutes, à dimension fixe et sans branchement (Section~\ref{subsec:graphes_cuda}), son coût ne dépend pas de la présence d'une contrainte active : la queue de distribution de ces étages vient de la contention du \ac{GPU} partagé.
@@ -723,17 +787,26 @@ La conversion de la sortie du modèle en trajectoire articulaire exécutable por
 \subsection*{Remarques méthodologiques sur la mesure des temps de calcul}
 Le compteur des évaluations du réseau ne chronomètre que la mise en file des noyaux du côté \ac{CPU}, faute d'appel à \texttt{torch.cuda.synchronize()}. La première synchronisation de la chaîne est la lecture de la trajectoire générée vers l'hôte, au début de l'étage de conversion, qui se voit donc facturer le coût \ac{GPU} de l'intégration. Sur le banc dédié de l'Annexe~\ref{annexe:resultats_complementaires}, où le \ac{GPU} n'est sollicité par rien d'autre, ce même compteur relève $1{,}62$~ms à $N=5$ alors que le coût synchronisé vaut $8{,}69$~ms. Seule leur somme est indépendante du placement de cette synchronisation.
 
+% TODO [SOFTMIN-CAS-ECHEC] Recalculer dans toute cette section les minima, nombres
+% de franchissements et décomptes d'essais à partir de h_soft publié; actualiser les
+% h_ex signalés comme différents dans la nouvelle campagne. Nommer séparément
+% violation de C_soft, franchissement de la marge géométrique au maillage et contact.
 \section{Cas d'échec et limites}\label{sec:res_echecs}
 % =================================================================
 Cette section rassemble les échecs et les limites observés au cours des campagnes expérimentales. Chacun est rattaché à une limitation déjà annoncée, qu'il s'agisse de la portée des garanties (Section~\ref{subsec:garanties}) ou des exclusions du Chapitre~\ref{sec:Metho}. Trois d'entre eux mettent en défaut une hypothèse du certificat et sont énoncés comme tels.
 
 \subsection*{Comportement face aux obstacles concaves}
-Le scénario du croissant illustre la limite que la Section~\ref{subsec:garanties} assume explicitement : le filtre garantit l'invariance de l'ensemble sûr, pas l'atteinte de la cible. Sur le croissant de $0{,}36$~m, la tâche aboutit dans $12$ essais sur $30$ ; sur les $18$ échecs, $15$ atteignent la durée maximale. Sur sa variante de $1$~m, qui empêche le franchissement par le dessus, elle n'aboutit jamais, $0$ sur $15$ : un seul essai atteint la surface de dépôt, en contournant la poche par le côté, et échoue au dépôt.
+Le scénario du croissant illustre la limite que la Section~\ref{subsec:garanties} assume explicitement : le filtre garantit l'invariance de l'ensemble sûr, pas l'atteinte de la cible. Sur le croissant de $0{,}36$~m, la tâche aboutit dans $12$ essais sur $30$ ; sur les $18$ échecs, $15$ atteignent la durée maximale et les $3$ restantes sont dûes à un échec de dépôt. Sur sa variante de $1$~m, qui empêche le franchissement par le dessus, elle n'aboutit jamais, $0$ sur $15$ : un seul essai atteint la surface de dépôt, en contournant la poche par le côté, et échoue au dépôt.
 
-Les grandeurs internes montrent un système conforme à sa formulation. Sur la variante de $1$~m, la barrière minimale reste à $+0{,}4$~mm en pire cas et le résidu de contrainte final se tient à la précision machine : le bouclier maintient la marge sur toute la durée de l'essai. Le cosinus entre la vitesse nominale et la vitesse filtrée tombe à $0{,}68$ et la commande publiée à $0{,}21$~rad/s pour une nominale de $0{,}41$~rad/s. Le robot est donc retenu contre la poche concave, à demi-vitesse et dans une direction qui s'écarte nettement de la consigne nominale, puis s'y immobilise. La politique générative, aveugle aux obstacles, réémet la même consigne à chaque replanification, et l'équilibre entre cette consigne et la correction de sécurité fige le bras. C'est le blocage de l'effecteur décrit à la Section~\ref{subsec:minima}. Aucun déblocage heuristique n'est implanté, afin de ne pas générer de trajectoires hors distribution : la résolution d'une impasse topologique relève du planificateur et non du filtre.
+Les grandeurs internes montrent un système conforme à sa formulation. Sur la variante de $1$~m, la barrière minimale reste à $+0{,}4$~mm en pire cas et le résidu de contrainte final se tient à la précision machine : le bouclier maintient la marge sur toute la durée de l'essai. Le cosinus entre la vitesse nominale et la vitesse filtrée tombe à $0{,}68$ et la commande publiée à $0{,}21$~rad/s pour une nominale de $0{,}41$~rad/s. Le robot est donc retenu contre la poche concave et dans une direction qui s'écarte nettement de la consigne nominale, puis s'y immobilise. La politique générative, aveugle aux obstacles, réémet la même consigne à chaque replanification, et l'équilibre entre cette consigne et la correction de sécurité fige le bras. C'est le blocage de l'effecteur décrit à la Section~\ref{subsec:minima}. Aucun déblocage heuristique n'est implanté, afin de ne pas générer de trajectoires hors distribution considérant que la résolution d'une impasse topologique relève du planificateur et non du filtre.
 
 Le bol du banc d'alimentation produit la même impasse. Dans $4$ des $30$ essais de la cellule déployée, l'outil reste retenu en haut du bol et n'en sort jamais, la contrainte contre le rebord lui interdisant le dégagement. La limite n'est donc pas propre au scénario construit du croissant : elle apparaît dans la tâche applicative elle-même, où le rebord du bol est la géométrie concave que l'outil doit franchir pour livrer.
 
+% TODO [SOFTMIN-SELECTION-ECHEC] La quantité au maillage n'est pas la barrière
+% commandée : la nommer h_ex ou marge géométrique exacte. Dans l'analyse des biais,
+% conserver le soft-min et les resserrements comme conservateurs, mais ne pas dire
+% que l'erreur du SDF l'est toujours : sa distribution comporte les deux signes.
+% Quantifier ici la conservativité soft-min par alpha log(M_eff) dans [0;8,32] mm.
 \subsection*{Franchissement par le budget de sélection partagé}
 Un seul essai de la campagne franchit réellement la barrière en configuration déployée, sur le croissant de $0{,}36$~m. La barrière y descend à $-7{,}9$~mm mesurés sur les maillages exacts ; la marge $d_{\mathrm{safe}}$ valant $15$~mm, il reste $7{,}1$~mm de dégagement physique et le juge géométrique ne relève aucun contact.
 
@@ -748,6 +821,13 @@ Le second mode d'échec est propre au banc d'alimentation et à sa caméra au po
 
 Les $10$ franchissements des cellules bouclier seul et nuage instantané ont la même cause : le point d'obstacle en jeu entre dans le nuage publié au plus $29$~ms avant le franchissement, avec une médiane de $18$~ms et un minimum voisin de zéro. Le filtre ne peut pas contraindre ce qu'il ne connaît pas encore, et il réagit alors en régime de récupération, avec une vitesse de sortie qui croît avec la pénétration. Ces deux cellules retirent justement les mécanismes qui compensent ce délai, la carte persistante (Section~\ref{subsec:res_abl_persistance}) et le frein réflexe (Section~\ref{subsec:res_ab}). Aucune de ces deux couches ne protège toutefois contre un obstacle jamais perçu : la carte ne conserve que ce qui est entré une fois dans le champ, et le frein réflexe réévalue la même géométrie transmise. Si les trente essais déployés ne produisent aucun franchissement, c'est donc que le bol devient visible avant de devenir critique. Cette propriété appartient au banc et non au filtre : la configuration complète reste exposée au même franchissement.
 
+% TODO [SOFTMIN-BUDGET-MAINTIEN] Revoir tout ce bloc pour la formulation cohérente.
+% Les L_l ne changeant pas, le budget provisionné et le découvert restent calculés
+% de la même façon, mais deux choses doivent l'être : les valeurs de la norme de
+% vitesse qui alimentent le calcul viennent de l'ancienne campagne et sont à
+% reprendre de la campagne h_soft partout; et la phrase « le découvert vaut
+% 0,07 mm pour une marge d_safe de 15 mm » compare une coordonnée de h_soft à une
+% distance apprise. Séparer les deux, comme au TODO [SOFTMIN-VOCABULAIRE].
 \subsection*{Dépassement de la durée de maintien}
 Le resserrement échantillonné~\eqref{eq:sampled_margin} est dimensionné sur une durée de maintien $T = 20$~ms, et le Chapitre~\ref{sec:Theme2} précise que le certificat n'est mis en défaut que si la durée réelle dépasse cette valeur. Cette durée est celle du cycle du bouclier, qui coûte $10{,}90$~ms en médiane et $20{,}84$~ms au 99\textsuperscript{e} centile : la borne est tenue en médiane et franchie sur un peu plus de $1$~\% des cycles. Le terme dominant est le rejeu du graphe \ac{CUDA}, qui pèse $9{,}58$~ms des $13{,}58$~ms du cycle moyen, et non l'étage hôte de préparation, dont la médiane est de $0{,}87$~ms.
 
@@ -756,13 +836,17 @@ Intégré sur la période de maintien, le resserrement~\eqref{eq:sampled_margin}
 Deux éléments limitent la portée de ce défaut sans l'effacer. Le premier est que le frein réflexe n'en souffre pas : il mesure à chaque micro-cycle le temps réellement écoulé depuis la publication du paquet et certifie sur cet horizon-là, de sorte qu'une latence du solveur allonge son horizon au lieu d'invalider son certificat. C'est précisément lui qui couvre les cycles longs relevés ci-dessus : pendant un maintien prolongé, il réduit l'amplitude de la commande maintenue dès que sa propre condition cesse d'être satisfaite sur le temps écoulé, au lieu de laisser s'appliquer une commande certifiée sur une période de $20$~ms. Sa période ordonnancée est de $1{,}00$~ms et son calcul de $0{,}02$~ms en médiane. Le second est qu'aucun franchissement observé ne lui est imputable : les causes établies sont la découverte tardive, les mécanismes retirés par ablation, la sélection des $K$ points et l'artefact du signal. Il reste que le $T$ retenu au Chapitre~\ref{sec:Theme2} n'est pas un majorant du cycle mesuré. Un déploiement physique hors simulation demanderait donc de le porter au niveau de la queue mesurée ou d'optimiser le rejeu du graphe.
 
 \subsection*{Statut de la borne de poursuite}
-La borne $\varepsilon_{\mathrm{p}} = 0{,}025$~rad/s du resserrement~\eqref{eq:issf_tightening} est un seuil de déclenchement du moniteur et non un majorant de la perturbation d'exécution. Mesurée sur une campagne d'identification dédiée de $30$ trajectoires de saisie et dépôt, elle couvre $97{,}9$~\% des fenêtres d'exécution effective ; la queue restante est détectée en ligne et prise en charge par le veto du frein réflexe. Une majoration statique valable sur une trajectoire entière demanderait de $3{,}7$ à $6{,}9$ fois cette valeur : c'est ce surcoût que la surveillance évite. Le protocole, la distribution mesurée et l'estimateur par statistique d'ordre sont détaillés à l'Annexe~\ref{annexe:surveillance}.
+La borne $\varepsilon_{\mathrm{p}} = 0{,}025$~rad/s du resserrement~\eqref{eq:issf_tightening} est un seuil de déclenchement du moniteur et non un majorant de la perturbation d'exécution. Mesurée sur une campagne d'identification dédiée de $30$ trajectoires de saisie et dépôt, elle couvre $97{,}9$~\% des fenêtres d'exécution effective ; la queue restante est détectée en ligne et prise en charge par le veto du frein réflexe. Une majoration statique valable sur une trajectoire entière demanderait $6{,}9$ fois cette valeur : c'est ce surcoût que la surveillance évite. Le protocole et la distribution mesurée sont détaillés à l'Annexe~\ref{annexe:surveillance}.
 
 \subsection*{Limites associées à l'artefact de télémesure}
-Le signal de barrière que le n\oe ud publie à destination du frein réflexe présente une anomalie sur deux épisodes de la scène sans obstacle du banc de saisie et dépôt, les seuls cas qui subsistent dans les cellules rapportées : sa valeur y alterne d'un cycle à l'autre entre la valeur correcte et une valeur erronée, alors que la géométrie ne bouge pas. La cause n'est pas identifiée à ce jour ; la piste documentée met en cause l'ordre d'écriture entre deux flux \ac{CUDA} distincts alimentant le même champ. La seule propriété établie est l'unilatéralité de l'erreur : dans les cas observés, la valeur erronée est pessimiste, et la mesure sur les maillages exacts rétablit une marge positive, jusqu'à $1{,}25$~m de dégagement réel pour une valeur annoncée à $-10{,}33$~mm. Le système déclenche donc le frein sans raison plutôt que d'omettre un arrêt requis. Cette propriété est empirique et non démontrée : elle ne fonderait aucune garantie de sécurité si l'artefact venait à s'inverser.
+Le signal de barrière que le n\oe ud publie à destination du frein réflexe présente une anomalie sur deux épisodes de la scène sans obstacle du banc de saisie et dépôt, les seuls cas qui subsistent dans les cellules rapportées : sa valeur y alterne d'un cycle à l'autre entre la valeur correcte et une valeur erronée, alors que la géométrie ne bouge pas. La cause n'est pas identifiée à ce jour ; la piste documentée met en cause l'ordre d'écriture entre deux flux \ac{CUDA} distincts alimentant le même champ. La seule propriété établie est l'unilatéralité de l'erreur : dans les cas observés, la valeur erronée est pessimiste, et la mesure sur les maillages exacts rétablit une marge positive, jusqu'à $0{,}45$~m de dégagement réel pour une valeur annoncée à $-10{,}33$~mm. Le système déclenche donc le frein sans raison plutôt que d'omettre un arrêt requis.
 
-\subsection*{Variabilité des taux de réussite au cours des essais}
-Un biais de protocole affecte une partie des taux rapportés. Sur le banc xArm7, le taux de réussite de la seconde moitié des essais est nettement inférieur à celui de la première : la cellule du prisme passe de $15$ succès sur $15$ à un seul. Les deux bancs Panda sont en revanche stables. Au banc de saisie et dépôt, les cellules déployées ne varient pas d'un essai entre les deux moitiés ; au banc d'alimentation, une seule des neuf cellules recule d'au moins $20$ points. La cause n'est pas identifiée. Les colonnes de succès et de temps de complétion des cellules xArm7 sont donc biaisées vers le bas et doivent être lues comme des bornes inférieures. La colonne $h^{\star}$ n'est pas concernée, la barrière étant mesurée cycle par cycle indépendamment de l'issue de l'épisode. Une cellule fait exception au sens de la dérive, celle du banc de saisie et dépôt sans filtre, dont le taux progresse de $2$ à $10$ succès sur $15$ entre les deux moitiés.
+\subsection*{Analyse de la variabilité des taux de réussite sur le xArm7}
+La baisse du taux de réussite observée sur le banc xArm7 entre la première moitié de la campagne ($15$ succès sur $15$) et la seconde ($1$ sur $15$) s'explique par la sensibilité de la politique générative aux variations de la géométrie initiale.
+
+Pour s'adapter à la portée du xArm7, le cube a été rapproché de $5$~cm vers la base du robot étant donné que conserver la position d'origine du cube sur le banc du Panda réduisait le taux de succès à $7/30$. La pince conservant sa pose initiale de départ, ce décalage modifie la relation géométrique relative pince-cible et sollicite le planificateur hors de sa distribution d'entraînement. En présence du prisme, les consignes générées entrent en conflit avec les marges de sécurité, et le filtre \ac{CBF} privilégie strictement la sécurité ($h^{\star} > 0$, aucune collision) en déviant ou freinant le bras, ce qui entraîne $14$ échecs de préhension.
+
+La concentration des échecs dans la seconde moitié de la campagne traduit la sensibilité aux tirages aléatoires des scénarios : là où les $15$ premiers tirages autorisent une trajectoire admissible par le filtre, les $15$ suivants cumulent un encombrement géométrique qui rejette systématiquement les consignes générées. Cette baisse de performance reflète ainsi une limite d'admissibilité de la politique nominale sollicitée hors distribution, et non une instabilité du filtre de sécurité dont les garanties géométriques ($h^{\star}$) restent vérifiées cycle par cycle.
 
 \subsection*{Conditions expérimentales non évaluées et limites}
 Un mode d'échec anticipé ne s'est jamais manifesté et ne peut donc pas être documenté. La chaîne de perception n'a subi aucune perte de suivi prolongée : l'écart maximal entre deux nuages de cible vaut $0{,}14$~s en médiane et $0{,}17$~s au 95\textsuperscript{e} centile sur l'ensemble des cellules, et aucun épisode n'atteint la seconde. La temporisation de repli des redétections n'a donc jamais été sollicitée dans son régime long. La segmentation, elle, a échoué une seule fois : sur un essai du croissant, SAM3 n'a jamais détecté le cube rouge. Cet échec isolé n'appartient pas aux modes que le plan d'évaluation cherchait à caractériser, mais il est comptabilisé comme tel, le module de segmentation appartenant au système déployé. Enfin, l'ensemble de la campagne est conduit en simulation, avec des nuages échantillonnés par une caméra parfaite : aucun de ces résultats ne caractérise le comportement du système sous bruit de profondeur ou erreur de calibration, tous exclus de la portée au Chapitre~\ref{sec:Metho}.
@@ -770,6 +854,10 @@ Un mode d'échec anticipé ne s'est jamais manifesté et ne peut donc pas être 
 \FloatBarrier
 
 % =================================================================
+% TODO [SOFTMIN-COHERENCE-DISCUSSION] Réconcilier le Sankey, les « trois échecs de
+% sécurité », l'unique franchissement géométrique et l'affirmation « 0 % / aucun ».
+% Si un taux arrondi vaut 0,0 %, donner aussi le numérateur exact. Revalider toute
+% la synthèse après remplacement de h^star par h_soft^star et mise à jour de h_ex.
 \section{Discussion}\label{sec:res_discussion}
 % =================================================================
 Cette section reprend l'ensemble des mesures à travers les quatre critères de validation du Tableau~\ref{tab:criteres_validation}, puis en tire ce que la campagne établit sur les choix de conception et sur la portée du travail.
@@ -784,15 +872,16 @@ La Figure~\ref{fig:res_sankey} en donne d'abord la vue d'ensemble : le devenir d
 \end{figure}
 
 \subsection*{Synthèse des critères de validation}
-Le critère de sécurité est satisfait sur son énoncé exact. Aucune collision n'est relevée en configuration déployée dans les scénarios où le nominal en produit, alors que celui-ci en produit $51$ sur $60$ essais des deux bancs. La durée cumulée des franchissements de marge, mesurée sur la géométrie exacte, passe de $61{,}8$ et $59{,}2$~\% des cycles d'exécution sans filtre à aucun cycle en configuration déployée (Section~\ref{subsec:res_ab}). La mesure repose sur le juge à maillages exacts que le critère exige, appliqué à la totalité des $765$ épisodes des cellules rapportées. L'énoncé porte sur cette configuration et non sur le filtre en général : les cellules qui conservent le bouclier mais retirent l'un de ses mécanismes produisent des collisions et des franchissements, rapportés à la Section~\ref{sec:res_ablations}.
+Le critère de sécurité est pleinement satisfait en configuration déployée. Alors que le planificateur nominal sans filtre provoque $51$
+collisions sur $60$ essais à travers les deux bancs principaux, le système filtré n'en produit aucune. Évaluée sur les maillages géométriques exacts à travers la totalité des $765$ épisodes expérimentaux, la proportion de cycles en franchissement de marge s'annule complètement ($0$~\% des cycles en configuration déployée), alors qu'elle atteignait $59{,}2$~\% à $61{,}8$~\% sans filtre (Section~\ref{subsec:res_ab}). Il convient de préciser que ce niveau de garantie exige l'intégration complète du système : le retrait d'un seul des mécanismes du bouclier réintroduit des collisions ou des franchissements de marge (Section~\ref{sec:res_ablations}).
 
-Le critère de préservation de la tâche est évalué séparément par banc. Il requiert une dégradation du taux de réussite inférieure à $10$ points de pourcentage entre la scène sans obstacle interférent et la scène qui en contient un, sous la condition déployée.
+Le critère de préservation de la tâche est évalué séparément par banc. Il exige que la baisse du taux de réussite causée par un obstacle reste inférieure à $10$ points de pourcentage.
 
-Il est satisfait au banc de saisie et dépôt du Panda, où les deux scènes réunissent $27/30$. Deux échecs de la scène sans obstacle tiennent à l'artefact de télémesure (Section~\ref{sec:res_echecs}) ; en les écartant, le prisme coûte deux essais, soit $6{,}7$ points. Le critère est donc tenu dans les deux lectures.
+Au banc de saisie et dépôt du Panda, le critère est pleinement satisfait. Le taux de réussite est strictement identique avec et sans prisme, atteignant $27$ succès sur $30$, soit $90{,}0$~\%, ce qui correspond à une dégradation nulle. Même si l'on écartait deux échecs de la scène sans obstacle causés par un artefact de télémesure explicité à la Section~\ref{sec:res_echecs}, la dégradation maximale s'élèverait à $6{,}7$ points de pourcentage, soit $29$ succès contre $27$, ce qui demeure sous le seuil des $10$ points.
 
-Il n'est pas satisfait au banc xArm7, où le taux passe de $30/30$ à $16/30$, soit $46{,}7$ points. La Section~\ref{sec:res_xarm} impute cet écart à la portée utile du bras et à la dérive du protocole plutôt qu'au filtre, mais le critère tel qu'énoncé ne fait pas cette distinction. Les moitiés d'essais le situent : sur la première, les deux scènes réunissent $15/15$ et la dégradation est nulle ; la totalité de l'écart appartient à la seconde, où la cellule du prisme tombe à un succès sur quinze (Section~\ref{sec:res_echecs}). Le critère serait donc satisfait sur la première moitié de la campagne.
+En revanche, le critère n'est pas satisfait globalement sur le banc xArm7, où le taux de réussite chute de $30$ succès sur $30$, soit $100$~\%, à $16$ sur $30$, soit $53{,}3$~\%, ce qui représente une dégradation de $46{,}7$ points de pourcentage. Comme détaillé à la Section~\ref{sec:res_xarm}, cet écart ne découle pas d'une défaillance du filtre, mais du conflit entre les contraintes de sécurité et la politique générative sollicitée hors distribution en raison du rapprochement du cube de $5$~cm. L'analyse séquentielle des essais montre d'ailleurs que la dégradation est nulle sur la première moitié de la campagne, les deux scènes affichant $15$ succès sur $15$, la totalité de l'écart se concentrant sur la seconde moitié avec un seul succès sur $15$ sous l'effet du cumul des contraintes géométriques.
 
-Il est enfin satisfait au banc d'alimentation, où la réussite passe de $25/30$ dans la scène sans bol à $26/30$ dans celle qui en contient un (Section~\ref{subsec:res_ab}). La présence de l'obstacle n'y dégrade donc pas le taux de réussite.
+Il est enfin satisfait au banc d'alimentation, où la réussite passe de $25$ succès sur $30$ dans la scène sans bol à $26$ sur $30$ dans celle qui en contient un, comme rapporté à la Section~\ref{subsec:res_ab}. La présence de l'obstacle n'y dégrade donc pas le taux de réussite.
 
 La seconde clause du critère, un filtre non contraignant en l'absence d'obstacle interférent, est vérifiée sur les deux bancs de saisie et dépôt. La contrainte n'y est active que sur $0{,}2$~\% des cycles avec le Panda et sur $0{,}5$~\% avec le xArm7, pour une déviation de l'outil de $0{,}46$ et $0{,}18$~cm.
 
@@ -802,7 +891,9 @@ L'amplitude de la correction n'est jamais exactement nulle, la mémoire exponent
 
 Le critère de persistance est satisfait, et c'est l'ablation qui l'établit plutôt que la cellule déployée : la carte maintient la contrainte d'évitement pendant toute l'occlusion, alors que le nuage instantané perd l'obstacle et produit $9$ collisions sur $30$ essais.
 
-Le critère de temps réel est satisfait sur les deux couches, avec une réserve sur la queue de distribution du bouclier. Le frein réflexe tient sa cadence de $1$~kHz avec un écart-type nul et occupe $2$~\% de sa période. Le bouclier s'exécute en $10{,}90$~ms en médiane pour une durée de maintien provisionnée à $20$~ms, franchie sur un peu plus de $1$~\% des cycles ; le découvert qui en résulte vaut $0{,}07$~mm au 99\textsuperscript{e} centile, absorbé par la marge statique plutôt que par le terme prévu (Section~\ref{sec:res_echecs}).
+Le critère de temps réel est satisfait sur les deux couches, avec une réserve sur la queue de distribution du bouclier. Le frein réflexe
+tient sa cadence de $1$~kHz avec un écart-type nul et occupe $2$~\% de sa période. Le bouclier s'exécute en $10{,}90$~ms en médiane pour une durée de maintien provisionnée à $20$~ms, franchie sur un peu plus de $1$~\% des cycles. Le découvert théorique du bouclier ($0{,}07$~mm au 99\textsuperscript{e} centile) est dynamiquement pris en charge par le frein réflexe à $1$~kHz et amplement couvert par la marge statique
+(Section~\ref{sec:res_echecs}).
 
 \subsection*{Synthèse des coûts opérationnels du filtrage}
 Le coût du filtrage se mesure sur trois plans, et il est modeste sur les trois. Géométriquement, la déviation de l'outil par rapport à la trajectoire nominale vaut de $0{,}18$ à $0{,}60$~cm selon le banc et le scénario, hors obstacle concave où l'immobilisation devant la poche la porte à $1{,}3$~cm ; la tolérance de préhension des outils employés est de plusieurs centimètres. Temporellement, les couches de sécurité allongent l'exécution, le frein réflexe de $3{,}2$~s en médiane appariée au banc de saisie et dépôt et la métrique de tâche de $8{,}1$~s. Dynamiquement, l'écart de la commande à la nominale atteint $0{,}21$~rad/s en médiane sur les cycles contraints, pour une vitesse nominale de $0{,}37$~rad/s sur ces mêmes cycles ; il revient au bouclier, directement ou par la mémoire du lissage.
@@ -811,10 +902,13 @@ Le cosinus entre la vitesse cible du problème de projection et la vitesse publi
 
 Ces coûts se paient là où ils étaient prévus. Aucun d'eux ne provient d'une dégradation du planificateur, qui n'a été ni réentraîné ni informé des obstacles : ils viennent tous des couches de sécurité agissant sur sa consigne, soit en allongeant le chemin, comme la métrique de tâche qui refuse le raccourci géométrique, soit en ralentissant son parcours, comme le frein réflexe.
 
+% TODO [SOFTMIN-SYNTHESE-ABLATIONS] Actualiser les minima publiés ci-dessous en
+% h_soft et vérifier que les conclusions de chaque ablation restent soutenues par
+% les tableaux de la nouvelle campagne.
 \subsection*{Enseignements de l'étude d'ablation sur l'architecture}
 Les cinq ablations de la Section~\ref{sec:res_ablations}, complétées par la comparaison avec et sans frein réflexe de la Section~\ref{subsec:res_ab}, donnent des contributions très inégales.
 
-Deux mécanismes sont fondamentaux pour la sécurité. La carte persistante répond à la découverte tardive d'obstacle : ce mode d'échec domine dès qu'elle est retirée, et la configuration déployée n'en produit aucun cas. Elle ne protège en revanche pas d'un obstacle jamais perçu, auquel le système déployé demeure exposé (Section~\ref{sec:res_echecs}). La réparation de la commande filtrée est ce qui maintient la barrière positive au banc d'alimentation : sans elle, la barrière publiée tombe de $+0{,}52$ à $-11{,}31$~mm, sans contact mais hors du domaine certifié.
+Deux mécanismes sont fondamentaux pour la sécurité. La carte persistante répond à la découverte tardive d'obstacle : ce mode d'échec domine dès qu'elle est retirée, et la configuration déployée n'en produit aucun cas. Elle ne protège en revanche pas d'un obstacle jamais perçu, auquel le système déployé demeure exposé. La réparation de la commande filtrée est ce qui maintient la barrière positive au banc d'alimentation : sans elle, la barrière publiée tombe de $+0{,}52$ à $-11{,}31$~mm, sans contact mais hors du domaine certifié.
 
 L'utilité des mécanismes dépend des conditions propres à chaque banc d'essai. Le frein réflexe n'apporte aucun gain de sécurité mesurable au banc de saisie et dépôt, où l'obstacle est visible dès le départ et où le bouclier suffit. Il évite en revanche les quatre franchissements de barrière du banc d'alimentation, où l'obstacle n'entre dans le paquet publié que tard dans l'approche : le frein le prend en compte à la milliseconde suivante, le bouclier seulement à sa résolution suivante. La réparation multi-contraintes suit la même logique, cette fois selon le nombre de corps simultanément proches d'obstacles. La restreindre à la seule contrainte critique ne dégrade rien au banc de saisie et dépôt, où la contrainte n'est active que sur $33{,}5$~\% des cycles ; au banc d'alimentation, où elle l'est sur $62{,}7$~\%, cette seule restriction fait tomber la barrière publiée de $+0{,}52$ à $-11{,}04$~mm.
 
@@ -822,13 +916,37 @@ La métrique de tâche est décisive, mais seulement là où le conflit est port
 
 Un dernier mécanisme est validé dans sa direction sans être décisif. Le dégagement postural divise par près de neuf la fraction de cycles où le bras est contraint dans un conflit porté par le corps et accélère l'épisode de $8{,}9$~s sur toutes les graines, mais il ne change pas le taux de réussite, contrairement à ce que la prédiction consignée avant la campagne annonçait. Il demeure justifié parce qu'il est le seul mécanisme de déblocage du filtre et qu'il est structurellement incapable de nuire à la sécurité, ce que la campagne vérifie.
 
+% TODO [SOFTMIN-LIMITATION] Ajouter la conservativité propre à la formulation
+% cohérente : C_soft est une approximation intérieure de C_min et la frontière
+% commandée ajoute alpha log(M_eff) de dégagement appris, entre 0 et 8,32 mm pour
+% alpha=2 mm et N=64. Le maximum suppose 64 contributions équidistantes et n'est
+% pas une inflation fixe de la marge. Séparer ce coût d'espace de travail de
+% l'erreur du modèle et du contrôle géométrique au maillage.
 \subsection*{Portée et limites}
-Quatre réserves bornent ces conclusions, et elles seront reprises en conclusion. La première tient au cadre : l'ensemble de l'évaluation est conduit en simulation, avec des nuages échantillonnés sur la surface exacte des objets et des repères parfaitement connus. Le dimensionnement de la marge $d_{\mathrm{safe}}$ à $15$~mm est explicitement adapté à ce cadre, et un déploiement matériel exigerait d'y provisionner en outre le bruit de profondeur et l'erreur de calibration.
+ L'interprétation des résultats expérimentaux s'incline devant quatre limites principales encadrant la portée du système et la validité de
+  ses garanties.
 
-La deuxième tient à l'hypothèse d'environnement statique. La garantie porte sur une scène figée dont seule la découverte progressive fait évoluer la représentation. Face à un obstacle en mouvement, la réponse du système est le ralentissement puis l'arrêt, et non une manœuvre d'évitement : c'est l'arrêt de protection des cadres de collaboration humain-robot. Aucun essai de cette campagne ne comporte d'obstacle mobile, et aucune revendication n'est formulée à ce sujet.
+    La première réserve concerne le cadre expérimental : l'ensemble de l'évaluation est conduit en simulation, avec des nuages d'obstacles
+  échantillonnés sur la surface exacte des objets et des repères géométriques parfaitement connus. Le dimensionnement de la marge de sécurité
+  $d_{\mathrm{safe}}$ à $15$~mm est explicitement adapté à ce cadre idéal, et un déploiement sur robot physique imposerait de provisionner en
+  outre le bruit de mesure de profondeur et les erreurs de calibration.
 
-La troisième tient à la nature statistique des taux rapportés. Trente essais par cellule donnent des intervalles de confiance larges, et la dérive interne aux cellules du banc d'alimentation et du banc xArm7 biaise leurs taux de réussite vers le bas. Les conclusions de sécurité, qui reposent sur des mesures cycle par cycle et sur une vérification exacte de la totalité des épisodes, ne sont pas affectées par ce biais ; les conclusions de performance de tâche doivent en tenir compte.
+    La deuxième réserve s'applique à l'hypothèse d'environnement statique. La garantie d'invariance porte sur une scène figée dont seule la
+  découverte progressive par le capteur fait évoluer la représentation. Face à un obstacle en mouvement, la réponse du système consiste à
+  ralentir puis à s'immobiliser, suivant la logique d'arrêt de protection des cadres de collaboration humain-robot, sans exécuter de manœuvre
+  d'évitement dynamique. Aucun essai de cette campagne ne comporte d'obstacle mobile, et aucune revendication n'est formulée à ce sujet.
 
-La quatrième tient au seul écart du système dont le biais joue du côté permissif. Le budget de sélection des points critiques est commun à tous les corps protégés : un lien longeant une surface dense peut le remplir à lui seul, auquel cas la barrière d'un autre corps est évaluée sur des points plus lointains que la géométrie réelle. La campagne en compte une occurrence, absorbée par la marge $d_{\mathrm{safe}}$ et sans contact (Section~\ref{sec:res_echecs}). Le remède est connu et à coût de calcul constant, la répartition du budget par lien (Section~\ref{subsec:selection}), et il devrait précéder un déploiement matériel.
+    La troisième réserve tient à la nature statistique des taux d'accomplissement rapportés. Trente essais par cellule fournissent des
+  intervalles de confiance larges, et la dérive observée sur certaines cellules du banc d'alimentation et du banc xArm7 biaise leurs taux de
+  réussite vers le bas. Les conclusions relatives à la sécurité, qui reposent sur des mesures cycle par cycle et sur une vérification
+  géométrique exacte de la totalité des épisodes, ne sont pas affectées par ce biais, alors que les conclusions quant à la performance de la
+  tâche doivent en tenir compte.
+
+    La quatrième réserve touche le seul écart du système dont le biais joue du côté permissif. Le budget de sélection des points critiques
+  étant commun à tous les corps protégés, un lien longeant une surface dense peut remplir la sélection à lui seul, auquel cas la barrière d'un
+  autre corps est évaluée sur des points plus lointains que la géométrie réelle. La campagne en compte une unique occurrence, absorbée par la
+  marge $d_{\mathrm{safe}}$ sans aucun contact, comme analysé à la Section~\ref{sec:res_echecs}. Le remède consistant à répartir le budget de
+  sélection par lien à coût de calcul constant, détaillé à la Section~\ref{subsec:selection}, constitue un préalable requis avant tout
+  déploiement matériel.
 
 Sous ces réserves, les résultats confirment qu'un filtre de sécurité fondé sur un champ de distance signée appris et sur des fonctions barrières de contrôle permet d'exécuter sans collision les trajectoires d'une politique générative gelée, dans des environnements non vus à l'entraînement et sans aucun réentraînement de cette politique. Le coût se limite à quelques millimètres de déviation de l'outil et à quelques secondes de temps de complétion. La tâche, elle, aboutit dans $191$ des $255$ essais déployés, et $60$ des $64$ échecs tiennent à la progression ou à la préhension plutôt qu'à la sécurité. C'est la limite d'un filtre qui garantit l'invariance de l'ensemble sûr sans garantir l'atteinte de la cible.

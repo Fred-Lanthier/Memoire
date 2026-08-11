@@ -3,66 +3,67 @@
 \Chapter{MOTIVATION DE RECHERCHE ET OBJECTIFS}\label{sec:Metho}
 % =================================================================
 
-Ce chapitre présente la motivation de la recherche proposée, en dérive le but général et les objectifs spécifiques, énonce les contributions qui en découlent, puis délimite la portée et les exclusions qui ont encadré le développement du système.
-
 %------------------------------------------------------------------
 \section{Positionnement de recherche et motivation}
 %------------------------------------------------------------------
-Les politiques génératives, portées par les modèles de diffusion puis par le \ac{FM}, ont démontré ces dernières années leur capacité à apprendre des tâches de manipulation à partir d'un nombre restreint de démonstrations. Elles capturent la multimodalité des gestes experts et, dans le cas du \ac{FM}, s'échantillonnent en quelques itérations d'intégration déterministes à échantillon initial fixé, compatibles avec une replanification en boucle fermée.
+Les politiques génératives apprennent des tâches de manipulation à partir d'un nombre restreint de démonstrations et reproduisent la diversité des gestes experts. Le \ac{FM} produit une trajectoire en quelques étapes d'intégration pour un échantillon initial fixé, ce qui permet une replanification en boucle fermée.
 
-Malgré ces progrès, ces politiques dépendent strictement de leurs données d'entraînement : lorsqu'elles sont entraînées sur des démonstrations sans obstacle, elles n'offrent aucune garantie face à un environnement qui n'a pas été vu à l'entraînement. La revue de littérature montre que les réponses existantes à cette limite se répartissent en trois familles, dont les deux premières portent un coût rédhibitoire pour l'application visée.
+Une politique entraînée sur des démonstrations sans obstacle ne fournit aucune garantie dans une scène encombrée absente de ses données d'entraînement. Trois familles de méthodes traitent cette limite.
 
-La première contraint le processus de génération lui-même, au prix d'une dérive distributionnelle et d'un surcoût de calcul à chaque pas d'échantillonnage. La deuxième intègre la contrainte d'évitement au modèle : entraîner une politique générative à éviter les collisions est possible, mais requiert un volume important de démonstrations, qu'il s'agisse de collecter des démonstrations enrichies d'obstacles, à recommencer pour chaque famille de scènes, ou de faire corriger les trajectoires défaillantes par un opérateur au déploiement, comme le propose FlowCorrect~\cite{Welte2026Flowcorrect}.
+La première contraint le processus de génération, ce qui ajoute du calcul à chaque pas et peut éloigner les échantillons de la distribution d'entraînement. La deuxième apprend l'évitement dans la politique. Elle exige alors des démonstrations avec obstacles pour chaque famille de scènes ou des corrections fournies au déploiement, comme dans FlowCorrect~\cite{Welte2026Flowcorrect}.
 
-La troisième famille filtre l'exécution plutôt que la génération : les fonctions barrières de contrôle y apportent des garanties formelles d'invariance, mais leur emploi aux côtés de politiques génératives demeure le plus souvent restreint à l'effecteur seul ou à des obstacles décrits par des primitives géométriques connues, car leur déploiement se heurte à un prérequis technique : disposer d'une représentation de distance du corps complet du robot, interrogeable avec son gradient à la fréquence de commande.
+La troisième famille filtre la commande après sa génération. Sous les hypothèses de régularité, de faisabilité et d'exécution continue, les fonctions barrières de contrôle fournissent une condition d'invariance avant~\cite{Ames2019Control}. Leur application au corps du robot requiert une représentation de distance et son gradient à la fréquence de commande. Les travaux existants se limitent souvent à l'effecteur ou à des obstacles représentés par des primitives connues.
 
-Ce mémoire se positionne à cette intersection : découpler entièrement la génération de la sécurité, en plaçant celle-ci en aval du modèle plutôt qu'en son sein. Une politique de \ac{FM} pré-entraînée et gelée fournit l'intention ; un filtre de sécurité réactif, fondé sur des fonctions barrières évaluées par un champ de distance signée appris du corps complet du robot et alimenté par une carte persistante de la scène, corrige à la fréquence de commande la composante de vitesse qui menace la sécurité. L'objectif est de conserver simultanément les deux propriétés que les approches existantes échangent l'une contre l'autre : l'intention de la trajectoire nominale et l'absence de collision dans des environnements non vus.
+L'architecture retenue sépare la génération de la sécurité. Une politique de \ac{FM} préentraînée et gelée fournit la trajectoire nominale. Un filtre réactif fondé sur un champ de distance signée appris du corps du robot et alimenté par une carte persistante projette cette commande sur les contraintes barrières. L'évaluation mesure séparément l'écart à la commande nominale et les collisions dans les environnements statiques retenus.
 
 %------------------------------------------------------------------
 \section{Objectifs de recherche}\label{sec:objectifs}
 %------------------------------------------------------------------
-Le but général de cette recherche est de rendre exécutables, en toute sécurité et sans réentraînement, les trajectoires produites par une politique générative dans des environnements statiques encombrés (au sens précisé à la Section~\ref{sec:portee}) que celle-ci n'a jamais observés. La revue de littérature ayant montré qu'un filtre réactif mal conçu peut dégrader la réussite de la tâche en poussant l'exécution hors de la distribution d'entraînement~\cite{Rmer2026From}, l'évaluation porte sur le compromis complet entre sécurité, réussite de la tâche et budget de calcul, et non sur la seule réduction des collisions. Les objectifs suivants soutiennent ce but.
+Le but général est d'exécuter sans collision et sans réentraînement les trajectoires d'une politique générative dans des environnements encombrés dont les obstacles restent immobiles pendant chaque exécution. Un filtre réactif peut réduire la réussite en poussant l'exécution hors de la distribution d'entraînement~\cite{Rmer2026From}. L'évaluation mesure donc la sécurité, la réussite de la tâche et le coût de calcul.
 
 \subsection{Objectif principal}
-Concevoir, implémenter et valider en simulation une architecture découplée qui exécute en temps réel et sans collision les trajectoires produites par une politique générative de \ac{FM} gelée, dans des environnements statiques encombrés non vus à l'entraînement, sans réentraînement du modèle et sans dégradation rédhibitoire de la réussite de la tâche.
+Concevoir, implémenter et valider en simulation une architecture découplée qui exécute en temps réel et sans collision les trajectoires d'une politique de \ac{FM} gelée dans des environnements statiques absents de ses données d'entraînement. La politique demeure gelée et la baisse admissible du taux de réussite est fixée à 10 points de pourcentage.
 
 \subsection{Objectifs spécifiques}
 \begin{itemize}
-    \item \textbf{\acs{OS}1 :} Implémenter une chaîne de perception qui détecte, segmente et suit la cible dans le flux \ac{RGB-D}, et qui maintient une carte persistante des obstacles robuste aux occlusions et aux pertes de détection.
-    \item \textbf{\acs{OS}2 :} Développer une politique de génération de trajectoires articulaires par \ac{FM} entraînée sur un jeu de démonstrations simulées et réelles conditionné par la perception.
-    \item \textbf{\acs{OS}3 :} Intégrer un bouclier de sécurité fondé sur des fonctions barrières de contrôle et un champ de distance signée du corps complet du robot, corrigeant la commande en temps réel pour éviter les collisions avec l'environnement.
-    \item \textbf{\acs{OS}4 :} Vérifier en simulation les performances du système complet sur les deux tâches de manipulation retenues, dans différents environnements statiques non vus à l'entraînement, selon les critères établis au Tableau~\ref{tab:criteres_validation}.
-    \item \textbf{\acs{OS}5 :} Valider la transférabilité de l'architecture par son déploiement sur un second manipulateur à sept degrés de liberté, du Franka Emika Panda au UFactory xArm7, seuls la cinématique et les champs de distance par lien étant adaptés.
+    \item \acs{OS}1 : implémenter une chaîne de perception qui détecte, segmente et suit la cible dans le flux \ac{RGB-D}, puis maintient une carte persistante des obstacles malgré les occlusions et les pertes de détection ;
+    \item \acs{OS}2 : développer une politique de génération de trajectoires articulaires par \ac{FM}, entraînée sur des démonstrations simulées et réelles et conditionnée par la perception ;
+    \item \acs{OS}3 : intégrer un bouclier fondé sur des fonctions barrières de contrôle et un champ de distance signée du corps du robot pour corriger la commande en temps réel ;
+    \item \acs{OS}4 : vérifier en simulation les performances du système complet sur les deux tâches retenues et dans des environnements statiques absents des données d'entraînement ;
+    \item \acs{OS}5 : valider la transférabilité de l'architecture du Franka Emika Panda au uFactory xArm7 en adaptant uniquement la cinématique et les champs de distance par lien.
 \end{itemize}
 
-S'y ajoute une exigence transversale de temps réel : la chaîne complète doit tenir la fréquence de commande visée, le filtre de sécurité résolvant sa projection à la cadence de la boucle de commande, complété d'une couche de freinage à plus haute cadence qui re-certifie la commande maintenue entre deux résolutions, pendant que la génération se poursuit en parallèle. Le Tableau~\ref{tab:criteres_validation} rend ces objectifs mesurables en associant à l'évaluation de \acs{OS}4 ses métriques, sa condition de comparaison et son critère d'acceptation ; les valeurs mesurées sont rapportées en regard de ces critères au Chapitre~\ref{sec:Theme3}.
+%------------------------------------------------------------------
+\section{Axes de validation}
+%------------------------------------------------------------------
+La validation distingue la sécurité, la préservation de la tâche, la persistance de la carte et le respect des cadences. La boucle en ligne utilise le champ de distance appris. Les maillages exacts servent uniquement à la vérification après l'exécution, à chaque cycle de tous les essais. L'apport de la persistance est isolé par une ablation appariée pendant l'occultation de l'obstacle désigné.
 
 \begin{table}[htbp]
 \centering
-\caption{Critères de validation associés aux objectifs de recherche.}
+\caption{Axes de validation et critères d'acceptation associés aux objectifs de recherche.}
 \label{tab:criteres_validation}
 \small
 \begin{tabular}{>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{4.6cm}}
 \hline
-\textbf{Critère} & \textbf{Métriques} & \textbf{Comparaison} & \textbf{Critère d'acceptation} \\ \hline
-Sécurité & Collisions (contact au maillage exact), distance minimale de séparation, durée cumulée des violations de marge & Filtre actif contre inactif, scénarios appariés & Aucune collision avec filtre dans les scénarios où le nominal en produit ; réduction de la durée de violation \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Préservation de la tâche & Taux de réussite ; fraction de cycles où la contrainte est contraignante ; déviation de la trajectoire exécutée vis-à-vis de la nominale & Cellule avec obstacle contre cellule sans obstacle, condition déployée & Dégradation du taux de réussite inférieure à 10 points de pourcentage ; filtre non contraignant en l'absence d'obstacle interférent \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Persistance & Collisions et barrière minimale sous occlusion & Carte persistante contre perception instantanée & Contrainte d'évitement maintenue pendant toute l'occlusion, sans perte de l'obstacle \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Temps réel & Temps de calcul par sous-système (médiane, p95) ; période effective de maintien de la commande & Budget de période par module & Intervalle de maintien couvert : resserrement échantillonné tant qu'il tient dans $T$, frein réflexe au-delà ; dépassements quantifiés \\ \hline
+Axe & Mesures & Comparaison & Critère d'acceptation \\ \hline
+Sécurité & Collisions définies par une distance au maillage inférieure à $0{,}5$~mm ; minimum de la barrière lissée ; distance exacte minimale aux obstacles ; durées cumulées des franchissements de la barrière et de la marge de $15$~mm & Système complet contre commande nominale non filtrée, scénarios appariés & Aucune collision avec le système complet ; maintien de la barrière lissée dans son domaine sûr ; réduction des collisions lorsque le nominal en produit \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+Préservation de la tâche & Taux de réussite ; fraction de cycles contraints ; déviation médiane de l'outil & Système complet dans les cellules appariées avec et sans obstacle critique & Dégradation du taux de réussite inférieure à 10 points de pourcentage ; déviation médiane inférieure à l'ouverture utile de l'outil décrite à la Section~\ref{subsec:res_fm} \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+Persistance & Collisions et distance exacte à l'obstacle désigné pendant son occultation & Carte persistante contre perception instantanée, essais appariés & Aucune collision ; distance exacte toujours au moins égale à $15$~mm pendant l'occultation \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+Temps réel & Temps médian, centiles de queue et maximum par sous-système ; âge de la commande ; période du frein & Budget de période par module & Cadence du filtre de $50$~Hz ; maintien nominal de $20$~ms ; réévaluation chaque milliseconde ; rétention de la commande au-delà de $40$~ms \\ \hline
 \end{tabular}
 \end{table}
+\FloatBarrier
 
 %------------------------------------------------------------------
 \section{Portée et exclusions de la recherche}\label{sec:portee}
 %------------------------------------------------------------------
-Afin d'évaluer de manière rigoureuse les hypothèses de recherche, le cadre de cette étude est restreint aux verrous scientifiques centraux. Les aspects suivants sont ainsi définis comme hors de la portée immédiate de ce travail :
 \begin{itemize}
-    \item \textbf{Déploiement sur robot réel :} L'évaluation en boucle fermée du système complet s'effectue au sein d'environnements de simulation physique réalistes. Bien que le jeu de données d'entraînement intègre des démonstrations de manipulation issues d'une plateforme physique réelle, le transfert matériel final en boucle fermée sort de la portée de ce travail.
-    \item \textbf{Couverture des tâches :} La validation se concentre sur deux scénarios (une tâche d'alimentation assistée et une tâche de saisie et dépôt) ; l'évaluation de la généralisation à d'autres familles de tâches est hors cadre.
-    \item \textbf{Configuration des capteurs :} La topologie et le placement des capteurs sont prédéfinis pour chaque tâche (caméra embarquée au poignet pour l'alimentation, caméra statique pour la saisie-dépôt). L'optimisation de la configuration minimale des capteurs n'est pas recherchée.
-    \item \textbf{Dimensionnement du jeu de données :} L'étude de la taille critique minimale du jeu de données pour l'entraînement des politiques génératives sort de la portée de ce travail ; le volume de démonstrations collecté est dimensionné pour assurer l'apprentissage nominal des tâches sélectionnées.
-    \item \textbf{Obstacles dynamiques :} La garantie de sécurité visée est énoncée pour un environnement statique : les obstacles sont supposés immobiles, seule leur découverte progressive par la perception faisant évoluer leur représentation. Les obstacles en mouvement sont exclus de la garantie formelle. Face à un obstacle en mouvement, la réponse structurelle du système (resserrement des contraintes à mesure que la barrière décroît, puis rétention de la commande par le frein réflexe) est le ralentissement puis l'arrêt du robot, et non une manœuvre d'évitement. La portée exacte de la garantie est établie au Chapitre~\ref{sec:Theme2}.
-    \item \textbf{Interaction humaine :} Bien que la tâche d'alimentation assistée motive le développement du système, l'évaluation se focalise sur la validation des critères techniques de sécurité et de succès géométrique de la tâche ; l'évaluation clinique avec usagers et la modélisation comportementale de la personne assistée sont exclues.
-    \item \textbf{Type de robot traité :} L'étude porte sur les manipulateurs sériels à base fixe et à sept degrés de liberté, instanciés ici par le Franka Emika Panda et le UFactory xArm7, dont la redondance cinématique est exploitée par la cinématique inverse et par le filtre de sécurité. Les bases mobiles et les autres morphologies ne sont pas considérées.
-    \item \textbf{Propriétés des objets :} La cible et les obstacles sont supposés rigides et opaques. Les objets déformables, ainsi que les matériaux transparents ou fortement réfléchissants mettant en défaut le capteur de profondeur, sortent du cadre étudié.
+    \item Le système complet est évalué en boucle fermée dans un simulateur physique. Les démonstrations d'entraînement comprennent des données acquises sur une plateforme réelle, mais le transfert matériel du système complet est exclu.
+    \item La validation porte sur l'alimentation assistée et la saisie-dépôt. Les autres familles de tâches sont exclues.
+    \item La tâche d'alimentation utilise une caméra au poignet et la saisie-dépôt une caméra statique. L'optimisation du placement et du nombre de capteurs est exclue.
+    \item Le volume de démonstrations est fixé pour apprendre les deux tâches. La taille minimale du jeu d'entraînement n'est pas étudiée.
+    \item Le certificat suppose les obstacles immobiles. Leur découverte progressive peut modifier la carte. Face à un obstacle mobile, la diminution de la barrière lissée resserre la commande et peut conduire le frein à l'annuler. La garantie d'évitement reste limitée aux obstacles statiques.
+    \item L'évaluation clinique avec des usagers et la modélisation de la personne assistée sont exclues.
+    \item L'étude porte sur les manipulateurs sériels à base fixe et à sept degrés de liberté Franka Emika Panda et uFactory xArm7. Les bases mobiles et les autres morphologies ne sont pas étudiées.
+    \item La cible et les obstacles sont rigides et opaques. Les objets déformables ainsi que les matériaux transparents ou fortement réfléchissants sont exclus.
 \end{itemize}
