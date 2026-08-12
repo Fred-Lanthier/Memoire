@@ -7,7 +7,7 @@ Le système de génération de trajectoires sans collision repose sur cinq blocs
   \item la chaîne de perception sémantique et la carte persistante de la scène pour \acs{OS}1 ;
   \item l'acquisition et le prétraitement des démonstrations pour \acs{OS}2 ;
   \item le modèle génératif par \textit{Flow Matching}, puis la conversion et l'exécution de ses sorties pour \acs{OS}2 et \acs{OS}5 ;
-  \item le filtre de sécurité réactif \ac{SDF}-\ac{CBF} pour \acs{OS}3.
+  \item le modèle de distance du robot par polynômes de Bernstein et son filtre de sécurité réactif \ac{CBF} pour \acs{OS}3.
 \end{itemize}
 Ces blocs suivent le flux des données, de la perception à la commande. La dernière section circonscrit le certificat du filtre avant l'évaluation expérimentale du Chapitre~\ref{sec:Theme3}.
 % =================================================================
@@ -224,7 +224,7 @@ La détection des objets d'intérêt repose sur le modèle de fondation \textit{
     \caption{Exemple de masque obtenu par le modèle de segmentation \ac{SAM}~3 pour la requête \textit{Pink Block}.}\label{fig:SAM3_ex}
 \end{figure}
 
-\label{subsec:SAM2_tracking}Une évaluation de \ac{SAM}~3 à chaque image excéderait le budget temps réel, car son inférence exige plusieurs centaines de millisecondes. Le suivi est confié à \textit{Segment Anything Model 2}, abrégé \ac{SAM}~2~\cite{Ravi2024Sam2}. Sa mémoire d'attention propage à $5$~Hz le masque initial de \ac{SAM}~3 sur des images d'au plus $512$~pixels de côté. Un masque vide ou dégénéré déclenche une nouvelle détection \ac{SAM}~3. La période de repli croît de $8$ à $30$~s après des échecs répétés afin de préserver le budget du \ac{GPU} partagé.
+\label{subsec:SAM2_tracking}Une évaluation de \ac{SAM}~3 à chaque image excéderait le budget temps réel, car son inférence exige plusieurs centaines de millisecondes. Le suivi est confié à \textit{Segment Anything Model 2}, abrégé \ac{SAM}~2~\cite{Ravi2024Sam2}. Sa mémoire d'attention propage à $5$~Hz le masque initial de \ac{SAM}~3 sur des images d'au plus $512$~pixels de côté. Un masque vide ou dégénéré déclenche une nouvelle détection \ac{SAM}~3. La période de repli croît de $5$ à $30$~s après des échecs répétés afin de préserver le budget du \ac{GPU} partagé.
 
 \subsection{Reconstruction 3D et nettoyage des nuages de points}\label{subsec:nettoyage}
 La Figure~\ref{fig:rep} résume les quatre repères du système : $\mathcal{F}_b$ pour la base du robot, $\mathcal{F}_c$ pour la caméra à l'effecteur, $\mathcal{F}_e$ pour le \ac{TCP} et $\mathcal{F}_o$ pour l'outil.
@@ -233,7 +233,7 @@ Le masque suivi est combiné à la carte de profondeur alignée pour produire le
 \begin{equation}\label{eq:retroprojection}
     X_c = \frac{(u-c_x)\,Z}{f_x},\qquad Y_c = \frac{(v-c_y)\,Z}{f_y},\qquad Z_c = Z,\qquad \tilde{\mathbf{p}}^b = \mathbf{T}_c^b(\mathbf{q})\,\tilde{\mathbf{p}}^c,
 \end{equation}
-où $(f_x,f_y)$ et $(c_x,c_y)$ sont les focales et le point principal de la caméra, $\mathbf{p}^c=[X_c,Y_c,Z_c]^\top$, $\tilde{\mathbf{p}}$ dénote les coordonnées homogènes et $\mathbf{T}_c^b(\mathbf{q})=\mathbf{T}_e^b(\mathbf{q})\,\mathbf{T}_c^e$ compose la pose du \ac{TCP} et l'extrinsèque constante de la caméra. Le masque de \ac{SAM}~2 arrive à $5$~Hz, tandis que la profondeur arrive à $30$~Hz. Chaque nouveau masque extrait la cible et rafraîchit la mémoire 3D \texttt{persistent\_target}. Aux tiques intermédiaires, l'enveloppe de cette mémoire filtre la profondeur courante. La cible reste ainsi séparée du nuage d'obstacles pendant les mouvements entre deux inférences. Deux nuages sous-échantillonnés sont émis à chaque image.
+où $(f_x,f_y)$ et $(c_x,c_y)$ sont les focales et le point principal de la caméra, $\mathbf{p}^c=[X_c,Y_c,Z_c]^\top$, $\tilde{\mathbf{p}}$ dénote les coordonnées homogènes et $\mathbf{T}_c^b(\mathbf{q})=\mathbf{T}_e^b(\mathbf{q})\,\mathbf{T}_c^e$ compose la pose du \ac{TCP} et l'extrinsèque constante de la caméra. Le masque de \ac{SAM}~2 arrive à $5$~Hz, tandis que la profondeur arrive à $30$~Hz. Chaque nouveau masque extrait la cible et rafraîchit la mémoire 3D \texttt{persistent\_target}. Aux tics intermédiaires, l'enveloppe de cette mémoire filtre la profondeur courante. La cible reste ainsi séparée du nuage d'obstacles pendant les mouvements entre deux inférences. Deux nuages sous-échantillonnés sont émis à chaque image.
 
 \begin{figure}[htbp!]
     \centering
@@ -383,7 +383,7 @@ Le formalisme du Flow Matching, présenté au Chapitre~\ref{sec:RevLitt}, transp
   \label{eq:ode}
   \frac{\mathrm{d}X_t}{\mathrm{d} t} = u_t(X_t)
 \end{equation}
-Générer un échantillon revient à intégrer numériquement cette équation de $t=0$ à $t=1$ depuis un tirage $X_0\sim p_0$. Le chemin probabiliste retenu est l'interpolation linéaire du \textit{Rectified Flow}~\cite{Liu2023Rectified},
+Générer un échantillon revient à intégrer numériquement cette équation de $t=0$ à $t=1$ depuis un tirage $X_0\sim p_0$ vers $X_1\sim p_1$. Le chemin probabiliste retenu est l'interpolation linéaire du \textit{Rectified Flow}~\cite{Liu2023Rectified},
 \begin{equation}
   \label{eq:fm_gt}
   X_t = (1-t)X_0 + tX_1
@@ -465,7 +465,7 @@ où $v^{\star}=0{,}3$~rad/s est la vitesse cible et $\ell_{\min}$ un plancher po
 \end{equation}
 De norme proche de $v^{\star}$, $\dot{\mathbf{q}}_{\mathrm{ff}}$ représente l'intention instantanée de la trajectoire. L'exécuteur publie la position interpolée $\mathbf{q}_{\mathrm{nom}}$ pour le suivi et cette vitesse pour l'anticipation selon la Section~\ref{subsec:vitesse_nominale}. Le filtre passe-bas absorbe les discontinuités du feedforward constant par morceaux.
 
-Une horloge de progression avance lorsque le robot suit la consigne. Un retard excessif ou une barrière $h<0$ suspend cette horloge. La consigne reste alors au point retenu par le filtre, puis reprend à cet endroit lorsque le suivi redevient admissible.
+Une horloge de progression avance lorsque le robot suit la consigne. Un retard excessif suspend cette horloge. La consigne reste alors au même point, puis reprend à cet endroit lorsque le suivi redevient admissible.
 % =================================================================
 \section{Modèle de distance du robot appris hors ligne}\label{subsec:sdf_robot}
 % =================================================================
@@ -473,7 +473,7 @@ Le modèle génératif est entraîné sur des démonstrations sans obstacle et f
 
 Le filtre requiert une distance signée entre le corps complet du robot et son environnement, interrogeable avec son gradient pour des milliers de points simultanément et en quelques millisecondes. Un modèle appris hors ligne fournit cette distance lien par lien.
 
-Suivant l'approche \textit{Robot Distance Fields}~\cite{Li2024rdf}, également exploitée pour l'évitement réactif de collisions dans un cadre de commande à priorité de tâches~\cite{Govoni2026rdf}, le \ac{SDF} de chaque lien $l$ est approximé par une base tensorielle de polynômes de Bernstein dans un repère normalisé propre au lien. La géométrie maillée du lien est d'abord centrée et mise à l'échelle :
+Suivant l'approche \textit{Robot Distance Fields}~\cite{Li2024rdf}, également exploitée pour l'évitement réactif de collisions dans un cadre de commande à priorité de tâches~\cite{Govoni2026rdf}, le \ac{SDF} de chaque lien $l$ est approximé par une base de polynômes de Bernstein dans un repère normalisé propre au lien. La géométrie maillée du lien est d'abord centrée et mise à l'échelle :
 \begin{equation}\label{eq:norm_dataset_SDF}
   \bar{\mathbf{x}} = \frac{\mathbf{x}-\mathbf{o}_l}{s_l},
 \qquad
@@ -482,15 +482,17 @@ Suivant l'approche \textit{Robot Distance Fields}~\cite{Li2024rdf}, également e
 s_l = \max_{\mathbf{v}\in\mathcal{V}_l}\|\mathbf{v}-\mathbf{o}_l\|,
 \end{equation}
 où $\mathcal{V}_l$ est l'ensemble des sommets du maillage : le lien est ainsi contenu dans le cube $[-1,1]^3$ qui sert de domaine d'approximation. Sur ce domaine, le \ac{SDF} normalisé est une combinaison linéaire de $n^3$ fonctions de base :
-\begin{align}
-\bar{d}_l(\bar{\mathbf{x}}) &= \sum_{a,b,c=0}^{n-1} w^{(l)}_{abc}\, B_a(u_x)\,B_b(u_y)\,B_c(u_z) = \boldsymbol{\Phi}(\bar{\mathbf{x}})\,\mathbf{w}_l \\
-\qquad
-B_a(u)&=\binom{n-1}{a}u^a(1-u)^{n-1-a} \\
-\quad \mathbf{u}&=\frac{\bar{\mathbf{x}}+\mathbf{1}}{2}
-\end{align}
+\begin{equation}\label{eq:sdf_bernstein}
+    \begin{aligned}
+    \bar{d}_l(\bar{\mathbf{x}}) &= \sum_{a,b,c=0}^{n-1} w^{(l)}_{abc}\, B_a(u_x)\,B_b(u_y)\,B_c(u_z) = \boldsymbol{\Phi}(\bar{\mathbf{x}})\,
+  \mathbf{w}_l, \\
+    B_a(u) &= \binom{n-1}{a} u^a (1-u)^{n-1-a}, \\
+    \mathbf{u} &= \frac{\bar{\mathbf{x}}+\mathbf{1}}{2}.
+    \end{aligned}
+\end{equation}
 et la distance métrique s'en déduit par $d_l = s_l\,\bar{d}_l$. Les polynômes de Bernstein étant définis sur $[0,1]$, le changement de variable affine $\mathbf{u}=(\bar{\mathbf{x}}+\mathbf{1})/2$ y ramène la coordonnée normalisée, suivant la convention de l'implémentation de référence de~\cite{Li2024rdf}.
 
-Les neuf liens protégés comprennent les liens 2 à 7, la main et les deux doigts. Chacun utilise $n=12$ fonctions par axe, soit $1728$ coefficients. Le modèle polynomial est $\mathcal{C}^\infty$, linéaire en ses poids et parallélisable sur \ac{GPU}. La cinématique directe utilise la configuration mesurée complète. Les deux articulations prismatiques des doigts sont lues dans l'état de la pince, car leur ouverture déplace les surfaces jusqu'à $4$~cm. Le gradient porte sur les sept articulations commandées.
+Les neuf liens protégés comprennent les liens 2 à 7, la main et les deux doigts. Chacun utilise $n=12$ fonctions par axe, soit $1728$ coefficients, faisant en sorte que pour un point donné $\boldsymbol{\Phi}(\bar{\mathbf{x}})$ et $\mathbf{w}_l$ sont des vecteurs ligne et colonne de dimension 1728. Le modèle polynomial est $\mathcal{C}^\infty$ en $u$, linéaire en ses poids et parallélisable sur \ac{GPU}. La cinématique directe utilise la configuration mesurée complète. Les deux articulations prismatiques des doigts sont lues dans l'état de la pince, car leur ouverture déplace les surfaces jusqu'à $4$~cm. Le gradient porte sur les sept articulations commandées.
 
 L'apprentissage des poids procède en deux étapes. La première reproduit le protocole de~\cite{Li2024rdf} avec des points proches de la surface et des points uniformes dans le cube. La linéarité en $\mathbf{w}_l$ permet un ajustement par moindres carrés récursifs avec régularisation \textit{ridge}. L'Annexe~\ref{annexe:sdf_training} reproduit ce protocole. La régression ajuste la distance, tandis que le gradient obtenu près de la surface reste bruité et s'écarte de la norme unitaire.
 
@@ -513,17 +515,17 @@ Les modèles finaux de chaque lien enchaînent ainsi les deux étapes, la régre
 % =================================================================
 \section{Filtre de sécurité réactif \acs{SDF}-\acs{CBF}}\label{sec:sdfcbf}
 % =================================================================
-À chaque cycle, le filtre de sécurité réactif \acs{SDF}-\acs{CBF} projette la vitesse nominale sur les vitesses admissibles. La forme nominale du programme quadratique, avant les resserrements, s'écrit
+À chaque cycle, le filtre de sécurité réactif \acs{SDF}-\acs{CBF} projette la vitesse nominale sur les vitesses admissibles. La forme nominale du programme quadratique, avant les resserrements et avant le lissage temporel de la Section~\ref{subsec:commande}, s'écrit
 \begin{equation}\label{eq:cbf_qp}
 \dot{\mathbf{q}}^{\star} = \operatorname*{arg\,min}_{\dot{\mathbf{q}}\,\in\,\mathbb{R}^7}\; \tfrac{1}{2}\big\|\dot{\mathbf{q}}-\dot{\mathbf{q}}_{\mathrm{base}}\big\|_{\mathbf{W}}^2
 \quad \text{s.c.} \quad
 \nabla h_l(\mathbf{q})^{\top}\dot{\mathbf{q}} \;\geq\; b\big(h_l(\mathbf{q})\big), \;\; \forall l \in \mathcal{A},
 \end{equation}
-où $\mathbf{q}\in\mathbb{R}^7$ est la configuration articulaire mesurée, $\dot{\mathbf{q}}_{\mathrm{base}}$ la vitesse nominale filtrée, $\mathcal{A}$ l'ensemble des liens contraints au cycle courant et $\|\cdot\|_{\mathbf{W}}$ la norme définie par la métrique $\mathbf{W}\succ 0$. La Section~\ref{subsec:vitesse_nominale} détaille la vitesse nominale. Le symbole $h_l$ désigne partout la barrière lissée $h_{\mathrm{soft},l}$, aussi bien dans $b(h_l)$ et les resserrements que dans $\nabla h_l$. Le minimum dur des distances apprises $h_{\min,l}=\min_i d_{l,i}-d_{\mathrm{safe}}$ sert uniquement au diagnostic. La commande $\dot{\mathbf{q}}^\star$ est la projection au sens de $\mathbf{W}$ de la vitesse nominale sur l'intersection des demi-espaces de sécurité. La métrique répartit les déviations articulaires sans modifier l'ensemble admissible.
+où $\mathbf{q}\in\mathbb{R}^7$ est la configuration articulaire mesurée, $\dot{\mathbf{q}}_{\mathrm{base}}$ la vitesse nominale filtrée, $\mathcal{A}$ l'ensemble des liens contraints au cycle courant et $\|\mathbf{x}\|_{\mathbf{W}} = \sqrt{\mathbf{x}^\top \mathbf{W}\mathbf{x}}$ la norme sur $\mathbb{R}^7$ définie par la métrique $\mathbf{W}\succ 0$. La Section~\ref{subsec:vitesse_nominale} détaille la vitesse nominale. Le symbole $h_l$ désigne partout la barrière lissée $h_{\mathrm{soft},l}$, aussi bien dans $b(h_l)$ et les resserrements que dans $\nabla h_l$. Le minimum dur des distances apprises $h_{\min,l}=\min_i d_{l,i}-d_{\mathrm{safe}}$ sert uniquement au diagnostic. La commande $\dot{\mathbf{q}}^\star$ est la projection orthogonale pondérée au sens de $\mathbf{W}$ de la vitesse nominale sur l'intersection des demi-espaces de sécurité. La métrique répartit les déviations articulaires sans modifier l'ensemble admissible.
 
 \subsection{Fonction barrière}\label{subsec:barriere}
 
-Sur chaque banc, l'ensemble des liens protégés $\mathcal{L}_{\mathrm{prot}}$ contient $K_a=9$ corps articulés : les liens $2$ à $7$, la main et les deux doigts de la pince pour la saisie et le dépôt; les liens $3$ à $7$, la main, les deux doigts et la fourchette pour l'alimentation. Le premier lien effectue une rotation autour de l'axe vertical de la base et reste hors de cet ensemble. L'expression « corps complet » désigne ici la chaîne mobile exposée dans l'espace de travail. Cette couverture étend à ces neuf corps la protection souvent limitée à l'effecteur.
+Sur chaque banc, l'ensemble des liens protégés $\mathcal{L}_{\mathrm{prot}}$ contient $L_a=9$ corps articulés : les liens $2$ à $7$, la main et les deux doigts de la pince pour la saisie et le dépôt; les liens $3$ à $7$, la main, les deux doigts et la fourchette pour l'alimentation. Le premier lien effectue une rotation autour de l'axe vertical de la base et reste hors de cet ensemble. À effectif $L_a$ constant, la fourchette du banc d'alimentation occupe la place du lien $2$, le plus proche de la base parmi les liens protégés en saisie et dépôt. L'expression « corps complet » désigne ici la chaîne mobile exposée dans l'espace de travail. Cette couverture étend à ces neuf corps la protection souvent limitée à l'effecteur.
 
 À l'exécution, chaque point obstacle $\mathbf{p}_i$ est ramené dans le repère normalisé de chaque lien protégé via la cinématique directe, puis évalué par le modèle appris :
 \begin{equation}
@@ -535,7 +537,7 @@ Pour les points situés hors du domaine $[-1,1]^3$, la coordonnée normalisée e
 \begin{equation}
 \hat{d}(\mathbf{x}) \;=\; \sqrt{\,d(\mathbf{c})^{2} + \|\mathbf{x}-\mathbf{c}\|^{2}\,}.
 \end{equation}
-Cette forme est un minorant de la distance géométrique lorsque la décomposition orthogonale hors du cube s'applique et que $|d(\mathbf{c})|$ ne dépasse pas la distance exacte au point borné. Avec le \ac{SDF} appris, cette propriété reste conditionnelle à l'erreur du modèle. Sa croissance monotone préserve l'orientation physique du gradient, tandis que la borne lipschitzienne $d(\mathbf{c})-\|\mathbf{x}-\mathbf{c}\|$ décroît avec l'excursion. Le raccord rejoint la branche intérieure lorsque $d(\mathbf{c})\geq0$ et reste différentiable par morceaux. Les obstacles menaçants résident généralement dans le domaine; le prolongement ordonne surtout les points lointains et guide le dégagement postural. L'Annexe~\ref{annexe:gradient_details} donne la preuve conditionnelle et le détail du raccord.
+Cette forme est un minorant de la distance géométrique lorsque la décomposition orthogonale hors du cube s'applique et que $|d(\mathbf{c})|$ ne dépasse pas la distance exacte au point borné. Avec le \ac{SDF} appris, cette propriété reste conditionnelle à l'erreur du modèle. Sa croissance monotone préserve l'orientation physique du gradient, tandis que la borne lipschitzienne $d(\mathbf{c})-\|\mathbf{x}-\mathbf{c}\|$ décroît avec l'excursion. Le raccord rejoint la branche intérieure lorsque $d(\mathbf{c})\geq0$ et reste différentiable par morceaux. Les obstacles pouvant entrer en collision avec le robot résident généralement dans le domaine; le prolongement ordonne surtout les points lointains et guide le dégagement postural. L'Annexe~\ref{annexe:gradient_details} donne la preuve conditionnelle et le détail du raccord.
 
 \label{subsec:selection}Contraindre la commande sur la totalité de la carte persistante, détaillée à la Section~\ref{sec:persistant_map}, à chaque cycle serait toutefois inutile : seuls les points les plus proches du robot peuvent activer la contrainte. Le \ac{SDF} corps-complet est donc évalué sur l'ensemble de la carte, dont les $K$ points de plus faible distance sont conservés :
 \begin{equation}
@@ -557,7 +559,7 @@ Le minimum discret $m_l=\min_i d_{l,i}$ stabilise le calcul et s'annule algébri
 \begin{equation}
 h_l(\mathbf{q})=-\alpha\log\!\left(\sum_{i=1}^N e^{-d_{l,i}/\alpha}\right)-d_{\mathrm{safe}}.
 \end{equation}
-Pour $\alpha>0$, un ensemble d'indices fixe et des distances $d_{l,i}$ de classe $\mathcal{C}^2$, la barrière $h_l$ est de classe $\mathcal{C}^2$. L'effectif efficace
+Pour $\alpha>0$, un ensemble d'indices fixe et des distances $d_{l,i}$ de classe $\mathcal{C}^2$, la barrière $h_l$ est de classe $\mathcal{C}^2$. L'effectif efficace défini par
 \begin{equation}
 M_{\mathrm{eff},l}=\sum_{i=1}^N e^{-(d_{l,i}-m_l)/\alpha}\in[1,N]
 \end{equation}
@@ -610,8 +612,8 @@ En pratique, les barrières et leurs gradients sont calculés conjointement en u
 Le second membre $b(h)$ de~\eqref{eq:cbf_qp} délimite les vitesses admissibles en temps continu sous une exécution parfaite. Deux resserrements couvrent l'erreur de poursuite et la discrétisation temporelle. L'environnement statique demeure une hypothèse du certificat selon la Section~\ref{subsec:garanties}.
 
 \subsubsection{Second membre saturé}
-La condition \ac{CBF} classique impose $\nabla h^\top\dot{\mathbf{q}}\geq-\kappa h$. Loin des obstacles, ce terme linéaire autorise des vitesses d'approche arbitrairement élevées. Sous la frontière $h=0$, il convertit aussi le bruit de perception en variations brusques de la vitesse de dégagement. La contrainte sature donc le second membre dans la bande d'activation $h\leq h_{\mathrm{act}}$ :
-\begin{equation}
+La condition \ac{CBF} classique impose $\nabla h^\top\dot{\mathbf{q}}\geq-\kappa h$. Loin des obstacles, ce terme linéaire autorise des vitesses d'approche arbitrairement élevées. Sous la frontière $h=0$, il convertit aussi le bruit de perception en variations brusques de la vitesse de dégagement. La contrainte sature donc le second membre de l'équation \eqref{eq:1} dans la bande d'activation $h\leq h_{\mathrm{act}}$ :
+\begin{equation} \label{eq:1}
 \nabla h(\mathbf{q})^{\top}\dot{\mathbf{q}} \;\geq\; b(h),
 \qquad
 b(h) =
@@ -757,8 +759,9 @@ Le second membre complet est $r_l=b(h_l)+\varepsilon_{\mathrm{p}}\|\nabla h_l\|+
 \nabla h_l^{\top}\dot{\mathbf{q}}
 &=\nabla h_l^{\top}\dot{\mathbf{q}}_{\mathrm{cmd}}
 +\nabla h_l^{\top}\boldsymbol{\delta} \\
-&\geq b(h_l)+\bar{\mu}_l
-\geq b(h_l)\geq-\widetilde{\gamma}(h_l).
+&\geq b(h_l)+\bar{\mu}_l \\
+&\geq b(h_l) \\
+&\geq-\widetilde{\gamma}(h_l).
 \end{aligned}
 \end{equation}
 Soit $h_l^0=h_l(\mathbf{q}_k)$ au début du maintien. Pour $t\in[0,T]$, la borne de courbure $L_l^{\mathrm{QP}}$, la borne projetée de poursuite et $\|\dot{\mathbf{q}}(t)\|\leq v_{\mathrm{env}}$ donnent
@@ -795,7 +798,13 @@ puis saturée aux limites articulaires et annulée sous un seuil qui empêche la
 
 \subsection{Projection et métrique de tâche}\label{subsec:projection}
 
-  La projection \ac{CBF} recherche la vitesse admissible la plus proche de $\dot{\mathbf{q}}_{\mathrm{base}}$ au sens de la métrique $\mathbf{W}$,
+  Le lissage temporel est intégré à la projection. La mémoire exponentielle de constante $\tau_{\mathrm{safe}}$ définit la vitesse cible que le solveur reçoit comme centre :
+  \begin{equation}\label{eq:vitesse_cible}
+  \dot{\mathbf{q}}_{\mathrm{cible},k} = (1-\gamma_{\mathrm{safe}})\,\dot{\mathbf{q}}_{\mathrm{final},k-1} + \gamma_{\mathrm{safe}}\,\dot{\mathbf{q}}_{\mathrm{base},k},
+  \end{equation}
+  où $\gamma_{\mathrm{safe}} = \Delta t/(\Delta t+\tau_{\mathrm{safe}})$ et $\dot{\mathbf{q}}_{\mathrm{final},k-1}$ est la commande publiée au cycle précédent.
+
+  La projection \ac{CBF} recherche la vitesse admissible la plus proche de cette cible au sens de la métrique $\mathbf{W}$,
   c'est-à-dire sa projection sur l'intersection des demi-espaces actifs~\eqref{eq:cbf_qp} :
   \begin{equation}
   \dot{\mathbf{q}}_{\mathrm{proj}}
@@ -805,7 +814,7 @@ puis saturée aux limites articulaires et annulée sous un seuil qui empêche la
   \left\|
   \dot{\mathbf{q}}
   -
-  \dot{\mathbf{q}}_{\mathrm{base}}
+  \dot{\mathbf{q}}_{\mathrm{cible}}
   \right\|_{\mathbf{W}}^2
   \quad
   \text{s.c.}
@@ -816,7 +825,7 @@ puis saturée aux limites articulaires et annulée sous un seuil qui empêche la
   \;\;
   \forall l \in \mathcal{A}.
   \end{equation}
-  La correction $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}} = \dot{\mathbf{q}}_{\mathrm{proj}}-\dot{\mathbf{q}}_{\mathrm{base}}$ mesure l'intervention du filtre après la résolution. Elle s'annule lorsque la vitesse nominale satisfait toutes les contraintes. La Figure~\ref{fig:projection_cbf} en donne l'interprétation géométrique.
+  La correction $\Delta\dot{\mathbf{q}}_{\mathrm{CBF}} = \dot{\mathbf{q}}_{\mathrm{proj}}-\dot{\mathbf{q}}_{\mathrm{cible}}$ mesure l'intervention du filtre après la résolution. Elle s'annule lorsque la vitesse cible satisfait toutes les contraintes. L'optimisation rend ainsi directement la vitesse lissée admissible sur les contraintes actives. La Figure~\ref{fig:projection_cbf} en donne l'interprétation géométrique.
 
 
   Le choix de $\mathbf{W}$ répartit les corrections articulaires. La métrique euclidienne $\mathbf{W}=\mathbf{I}$ suit le gradient $\nabla_{\mathbf{q}} h_l$ et sollicite les axes proches de la base en raison de leur bras de levier. L'évitement par un lien intermédiaire tel que le coude dévie alors fortement l'effecteur.
@@ -871,7 +880,7 @@ puis saturée aux limites articulaires et annulée sous un seuil qui empêche la
         % --- Ellipse de niveau de la métrique W, tangente à la frontière en q_proj ---
         \draw[dashed, black!45, thin] (4.6,3.4) ellipse [x radius=0.912, y radius=1.401, rotate=75.6];
         \node[lab, black!55, anchor=west] at (5.62,4.25)
-            {$\|\dot{\mathbf{q}}-\dot{\mathbf{q}}_{\mathrm{base}}\|_{\mathbf{W}} = \text{cste}$};
+            {$\|\dot{\mathbf{q}}-\dot{\mathbf{q}}_{\mathrm{cible}}\|_{\mathbf{W}} = \text{cste}$};
 
         % --- Vecteurs ---
         \coordinate (O) at (0,0);
@@ -879,11 +888,11 @@ puis saturée aux limites articulaires et annulée sous un seuil qui empêche la
         \coordinate (Qproj) at (3.52,2.98);
         \coordinate (Qeucl) at (3.85,2.65);
 
-        % vitesse nominale filtrée
+        % vitesse cible du problème de projection
         \draw[vec, draw=black!80] (O) -- (Qbase);
         \fill[black] (Qbase) circle (1.6pt);
         \node[lab, black, anchor=west, inner sep=2pt] at (4.72,3.32)
-            {$\dot{\mathbf{q}}_{\mathrm{base}}$};
+            {$\dot{\mathbf{q}}_{\mathrm{cible}}$};
 
         % vitesse sécurisée
         \draw[vec, draw=blue!80!black] (O) -- (Qproj);
@@ -903,7 +912,7 @@ puis saturée aux limites articulaires et annulée sous un seuil qui empêche la
         \node[lab, black!55, anchor=west] (eucl_lab) at (4.5,2.25) {projection euclidienne\\$\mathbf{W}=\mathbf{I}$};
         \draw[thin, black!40] (eucl_lab.west) -- ($(Qeucl)+(0.08,-0.08)$);
     \end{tikzpicture}
-    \caption{Projection de sécurité dans un plan des vitesses articulaires. La vitesse $\dot{\mathbf{q}}_{\mathrm{base}}$ est projetée sur les demi-espaces actifs $\nabla h_l^\top\dot{\mathbf{q}} \geq r_l$. Le plus petit ellipsoïde de niveau de $\mathbf{W}$ touche la frontière en $\dot{\mathbf{q}}_{\mathrm{proj}}$. La correction suit $\mathbf{W}^{-1}\nabla h_l$ et perturbe moins le lien contrôlé que la projection euclidienne $\mathbf{W}=\mathbf{I}$ représentée par le point creux.}
+    \caption{Projection de sécurité dans un plan des vitesses articulaires. La vitesse cible $\dot{\mathbf{q}}_{\mathrm{cible}}$ est projetée sur les demi-espaces actifs $\nabla h_l^\top\dot{\mathbf{q}} \geq r_l$. Le plus petit ellipsoïde de niveau de $\mathbf{W}$ touche la frontière en $\dot{\mathbf{q}}_{\mathrm{proj}}$. La correction suit $\mathbf{W}^{-1}\nabla h_l$ et perturbe moins le lien contrôlé que la projection euclidienne $\mathbf{W}=\mathbf{I}$ représentée par le point creux.}
     \label{fig:projection_cbf}
 \end{figure}
 
@@ -915,13 +924,7 @@ Le filtre emploie la variante de Dykstra des projections cycliques~\cite{Dykstra
 Sa structure à nombre de cycles fixe permet une exécution dans un graphe \ac{CUDA} à $50$~Hz. La boucle est tronquée à $N_{\mathrm{it}}$ balayages, puis la Section~\ref{subsec:commande} vérifie l'admissibilité finale. L'Annexe~\ref{annexe:cbf_details} mesure l'écart à l'optimum exact par rejeu des cycles enregistrés.
 
 \subsection{De la solution du solveur à la commande publiée}\label{subsec:commande}
-La vitesse projetée est lissée et saturée avant sa transmission. Une vérification de contrainte suit chaque modification afin de préserver l'admissibilité.
-
-Le lissage temporel est intégré à la projection. La mémoire exponentielle de constante $\tau_{\mathrm{safe}}$ définit la vitesse cible avec laquelle le QP tente de minimiser l'écart :
-\begin{equation}
-\dot{\mathbf{q}}_{\mathrm{cible},k} = (1-\gamma_{\mathrm{safe}})\,\dot{\mathbf{q}}_{\mathrm{final},k-1} + \gamma_{\mathrm{safe}}\,\dot{\mathbf{q}}_{\mathrm{base},k},
-\end{equation}
-où $\gamma_{\mathrm{safe}} = \Delta t/(\Delta t+\tau_{\mathrm{safe}})$ et $\dot{\mathbf{q}}_{\mathrm{final},k-1}$ est la commande publiée au cycle précédent. L'optimisation rend directement la vitesse lissée admissible sur les contraintes actives.
+La vitesse projetée est saturée avant sa transmission. Une vérification de contrainte suit chaque modification afin de préserver l'admissibilité.
 
 La saturation articulaire produit $\dot{\mathbf{q}}_{f} = \operatorname{sat}_{\mathrm{lim}}(\dot{\mathbf{q}}_{\mathrm{proj}})$. Le filtre réévalue alors les contraintes avec le même $r_l$. Une violation résiduelle déclenche une réparation $\Delta\dot{\mathbf{q}}_{\mathrm{rep}}$ dans la même métrique $\mathbf{W}$. Une contrainte active donne le pas analytique selon $\mathbf{W}^{-1}\nabla h$. Plusieurs contraintes relancent les balayages de Dykstra sur toute la famille. L'Annexe~\ref{annexe:cbf_details} détaille cette réparation multi-contraintes.
 
@@ -969,7 +972,7 @@ sur cette enveloppe donne la minorante de Taylor--Lagrange
 -\tfrac{L_l^{\mathrm{rfx}}}{2}\|\Delta\mathbf{q}_{\beta}(s)\|^2
 \leq h_{\mathrm{soft},l}\!\left(\mathbf{q}_0+\Delta\mathbf{q}_{\beta}(s)\right).
 \end{equation}
-La classe $\mathcal{C}^2$ est suffisante pour cette forme de Taylor. Une barrière de classe $\mathcal{C}^{1,1}$ suffit également lorsque son gradient possède la borne lipschitzienne requise.
+La classe $\mathcal{C}^2$ est suffisante pour cette forme de Taylor. Une barrière de classe $\mathcal{C}^{1,1}$ suffit également lorsque la constante de Lipschitz de son gradient est connue et bornée sur l'enveloppe.
 
 La mesure courante doit d'abord satisfaire la condition initiale
 \begin{equation}\label{eq:rfx_initial_condition}
@@ -988,7 +991,7 @@ L'injection de~\eqref{eq:rfx_displacement} dans~\eqref{eq:rfx_quadratic_conditio
 
 Avec $\kappa_{\mathrm{rfx}}=25$~s$^{-1}$, cette preuve couvre un âge total d'au plus $40$~ms. Une rétention de la commande ou une autre condition terminale démontrée est requise au-delà. Le frein retient le plus grand $\beta$ commun à toutes les contraintes. Tant que la condition inductive est satisfaite au début du microcycle et que $h_l^0\geq0$, le choix $\beta=0$ reste admissible. En récupération, des exigences de sortie incompatibles conduisent à l'arrêt et à la journalisation du conflit.
 
-La validité du certificat dépend du suivi exact, de $L_l^{\mathrm{rfx}}$ et de l'intégrité du paquet. Le moniteur retient la commande avec $\beta=0$ lorsque la perturbation projetée dépasse $\varepsilon_{\mathrm{p}}$. L'engagement est immédiat et le relâchement suit un filtre exponentiel de constante $\tau_{\mathrm{rel}}$. l'Annexe~\ref{annexe:lipschitz} rapporte des calibrations empiriques sur les distances individuelles pour calculer les constantes de lipschitz du système. La couverture de la Hessienne soft-min agrégée demeure une condition du certificat.
+La validité du certificat dépend du suivi exact, de $L_l^{\mathrm{rfx}}$ et de l'intégrité du paquet. Le moniteur retient la commande avec $\beta=0$ lorsque la perturbation projetée dépasse $\varepsilon_{\mathrm{p}}$. L'engagement est immédiat et le relâchement suit un filtre exponentiel de constante $\tau_{\mathrm{rel}}$. L'Annexe~\ref{annexe:lipschitz} rapporte les calibrations empiriques des constantes de Lipschitz sur les distances individuelles. La couverture de la Hessienne soft-min agrégée demeure une condition du certificat.
 
 \subsection{Évitement des minima locaux du filtre : dégagement postural}\label{subsec:minima}
 La projection annule uniquement la composante de vitesse interdite par la contrainte. La politique générative étant aveugle aux obstacles, une consigne nominale située au voisinage d'un obstacle réémet le même ordre à chaque replanification. L'équilibre entre cette intention et la correction de sécurité peut immobiliser le robot sur la frontière $h \approx 0$. L'ensemble sûr reste alors invariant sous les hypothèses de la Section~\ref{subsec:garanties}, tandis que la tâche cesse de progresser.
@@ -1059,7 +1062,7 @@ $\Delta q_{\mathrm{lim}}$ & Bande de garde des limites articulaires & $0{,}15$~r
 $\tau_{\mathrm{nom}}$ & Constante du filtre passe-bas nominal & $0{,}08$~s \\
 $\tau_{\mathrm{safe}}$ & Constante du filtre passe-bas de sécurité & $0{,}1$~s \\
 $\Delta q_{\mathrm{lead}}$ & Avance maximale de la référence & $0{,}05$~rad \\
-$K_a$ & Nombre de corps du robot contraints, hors cible saisie & $9$ \\
+$L_a$ & Nombre de corps du robot contraints, hors cible saisie & $9$ \\
 $N_{\mathrm{it}}$ & Nombre de balayages de Dykstra & $24$ \\
 $\zeta$ & Facteur de relaxation de Dykstra & $1{,}0$ \\
 $f_{\mathrm{rfx}}$ & Cadence du frein réflexe & $1$~kHz \\

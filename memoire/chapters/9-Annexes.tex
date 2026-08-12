@@ -929,7 +929,7 @@ La convergence étant asymptotique, la troncature à $N_{\mathrm{it}}$ balayages
 L'implémentation sur \ac{GPU} repose sur deux choix :
 \begin{enumerate}
   \item Pour les contraintes retenues telles que $a_l\geq\varepsilon_0$, le dénominateur de l'équation~\eqref{eq:proj_elem} coïncide avec $a_l$ et préserve les projections élémentaires exactes requises par Dykstra.
-  \item L'algorithme emploie un tenseur de dimension constante $(K_a{+}1)\times 7$, réinitialisé à chaque résolution. Les $K_a$ lignes portent les barrières du robot et la ligne supplémentaire la barrière optionnelle de la cible saisie. Des contraintes satisfaites complètent les emplacements inutilisés. Les $N_{\mathrm{it}}$ balayages conservent ainsi une structure fixe dans le graphe \ac{CUDA}.
+  \item L'algorithme emploie un tenseur de dimension constante $(L_a{+}1)\times 7$, réinitialisé à chaque résolution. Les $L_a$ lignes portent les barrières du robot et la ligne supplémentaire la barrière optionnelle de la cible saisie. Des contraintes satisfaites complètent les emplacements inutilisés. Les $N_{\mathrm{it}}$ balayages conservent ainsi une structure fixe dans le graphe \ac{CUDA}.
 \end{enumerate}
 
 \section*{Traitement de la vitesse : lissage, saturation et réparation}

@@ -36,7 +36,7 @@ Concevoir, implémenter et valider en simulation une architecture découplée qu
 %------------------------------------------------------------------
 \section{Axes de validation}
 %------------------------------------------------------------------
-La validation distingue la sécurité, la préservation de la tâche, la persistance de la carte et le respect des cadences. La boucle en ligne utilise le champ de distance appris. Les maillages exacts servent uniquement à la vérification après l'exécution, à chaque cycle de tous les essais. L'apport de la persistance est isolé par une ablation appariée pendant l'occultation de l'obstacle désigné.
+La validation évalue la sécurité, la préservation de la tâche, la persistance de la carte et le respect des cadences. La boucle en ligne utilise le champ de distance appris. Les maillages exacts servent uniquement à la vérification après l'exécution, à chaque cycle de tous les essais. L'apport de la persistance est isolé par une ablation appariée pendant l'occultation de l'obstacle désigné.
 
 \begin{table}[htbp]
 \centering
@@ -46,8 +46,8 @@ La validation distingue la sécurité, la préservation de la tâche, la persist
 \begin{tabular}{>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{4.6cm}}
 \hline
 Axe & Mesures & Comparaison & Critère d'acceptation \\ \hline
-Sécurité & Collisions définies par une distance au maillage inférieure à $0{,}5$~mm ; minimum de la barrière lissée ; distance exacte minimale aux obstacles ; durées cumulées des franchissements de la barrière et de la marge de $15$~mm & Système complet contre commande nominale non filtrée, scénarios appariés & Aucune collision avec le système complet ; maintien de la barrière lissée dans son domaine sûr ; réduction des collisions lorsque le nominal en produit \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Préservation de la tâche & Taux de réussite ; fraction de cycles contraints ; déviation médiane de l'outil & Système complet dans les cellules appariées avec et sans obstacle critique & Dégradation du taux de réussite inférieure à 10 points de pourcentage ; déviation médiane inférieure à l'ouverture utile de l'outil décrite à la Section~\ref{subsec:res_fm} \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+Sécurité & Collisions définies par une distance au maillage inférieure à $0{,}5$~mm ; minimum de la barrière lissée ; distance exacte minimale aux obstacles ; durées cumulées des franchissements de la barrière et de la marge de $15$~mm & Système complet contre système exécutant la commande nominale non filtrée, scénarios appariés & Aucune collision avec le système complet ; maintien de la barrière lissée dans son domaine sûr ; réduction des collisions lorsque le nominal en produit \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+Préservation de la tâche & Taux de réussite ; fraction de cycles contraints ; déviation médiane de l'outil & Système complet contre exécution nominale dans l'ensemble des scénarios encombrés & Dégradation du taux de réussite inférieure à 10 points de pourcentage ; déviation médiane inférieure à l'ouverture utile de l'outil décrite à la Section~\ref{subsec:res_fm} \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Persistance & Collisions et distance exacte à l'obstacle désigné pendant son occultation & Carte persistante contre perception instantanée, essais appariés & Aucune collision ; distance exacte toujours au moins égale à $15$~mm pendant l'occultation \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Temps réel & Temps médian, centiles de queue et maximum par sous-système ; âge de la commande ; période du frein & Budget de période par module & Cadence du filtre de $50$~Hz ; maintien nominal de $20$~ms ; réévaluation chaque milliseconde ; rétention de la commande au-delà de $40$~ms \\ \hline
 \end{tabular}
