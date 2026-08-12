@@ -16714,16 +16714,7 @@ L 28.1 30.784687
 " style="fill: none; stroke: #cc79a7; stroke-opacity: 0.4; stroke-width: 3; stroke-linecap: round"/>
    </g>
    <g id="text_38">
-    <!-- total : $\dot{q}_{\mathrm{proj}}-\dot{q}_{\mathrm{base}}$ -->
-    <g transform="translate(33.6 34.634687)">
-     <text>
-      <tspan style="font: 11px 'Latin Modern Roman'" x="0 5.96199 13.452988 19.414978 26.905975 31.338974 36.530975 40.963974" y="-0.046875">total : </tspan>
-      <tspan style="font: 11px 'cmr10'" x="47.460052 79.451004" y="-0.125">__</tspan>
-      <tspan style="font: 11px 'cmmi10'" x="46.155975 78.146927" y="-0.046875">qq</tspan>
-      <tspan style="font: 7.7px 'cmr10'" x="51.550839 55.825693 58.837265 62.687265 83.541791 87.816645 91.666645 94.700776" y="1.8238125000000007">projbase</tspan>
-      <tspan style="font: 11px 'cmsy10'" x="67.670072" y="-0.046875">¡</tspan>
-     </text>
-    </g>
+    <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="33.6" y="34.634687">écart total</text>
    </g>
    <g id="line2d_170">
     <path d="M 162.241562 15.45 
@@ -16732,15 +16723,7 @@ L 178.741562 15.45
 " style="fill: none; stroke: #e69f00; stroke-linecap: square"/>
    </g>
    <g id="text_39">
-    <!-- part du retard sur $\dot{q}_{\mathrm{base}}$ -->
-    <g transform="translate(184.241562 19.3)">
-     <text>
-      <tspan style="font: 11px 'Latin Modern Roman'" x="0 8.25 15.740997 21.702988 27.664978 32.856979 41.106979 49.356979 54.548981 60.510971 67.231964 73.193954 80.684952 86.646942 94.896942 100.088943 106.127945 114.377945 120.339935" y="-0.046875">part du retard sur </tspan>
-      <tspan style="font: 11px 'cmr10'" x="126.836014" y="-0.125">_</tspan>
-      <tspan style="font: 11px 'cmmi10'" x="125.531937" y="-0.046875">q</tspan>
-      <tspan style="font: 7.7px 'cmr10'" x="130.926801 135.201654 139.051654 142.085785" y="1.8238125000000007">base</tspan>
-     </text>
-    </g>
+    <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="184.241562" y="19.3">part du lissage</text>
    </g>
    <g id="line2d_171">
     <path d="M 162.241562 31.4 
@@ -16749,7 +16732,7 @@ L 178.741562 31.4
 " style="fill: none; stroke: #0072b2; stroke-width: 1.3; stroke-linecap: square"/>
    </g>
    <g id="text_40">
-    <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="184.241562" y="35.25" transform="rotate(-0 184.241562 35.25)">part du bouclier (accumulée)</text>
+    <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="184.241562" y="35.25" transform="rotate(-0 184.241562 35.25)">part du bouclier</text>
    </g>
   </g>
  </g>

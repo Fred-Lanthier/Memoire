@@ -2115,13 +2115,13 @@ L 441.174096 73.880266
      </g>
     </g>
     <g id="text_22">
-     <!-- $h_{\min,l}$ [mm] -->
+     <!-- $h_{\mathrm{soft},l}$ [mm] -->
      <g transform="translate(241.464461 187.78367) rotate(-90)">
       <text>
        <tspan style="font: 12px 'cmmi10'" x="0" y="-0.703125">h</tspan>
-       <tspan style="font: 8.4px 'cmr10'" x="6.914062 13.911328 16.236914" y="1.3376249999999992">min</tspan>
-       <tspan style="font: 8.4px 'cmmi10'" x="20.900391 24.700898" y="1.3376249999999992">;l</tspan>
-       <tspan style="font: 12px 'Latin Modern Roman'" x="27.968133 33.632119 38.468118 51.632104 64.79609" y="-0.703125"> [mm]</tspan>
+       <tspan style="font: 8.4px 'cmr10'" x="6.914062" y="1.3376249999999992">soft</tspan>
+       <tspan style="font: 8.4px 'cmmi10'" x="24.5 28.3" y="1.3376249999999992">;l</tspan>
+       <tspan style="font: 12px 'Latin Modern Roman'" x="31.6" y="-0.703125"> [mm]</tspan>
       </text>
      </g>
     </g>
@@ -3446,7 +3446,7 @@ L 173.760625 16
 " style="fill: none; stroke: #009e73; stroke-width: 1.4; stroke-linecap: square"/>
    </g>
    <g id="text_26">
-    <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="179.260625" y="19.85" transform="rotate(-0 179.260625 19.85)">Bouclier seul (sans frein)</text>
+    <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="179.260625" y="19.85" transform="rotate(-0 179.260625 19.85)">Bouclier seul, frein coupé</text>
    </g>
    <g id="line2d_46">
     <path d="M 157.260625 32.5 
@@ -3455,7 +3455,7 @@ L 173.760625 32.5
 " style="fill: none; stroke-dasharray: 8.96,2.24,1.4,2.24; stroke-dashoffset: 0; stroke: #e69f00; stroke-width: 1.4"/>
    </g>
    <g id="text_27">
-    <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="179.260625" y="36.35" transform="rotate(-0 179.260625 36.35)">Frein seul (bouclier coupé)</text>
+    <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="179.260625" y="36.35" transform="rotate(-0 179.260625 36.35)">Frein seul, bouclier coupé</text>
    </g>
    <g id="line2d_47">
     <path d="M 369.974844 16 

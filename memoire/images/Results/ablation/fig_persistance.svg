@@ -174,13 +174,13 @@ L 218.988686 70.240168
      </g>
     </g>
     <g id="text_10">
-     <!-- $h_{\min,l}$ publiée [mm] -->
+     <!-- $h_{\mathrm{soft},l}$ publiée [mm] -->
      <g transform="translate(16.2 174.864694) rotate(-90)">
       <text>
        <tspan style="font: 12px 'cmmi10'" x="0" y="-0.703125">h</tspan>
-       <tspan style="font: 8.4px 'cmr10'" x="6.914062 13.911328 16.236914" y="1.3376249999999992">min</tspan>
-       <tspan style="font: 8.4px 'cmmi10'" x="20.900391 24.700898" y="1.3376249999999992">;l</tspan>
-       <tspan style="font: 12px 'Latin Modern Roman'" x="27.968133 33.632119 42.632104 51.632089 60.632073 65.468072 70.30407 77.636056 84.968041 90.632027 95.468026 108.632012 121.795998" y="-0.703125"> publiée [mm]</tspan>
+       <tspan style="font: 8.4px 'cmr10'" x="6.914062" y="1.3376249999999992">soft</tspan>
+       <tspan style="font: 8.4px 'cmmi10'" x="24.5 28.3" y="1.3376249999999992">;l</tspan>
+       <tspan style="font: 12px 'Latin Modern Roman'" x="31.6" y="-0.703125"> publiée [mm]</tspan>
       </text>
      </g>
     </g>
@@ -1419,11 +1419,13 @@ L 447.400811 70.240168
      </g>
     </g>
     <g id="text_23">
-     <!-- $h$ exacte (maillages) [mm] -->
-     <g transform="translate(245.332125 203.664694) rotate(-90)">
+     <!-- $h_{\mathrm{ex},l}$ [mm] -->
+     <g transform="translate(245.332125 174.864694) rotate(-90)">
       <text>
        <tspan style="font: 12px 'cmmi10'" x="0" y="-0.703125">h</tspan>
-       <tspan style="font: 12px 'Latin Modern Roman'" x="6.914062 12.578049 19.910034 28.490021 36.662018 43.994003 50.498001 57.829987 63.493973 69.997971 83.161957 91.333954 96.169952 101.005951 105.841949 114.013947 122.185944 129.517929 136.105927 142.609924 148.273911 153.109909 166.273895 179.437881" y="-0.703125"> exacte (maillages) [mm]</tspan>
+       <tspan style="font: 8.4px 'cmr10'" x="6.914062" y="1.3376249999999992">ex</tspan>
+       <tspan style="font: 8.4px 'cmmi10'" x="15.7 19.5" y="1.3376249999999992">;l</tspan>
+       <tspan style="font: 12px 'Latin Modern Roman'" x="22.8" y="-0.703125"> [mm]</tspan>
       </text>
      </g>
     </g>

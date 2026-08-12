@@ -25,7 +25,7 @@ La lecture d'état et la cinématique inverse utilisent C++ avec \texttt{Pinocch
 \subsection{Architecture modulaire du système}\label{subsec:architecture_modulaire}
 La Figure~\ref{fig:architecture_systeme_final_v12} illustre l'architecture modulaire du système et le trajet des données, des images \ac{RGB-D} jusqu'à la commande de vitesse articulaire. Le flux se sépare en deux chemins dès la perception. Le premier conditionne la génération de trajectoire : la cible, détectée par \ac{SAM}~3 puis suivie par \ac{SAM}~2, est projetée en un nuage de points 3D, fusionnée au maillage de l'outil, et le nuage résultant conditionne le modèle de \textit{Flow Matching}, qui replanifie la trajectoire nominale en boucle fermée. Le second garantit la sécurité : les pixels restants forment le nuage d'obstacles qui, nettoyé puis accumulé dans la carte persistante, alimente le bouclier \ac{CBF}. Celui-ci corrige à la fréquence de commande la trajectoire nominale interpolée par l'exécuteur, puis le frein réflexe re-vérifie la commande maintenue entre deux résolutions avant de l'envoyer au contrôleur du robot.
 
-Deux liaisons secondaires ferment le système. Le nœud de saisie soude la cible à l'outil au moment du contact et publie le nuage saisi, que le bouclier protège dès lors comme un lien supplémentaire du robot. L'état articulaire mesuré revient par ailleurs à tous les modules par le bus de retour de droite, la boucle physique se refermant à travers la simulation.
+Deux liaisons secondaires ferment le système. Le nœud de saisie soude la cible à l'outil au moment du contact et publie le nuage saisi. L'état articulaire mesuré revient par ailleurs à tous les modules par le bus de retour de droite, la boucle physique se refermant à travers la simulation.
 
 Le Tableau~\ref{tab:mecanismes} distingue les mécanismes essentiels, l'infrastructure d'exécution et les heuristiques de robustesse.
 
@@ -254,7 +254,7 @@ La même politique de mémoire s'applique à la cible. En cas de perte du suivi,
 
 La carte persistante prend la forme d'une grille de voxels creuse de pas $1$~cm. Cette résolution résulte d'un compromis : assez fine pour représenter les obstacles à l'échelle centimétrique des dégagements de la tâche, assez grossière pour maintenir la carte compacte. À chaque image, le nuage d'obstacles nettoyé y est voxelisé, ce qui fusionne les doublons et borne le coût des traitements en aval, puis chaque voxel observé est inscrit dans la carte, plafonnée à $4096$ voxels.
 
-Les points appartenant à la cible, identifiés par le masque suivi, sont exclus de la carte d'obstacles et accumulés dans une carte distincte. L'éviction par espace libre s'applique uniquement à la carte d'obstacles. Un rayon de $4$~cm autour du centroïde courant limite l'étalement de la carte cible au fil des poses. La carte d'obstacles est publiée à $30$~Hz vers le filtre de sécurité.
+Les points appartenant à la cible, identifiés par le masque suivi, sont exclus de la carte d'obstacles et accumulés dans une carte distincte. L'éviction par espace libre s'applique uniquement à la carte d'obstacles. Un rayon de $4$~cm autour du centroïde courant de la cible limite l'étalement de la carte cible au fil des poses. La carte d'obstacles est publiée à $30$~Hz vers le filtre de sécurité.
 
 Deux règles régissent la mise à jour d'un voxel selon la Figure~\ref{fig:eviction_voxels}. Hors du champ courant, il persiste afin de protéger le robot contre les obstacles devenus invisibles. Dans le champ, une éviction par espace libre est calculée sur \ac{GPU}. Chaque voxel est reprojeté dans l'image de profondeur. La marge $\delta_{\mathrm{libre}}$ vaut $1$~cm, soit un voxel. Lorsque la mesure dépasse sa profondeur de cette marge, le rayon traverse son emplacement et le voxel est évincé. Un voxel plus profond que la mesure reste occulté et conservé. Un obstacle déplacé disparaît donc dès son retour dans le champ. L'âge sert uniquement à écarter les voxels les plus anciens lorsque la capacité maximale est atteinte.
 
@@ -523,7 +523,7 @@ où $\mathbf{q}\in\mathbb{R}^7$ est la configuration articulaire mesurée, $\dot
 
 \subsection{Fonction barrière}\label{subsec:barriere}
 
-Sur chaque banc, l'ensemble $\mathcal{L}_{\mathrm{prot}}$ contient $K_a=9$ corps articulés : les liens $2$ à $7$, la main et les deux doigts de la pince pour la saisie et le dépôt; les liens $3$ à $7$, la main, les deux doigts et la fourchette pour l'alimentation. Le premier lien effectue une rotation autour de l'axe vertical de la base et reste hors de cet ensemble. L'expression « corps complet » désigne ici la chaîne mobile exposée dans l'espace de travail. Cette couverture étend à ces neuf corps la protection souvent limitée à l'effecteur.
+Sur chaque banc, l'ensemble des liens protégés $\mathcal{L}_{\mathrm{prot}}$ contient $K_a=9$ corps articulés : les liens $2$ à $7$, la main et les deux doigts de la pince pour la saisie et le dépôt; les liens $3$ à $7$, la main, les deux doigts et la fourchette pour l'alimentation. Le premier lien effectue une rotation autour de l'axe vertical de la base et reste hors de cet ensemble. L'expression « corps complet » désigne ici la chaîne mobile exposée dans l'espace de travail. Cette couverture étend à ces neuf corps la protection souvent limitée à l'effecteur.
 
 À l'exécution, chaque point obstacle $\mathbf{p}_i$ est ramené dans le repère normalisé de chaque lien protégé via la cinématique directe, puis évalué par le modèle appris :
 \begin{equation}
@@ -535,7 +535,7 @@ Pour les points situés hors du domaine $[-1,1]^3$, la coordonnée normalisée e
 \begin{equation}
 \hat{d}(\mathbf{x}) \;=\; \sqrt{\,d(\mathbf{c})^{2} + \|\mathbf{x}-\mathbf{c}\|^{2}\,}.
 \end{equation}
-Cette forme est un minorant de la distance géométrique lorsque la décomposition orthogonale hors du cube s'applique et que $|d(\mathbf{c})|$ ne dépasse pas la distance exacte au point borné. Avec le \ac{SDF} appris, cette propriété reste conditionnelle à l'erreur du modèle. Sa croissance monotone préserve l'orientation physique du gradient, tandis que la borne lipschitzienne $d(\mathbf{c})-\|\mathbf{x}-\mathbf{c}\|$ décroît avec l'excursion. Le raccord reste continu et différentiable par morceaux. Les obstacles menaçants résident généralement dans le domaine; le prolongement ordonne surtout les points lointains et guide le dégagement postural. L'Annexe~\ref{annexe:gradient_details} donne la preuve conditionnelle et le détail du raccord.
+Cette forme est un minorant de la distance géométrique lorsque la décomposition orthogonale hors du cube s'applique et que $|d(\mathbf{c})|$ ne dépasse pas la distance exacte au point borné. Avec le \ac{SDF} appris, cette propriété reste conditionnelle à l'erreur du modèle. Sa croissance monotone préserve l'orientation physique du gradient, tandis que la borne lipschitzienne $d(\mathbf{c})-\|\mathbf{x}-\mathbf{c}\|$ décroît avec l'excursion. Le raccord rejoint la branche intérieure lorsque $d(\mathbf{c})\geq0$ et reste différentiable par morceaux. Les obstacles menaçants résident généralement dans le domaine; le prolongement ordonne surtout les points lointains et guide le dégagement postural. L'Annexe~\ref{annexe:gradient_details} donne la preuve conditionnelle et le détail du raccord.
 
 \label{subsec:selection}Contraindre la commande sur la totalité de la carte persistante, détaillée à la Section~\ref{sec:persistant_map}, à chaque cycle serait toutefois inutile : seuls les points les plus proches du robot peuvent activer la contrainte. Le \ac{SDF} corps-complet est donc évalué sur l'ensemble de la carte, dont les $K$ points de plus faible distance sont conservés :
 \begin{equation}
@@ -544,7 +544,7 @@ Cette forme est un minorant de la distance géométrique lorsque la décompositi
 \end{equation}
 Cette sélection est recalculée à $50$~Hz, soit toutes les $20$~ms. L'ensemble actif présente donc une obsolescence nominale de $20$~ms prise en compte dans le budget de $d_{\mathrm{safe}}$ selon la Section~\ref{subsec:garanties}.
 
-Le minimum sur les liens précède le classement, de sorte que les $K$ points forment un budget commun à tous les corps protégés. Une surface dense près d'un lien peut remplir ce budget et omettre le point le plus proche d'un autre lien; la barrière de ce dernier devient alors permissive par rapport à la géométrie échantillonnée complète. Avec $K=64$, les points retenus forment généralement un voisinage, et le classement corps-complet priorise tout point globalement proche. La marge $d_{\mathrm{safe}}$ couvre uniquement une omission qui demeure au-delà de la bande d'activation. Une allocation explicite par lien supprimerait ce mode de défaillance pour un budget total constant.
+Le minimum sur les liens précède le classement, de sorte que les $K$ points forment un budget commun à tous les corps protégés. Une surface dense près d'un lien peut remplir ce budget et omettre le point le plus proche d'un autre lien; la barrière de ce dernier devient alors permissive par rapport à la géométrie échantillonnée complète. Avec $K=64$, les points retenus forment généralement un voisinage, et le classement corps-complet priorise tout point globalement proche. La marge $d_{\mathrm{safe}}$ couvre uniquement une omission qui demeure au-delà de la bande d'activation.
 
 L'enchaînement de la cinématique directe, de l'évaluation du \ac{SDF} et de la sélection TopK s'exécute dans un unique graphe \ac{CUDA}. Des points fictifs lointains complètent au besoin la sélection afin de conserver une dimension $N$ fixe. La structure d'exécution du graphe reste ainsi constante. La preuve de régularité $\mathcal{C}^2$ du frein réflexe exige aussi des identités de points fixes sur l'horizon certifié; une commutation de l'ensemble TopK reste non lisse.
 
@@ -571,7 +571,7 @@ Chaque corps contraint possède sa propre barrière. Pour une famille $\mathcal{
 =\bigcap_{l\in\mathcal{A}}\{\mathbf{q}\mid h_{\mathrm{soft},l}(\mathbf{q})\geq 0\}.
 \end{equation}
 
-Avant la saisie, $\mathcal{A}=\mathcal{L}_{\mathrm{prot}}$. Le filtre maintient une contrainte séparée pour chaque $l\in\mathcal{A}$ et n'agrège aucun minimum entre les corps. La Section~\ref{subsec:projection} décrit leur résolution conjointe. Une modification de $\mathcal{A}$ initialise une nouvelle famille de barrières et reste hors du certificat établi pour la famille précédente.
+On a donc $\mathcal{A}=\mathcal{L}_{\mathrm{prot}}$. Le filtre maintient une contrainte séparée pour chaque $l\in\mathcal{A}$ et n'agrège aucun minimum entre les corps. La Section~\ref{subsec:projection} décrit leur résolution conjointe. Une modification de $\mathcal{A}$ initialise une nouvelle famille de barrières et reste hors du certificat établi pour la famille précédente.
 
 La quantité $\alpha\log M_{\mathrm{eff},l}$ mesure la conservativité d'agrégation. À la frontière $h_{\mathrm{soft},l}=0$, la distance apprise minimale vérifie
 \begin{equation}
@@ -761,7 +761,7 @@ Le second membre complet est $r_l=b(h_l)+\varepsilon_{\mathrm{p}}\|\nabla h_l\|+
 \geq b(h_l)\geq-\widetilde{\gamma}(h_l).
 \end{aligned}
 \end{equation}
-Soit $h_l^0=h_l(\mathbf{q}_k)$ au début du maintien. Pour $t\in[0,T]$, la borne de courbure, la borne projetée de poursuite et $\|\dot{\mathbf{q}}(t)\|\leq v_{\mathrm{env}}$ donnent
+Soit $h_l^0=h_l(\mathbf{q}_k)$ au début du maintien. Pour $t\in[0,T]$, la borne de courbure $L_l^{\mathrm{QP}}$, la borne projetée de poursuite et $\|\dot{\mathbf{q}}(t)\|\leq v_{\mathrm{env}}$ donnent
 \begin{equation}\label{eq:sampled_lower_bound}
 h_l\bigl(\mathbf{q}(t)\bigr)
 \geq h_l^0+t\,b(h_l^0)
@@ -907,8 +907,6 @@ puis saturée aux limites articulaires et annulée sous un seuil qui empêche la
     \label{fig:projection_cbf}
 \end{figure}
 
-  La métrique est un préconditionneur lentement variable, rafraîchi à une cadence inférieure à celle de la commande. L'Annexe~\ref{annexe:cbf_details} mesure l'effet de sa lecture asynchrone sur la projection.
-
 \subsubsection{Algorithme de projection de Dykstra}\label{subsubsec:dykstra}
 Lorsque plusieurs contraintes de sécurité sont actives, l'intersection des demi-espaces n'admet plus de solution analytique directe. La résolution applique des projections itératives avec l'opérateur individuel $P_l$, qui déplace la vitesse selon $\mathbf{W}^{-1}\nabla h_l$. Sa dérivation figure à l'Annexe~\ref{annexe:cbf_details}.
 
@@ -919,7 +917,7 @@ Sa structure à nombre de cycles fixe permet une exécution dans un graphe \ac{C
 \subsection{De la solution du solveur à la commande publiée}\label{subsec:commande}
 La vitesse projetée est lissée et saturée avant sa transmission. Une vérification de contrainte suit chaque modification afin de préserver l'admissibilité.
 
-Le lissage temporel est intégré à la projection. La mémoire exponentielle de constante $\tau_{\mathrm{safe}}$ définit la vitesse cible du QP :
+Le lissage temporel est intégré à la projection. La mémoire exponentielle de constante $\tau_{\mathrm{safe}}$ définit la vitesse cible avec laquelle le QP tente de minimiser l'écart :
 \begin{equation}
 \dot{\mathbf{q}}_{\mathrm{cible},k} = (1-\gamma_{\mathrm{safe}})\,\dot{\mathbf{q}}_{\mathrm{final},k-1} + \gamma_{\mathrm{safe}}\,\dot{\mathbf{q}}_{\mathrm{base},k},
 \end{equation}
@@ -957,14 +955,14 @@ Soit $T$ l'âge courant du paquet et $\Delta t_{\mathrm{rfx}}=1$~ms la durée du
 +\beta\,\dot{\mathbf{q}}_{\mathrm{final}}s,
 \qquad s\in[0,\Delta t_{\mathrm{rfx}}].
 \end{equation}
-Cette expression couvre la dérive mesurée avant de prédire le microcycle suivant. Le certificat qui suit suppose exactement $\dot{\mathbf{q}}=\beta\dot{\mathbf{q}}_{\mathrm{final}}$ pendant le microcycle. Le moniteur de poursuite détecte un écart après mesure et déclenche la rétention; cette détection ne certifie pas rétroactivement le segment parcouru. Une preuve robuste à une perturbation non nulle exigerait d'élargir le tube $\mathcal{S}_l$ et la minorante.
+Cette expression couvre la dérive mesurée avant de prédire le microcycle suivant. Le certificat qui suit suppose exactement $\dot{\mathbf{q}}=\beta\dot{\mathbf{q}}_{\mathrm{final}}$ pendant le microcycle. Le moniteur de poursuite détecte un écart après mesure et déclenche la rétention; cette détection ne certifie pas rétroactivement le segment parcouru. Une preuve robuste à une perturbation non nulle exigerait d'élargir l'enveloppe de trajectoire que le robot balaye $\mathcal{S}_l$ et la minorante $\underline{h}_{l,\beta}(s)$.
 
-Les identités des points restent celles du paquet. Si chaque $d_{l,i}$ est de classe $\mathcal{C}^2$ sur un voisinage du tube parcouru, alors le LogSumExp à $\alpha>0$ rend $h_{\mathrm{soft},l}$ de classe $\mathcal{C}^2$ sur ce tube. Cette hypothèse requiert une sélection TopK fixe et une même branche $\mathcal{C}^2$ du prolongement hors domaine, donc un ensemble fixe de coordonnées bornées. Notons ce tube $\mathcal{S}_l$. Une constante qui vérifie
+Les identités des points restent celles du paquet. Si chaque $d_{l,i}$ est de classe $\mathcal{C}^2$ sur un voisinage de l'enveloppe parcouru, alors le LogSumExp à $\alpha>0$ rend $h_{\mathrm{soft},l}$ de classe $\mathcal{C}^2$ sur cette enveloppe. Cette hypothèse requiert une sélection TopK fixe et une même branche $\mathcal{C}^2$ du prolongement hors domaine, donc un ensemble fixe de coordonnées bornées. Une constante qui vérifie
 \begin{equation}\label{eq:rfx_curvature_condition}
 L_l^{\mathrm{rfx}}\geq\sup_{\boldsymbol{\xi}\in\mathcal{S}_l}
 \left[-\lambda_{\min}\!\left(\nabla_{\mathbf{q}}^2h_{\mathrm{soft},l}(\boldsymbol{\xi})\right)\right]_+
 \end{equation}
-sur ce tube donne la minorante de Taylor--Lagrange
+sur cette enveloppe donne la minorante de Taylor--Lagrange
 \begin{equation}
 \underline h_{l,\beta}(s)
 =h_l^0+(\mathbf{g}_l^0)^\top\Delta\mathbf{q}_{\beta}(s)
@@ -986,11 +984,11 @@ Le frein impose la condition terminale sur cette minorante :
 \underline h_{l,\beta}(\Delta t_{\mathrm{rfx}})
 \geq h_l^0\bigl[1-\kappa_{\mathrm{rfx}}(T+\Delta t_{\mathrm{rfx}})\bigr].
 \end{equation}
-L'injection de~\eqref{eq:rfx_displacement} dans~\eqref{eq:rfx_quadratic_condition} produit l'inéquation quadratique effectivement résolue en $\beta$, avec les termes croisés dus à $\Delta\mathbf{q}_{\mathrm{mes}}$. La fonction $\underline h_{l,\beta}(s)-h_l^0[1-\kappa_{\mathrm{rfx}}(T+s)]$ est concave en $s$. Les conditions~\eqref{eq:rfx_initial_condition} et~\eqref{eq:rfx_quadratic_condition} assurent donc sa positivité entre les deux tiques. Pour $h_l^0\geq0$, la barrière reste positive tant que $\kappa_{\mathrm{rfx}}(T+\Delta t_{\mathrm{rfx}})\leq1$.
+L'injection de~\eqref{eq:rfx_displacement} dans~\eqref{eq:rfx_quadratic_condition} produit l'inéquation quadratique effectivement résolue en $\beta$, avec les termes croisés dus à $\Delta\mathbf{q}_{\mathrm{mes}}$. La fonction $\underline h_{l,\beta}(s)-h_l^0[1-\kappa_{\mathrm{rfx}}(T+s)]$ est concave en $s$. Les conditions~\eqref{eq:rfx_initial_condition} et~\eqref{eq:rfx_quadratic_condition} assurent donc sa positivité entre les deux cycles. Pour $h_l^0\geq0$, la barrière reste positive tant que $\kappa_{\mathrm{rfx}}(T+\Delta t_{\mathrm{rfx}})\leq1$.
 
 Avec $\kappa_{\mathrm{rfx}}=25$~s$^{-1}$, cette preuve couvre un âge total d'au plus $40$~ms. Une rétention de la commande ou une autre condition terminale démontrée est requise au-delà. Le frein retient le plus grand $\beta$ commun à toutes les contraintes. Tant que la condition inductive est satisfaite au début du microcycle et que $h_l^0\geq0$, le choix $\beta=0$ reste admissible. En récupération, des exigences de sortie incompatibles conduisent à l'arrêt et à la journalisation du conflit.
 
-La validité du certificat dépend du suivi exact, de $L_l^{\mathrm{rfx}}$ et de l'intégrité du paquet. Le moniteur retient la commande avec $\beta=0$ lorsque la perturbation projetée dépasse $\varepsilon_{\mathrm{p}}$. L'engagement est immédiat et le relâchement suit un filtre exponentiel de constante $\tau_{\mathrm{rel}}$. Les constantes du QP et du frein sont distinguées par $L_l^{\mathrm{QP}}$ et $L_l^{\mathrm{rfx}}$; elles valent notamment $5$ et $20$~m/rad$^2$ pour les doigts selon l'Annexe~\ref{annexe:lipschitz}. Cette annexe rapporte des calibrations empiriques sur les distances individuelles. La couverture de la Hessienne soft-min agrégée demeure une condition du certificat.
+La validité du certificat dépend du suivi exact, de $L_l^{\mathrm{rfx}}$ et de l'intégrité du paquet. Le moniteur retient la commande avec $\beta=0$ lorsque la perturbation projetée dépasse $\varepsilon_{\mathrm{p}}$. L'engagement est immédiat et le relâchement suit un filtre exponentiel de constante $\tau_{\mathrm{rel}}$. l'Annexe~\ref{annexe:lipschitz} rapporte des calibrations empiriques sur les distances individuelles pour calculer les constantes de lipschitz du système. La couverture de la Hessienne soft-min agrégée demeure une condition du certificat.
 
 \subsection{Évitement des minima locaux du filtre : dégagement postural}\label{subsec:minima}
 La projection annule uniquement la composante de vitesse interdite par la contrainte. La politique générative étant aveugle aux obstacles, une consigne nominale située au voisinage d'un obstacle réémet le même ordre à chaque replanification. L'équilibre entre cette intention et la correction de sécurité peut immobiliser le robot sur la frontière $h \approx 0$. L'ensemble sûr reste alors invariant sous les hypothèses de la Section~\ref{subsec:garanties}, tandis que la tâche cesse de progresser.
@@ -1137,4 +1135,4 @@ Pour $N=64$ et $\alpha=2$~mm, cette distance apprise se situe entre $15$ et $23{
 Le certificat porte sur les distances apprises qui composent $h_{\mathrm{soft},l}$. Le maintien de $h_{\mathrm{soft},l}\geq0$ impose $\min_i d_{l,i}\geq d_{\mathrm{safe}}$ sur ce modèle. La distance au maillage est calculée à chaque cycle comme vérification géométrique \textit{a posteriori}. L'écart entre ces deux mesures comprend l'erreur du \ac{SDF}; l'écart $\alpha\log M_{\mathrm{eff},l}$ décrit séparément la conservativité de l'agrégation. Le dégagement physique est rapporté directement par le maillage avec $d_{\mathrm{safe}}=15$~mm.
 
 \subsection{Fraîcheur des entrées}
-Des chiens de garde surveillent les états articulaires et le nuage d'obstacles. Une donnée périmée commande une vitesse nulle. Le signal de disponibilité exige la réception valide des deux flux, et le contrôleur bas niveau retient sa dernière référence de position en cas d'arrêt des commandes. L'Annexe~\ref{annexe:surveillance} donne les seuils correspondants.
+Des moniteurs de fraîcheur des données surveillent les états articulaires et le nuage d'obstacles. Une donnée périmée commande une vitesse nulle. Le signal de disponibilité exige la réception valide des deux flux, et le contrôleur bas niveau retient sa dernière référence de position en cas d'arrêt des commandes. L'Annexe~\ref{annexe:surveillance} donne les seuils correspondants.

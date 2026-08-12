@@ -234,13 +234,13 @@ L 449.784875 28.386741
      </g>
     </g>
     <g id="text_14">
-     <!-- $h_{\min,l}$ [mm] -->
+     <!-- $h_{\mathrm{soft},l}$ [mm] -->
      <g transform="translate(16.2 127.083767) rotate(-90)">
       <text>
        <tspan style="font: 12px 'cmmi10'" x="0" y="-0.703125">h</tspan>
-       <tspan style="font: 8.4px 'cmr10'" x="6.914062 13.911328 16.236914" y="1.3376249999999992">min</tspan>
-       <tspan style="font: 8.4px 'cmmi10'" x="20.900391 24.700898" y="1.3376249999999992">;l</tspan>
-       <tspan style="font: 12px 'Latin Modern Roman'" x="27.968133 33.632119 38.468118 51.632104 64.79609" y="-0.703125"> [mm]</tspan>
+       <tspan style="font: 8.4px 'cmr10'" x="6.914062" y="1.3376249999999992">soft</tspan>
+       <tspan style="font: 8.4px 'cmmi10'" x="24.5 28.3" y="1.3376249999999992">;l</tspan>
+       <tspan style="font: 12px 'Latin Modern Roman'" x="31.6" y="-0.703125"> [mm]</tspan>
       </text>
      </g>
     </g>
@@ -1695,12 +1695,12 @@ L 217.442187 15.45
 " style="fill: none; stroke: #0072b2; stroke-width: 1.5; stroke-linecap: square"/>
     </g>
     <g id="text_16">
-     <!-- $h_{\min,l}$ -->
+     <!-- $h_{\mathrm{soft},l}$ -->
      <g transform="translate(222.942187 19.3)">
       <text>
        <tspan style="font: 11px 'cmmi10'" x="0" y="-0.375">h</tspan>
-       <tspan style="font: 7.7px 'cmr10'" x="6.337891 12.752051 14.883838" y="1.4956875000000007">min</tspan>
-       <tspan style="font: 7.7px 'cmmi10'" x="19.158691 22.64249" y="1.4956875000000007">;l</tspan>
+       <tspan style="font: 7.7px 'cmr10'" x="6.337891" y="1.4956875000000007">soft</tspan>
+       <tspan style="font: 7.7px 'cmmi10'" x="22.5 26.0" y="1.4956875000000007">;l</tspan>
       </text>
      </g>
     </g>

@@ -189,14 +189,8 @@ L 441.78625 77.377152
      </g>
     </g>
     <g id="text_11">
-     <!-- $\dot{h}$ [m/s] -->
-     <g transform="translate(18.36 128.864845) rotate(-90)">
-      <text>
-       <tspan style="font: 12px 'cmr10'" x="2.712891" y="-3.96875">_</tspan>
-       <tspan style="font: 12px 'cmmi10'" x="0" y="-0.84375">h</tspan>
-       <tspan style="font: 12px 'Latin Modern Roman'" x="6.914062 12.578049 17.414047 30.578033 38.750031 45.338028" y="-0.84375"> [m/s]</tspan>
-      </text>
-     </g>
+     <!-- taux de barrière lissée [m/s] -->
+     <text style="font: 12px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: middle" x="-103.724845" y="18.36" transform="rotate(-90)">taux de barrière lissée [m/s]</text>
     </g>
    </g>
    <g id="line2d_19">
@@ -1023,17 +1017,8 @@ L 91.47125 17.1
 " style="fill: none; stroke: #0072b2; stroke-width: 1.3; stroke-linecap: square"/>
     </g>
     <g id="text_12">
-     <!-- $\nabla h^\top\dot{q}_{\mathrm{final}}$ (commandé) -->
-     <g transform="translate(96.97125 20.95)">
-      <text>
-       <tspan style="font: 11px 'cmsy10'" x="0" y="-0.6612656250000004">r</tspan>
-       <tspan style="font: 11px 'cmmi10'" x="9.163086 23.458151" y="-0.6612656250000004">hq</tspan>
-       <tspan style="font: 7.7px 'cmsy10'" x="16.774856" y="-4.870312500000001">&gt;</tspan>
-       <tspan style="font: 11px 'cmr10'" x="24.762228" y="-0.7393906250000004">_</tspan>
-       <tspan style="font: 7.7px 'cmr10'" x="28.853015 31.202869 33.334656 37.609509 41.459509" y="1.2094218750000003">final</tspan>
-       <tspan style="font: 11px 'Latin Modern Roman'" x="44.292804 49.484806 55.446796 62.167789 69.658786 81.725788 93.792789 101.283786 109.533786 117.783786 124.504779" y="-0.6612656250000004"> (commandé)</tspan>
-      </text>
-     </g>
+     <!-- taux publié avant beta -->
+     <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="96.97125" y="20.95">taux publié avant β</text>
     </g>
     <g id="line2d_23">
      <path d="M 74.97125 34.7 
@@ -1042,17 +1027,8 @@ L 91.47125 34.7
 " style="fill: none; stroke-dasharray: 3.7,1.6; stroke-dashoffset: 0; stroke: #d55e00"/>
     </g>
     <g id="text_13">
-     <!-- $\nabla h^\top\dot{q}_{\mathrm{mes}}$ (exécuté) -->
-     <g transform="translate(96.97125 38.55)">
-      <text>
-       <tspan style="font: 11px 'cmsy10'" x="0" y="-0.6612656250000004">r</tspan>
-       <tspan style="font: 11px 'cmmi10'" x="9.163086 23.458151" y="-0.6612656250000004">hq</tspan>
-       <tspan style="font: 7.7px 'cmsy10'" x="16.774856" y="-4.870312500000001">&gt;</tspan>
-       <tspan style="font: 11px 'cmr10'" x="24.762228" y="-0.7393906250000004">_</tspan>
-       <tspan style="font: 7.7px 'cmr10'" x="28.853015 35.267175 38.684802" y="1.2094218750000003">mes</tspan>
-       <tspan style="font: 11px 'Latin Modern Roman'" x="42.420441 47.612442 53.574433 60.295426 68.160431 74.881424 81.602417 89.852417 95.814408 102.535401" y="-0.6612656250000004"> (exécuté)</tspan>
-      </text>
-     </g>
+     <!-- taux mesuré -->
+     <text style="font: 11px 'Latin Modern Roman', 'CMU Serif', 'DejaVu Serif', serif; text-anchor: start" x="96.97125" y="38.55">taux mesuré</text>
     </g>
    </g>
   </g>
