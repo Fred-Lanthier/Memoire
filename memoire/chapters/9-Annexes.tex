@@ -1448,7 +1448,7 @@ Le choix de $N=5$ combine la structure géométrique, la régularité du chemin 
 
 Ces mesures montrent qu'une trajectoire régulière est obtenue avec cinq passes du réseau et soutiennent la motivation computationnelle du \ac{FM} exposée au Chapitre~\ref{sec:RevLitt}. Une comparaison expérimentale à une politique de diffusion formerait une étude distincte.
 
-Les temps rapportés ici sont des coûts \ac{GPU} synchronisés sur un banc dédié. Le compteur \texttt{fm\_generation} de la Section~\ref{sec:res_temps} est non synchronisé et s'exécute sous contention; les deux mesures ont donc des portées différentes.
+Les temps rapportés ici sont des coûts \ac{GPU} synchronisés sur un banc dédié. Le temps de calcul de la génération de trajectoire rapporté à la Section~\ref{sec:res_temps} est non synchronisé et s'exécute sous contention; les deux mesures ont donc des portées différentes.   
 
 \subsection*{Rectitude des chemins d'intégration}
 
@@ -1566,7 +1566,7 @@ L'interface retenue publie $\dot{\mathbf q}_{\mathrm{final}}$ au frein réflexe,
 
 Au banc de saisie et dépôt, la corrélation entre les deux taux vaut $0{,}88$ sur $20\,430$ cycles. La régression linéaire descriptive de $r_{\mathrm{mes}}$ sur $r_{\mathrm{pub}}$ donne une pente de $0{,}81$. Les taux partagent le même signe sur $94$~\% des cycles où $r_{\mathrm{pub}}>0{,}01$~m/s. L'atténuation par $\beta$ et le retard d'asservissement contribuent à la pente inférieure à un.
 
-Sur les $15\,458$ cycles du banc d'alimentation, la corrélation vaut $0{,}58$ et la régression de $r_{\mathrm{mes}}$ sur $r_{\mathrm{pub}}$ donne une pente de $0{,}55$. L'écart augmente lorsque la fourchette plonge dans la géométrie concave du bol. Le gradient tourne alors rapidement, de sorte que la vitesse mesurée et la commande du cycle précédent sont projetées sur des directions différentes. Cette limite réduit la comparabilité des deux taux. Le frein réévalue sa minorante à partir de l'état mesuré. Son certificat reste conditionnel au suivi exact et le segment déjà parcouru conserve un statut empirique. La reproduction exacte des deux pentes requiert encore la convention appliquée à l'ordonnée à l'origine.
+Sur les cycles du banc d'alimentation, la corrélation vaut $0{,}58$ et la régression de $r_{\mathrm{mes}}$ sur $r_{\mathrm{pub}}$ donne une pente de $0{,}55$. L'écart augmente lorsque la fourchette plonge dans la géométrie concave du bol. Le gradient tourne alors rapidement, de sorte que la vitesse mesurée et la commande du cycle précédent sont projetées sur des directions différentes. Cette limite réduit la comparabilité des deux taux. Le frein réévalue sa minorante à partir de l'état mesuré. Son certificat reste conditionnel au suivi exact et le segment déjà parcouru conserve un statut empirique. La reproduction exacte des deux pentes requiert encore la convention appliquée à l'ordonnée à l'origine.
 
 \begin{figure}[htpb]
     \centering
@@ -1645,7 +1645,7 @@ Cette dérive trois fois moindre en fin d'horizon est cohérente avec une tâche
 
 La Figure~\ref{fig:pp_multimodal} superpose plusieurs générations produites depuis une même observation, en ne faisant varier que le tirage de bruit initial. La Figure~\ref{fig:pp_denoising} retrace le processus d'intégration numérique du flot, du bruit initial à $t=0$ jusqu'au segment généré à $t=1$.
 
-La dispersion atteint $0{,}31$~cm au point de fonctionnement, contre $1{,}11$~cm pour les segments experts de configurations comparables. Le modèle restitue $28$~\% de cette référence, contre $48$~\% sur la tâche d'alimentation. Ces résultats décrivent une variabilité plus faible sur la tâche de saisie et dépôt.
+La dispersion atteint $0{,}31$~cm au point de fonctionnement, contre $1{,}11$~cm pour les segments experts de configurations comparables. Le modèle restitue $28$~\% de cette référence, contre $48$~\% sur la tâche d'alimentation. La variabilité experte est comparable entre les deux tâches, mais le modèle en restitue une fraction moindre en saisie et dépôt.
 
 \begin{figure}[!htbp]
     \centering

@@ -10,9 +10,9 @@ Les politiques génératives apprennent des tâches de manipulation à partir d'
 
 Une politique entraînée sur des démonstrations sans obstacle ne fournit aucune garantie dans une scène encombrée absente de ses données d'entraînement. Trois familles de méthodes traitent cette limite.
 
-La première contraint le processus de génération, ce qui ajoute du calcul à chaque pas et peut éloigner les échantillons de la distribution d'entraînement. La deuxième apprend l'évitement dans la politique. Elle exige alors des démonstrations avec obstacles pour chaque famille de scènes ou des corrections fournies au déploiement, comme dans FlowCorrect~\cite{Welte2026Flowcorrect}.
+La première contraint le processus de génération, ce qui ajoute du calcul à chaque pas et peut éloigner les échantillons de la distribution d'entraînement. La deuxième apprend l'évitement dans la politique~\cite{Soleymanzadeh2026Flow,Ding2025Towards}. Elle exige des chemins ou des démonstrations couvrant les obstacles de chaque famille de scènes, et la même dépendance aux données vaut pour les corrections d'opérateur recueillies au déploiement~\cite{Welte2026Flowcorrect}.
 
-La troisième famille filtre la commande après sa génération. Sous les hypothèses de régularité, de faisabilité et d'exécution continue, les fonctions barrières de contrôle fournissent une condition d'invariance avant~\cite{Ames2019Control}. Leur application au corps du robot requiert une représentation de distance et son gradient à la fréquence de commande. Les travaux existants se limitent souvent à l'effecteur ou à des obstacles représentés par des primitives connues.
+La troisième famille filtre la commande après sa génération. Sous les hypothèses de régularité, de faisabilité et d'exécution continue, les fonctions barrières de contrôle fournissent une condition d'invariance avant~\cite{Ames2019Control}. Leur application au corps du robot requiert une représentation de distance et son gradient à la cadence du filtre. Les travaux existants se limitent souvent à l'effecteur ou à des obstacles représentés par des primitives connues.
 
 L'architecture retenue sépare la génération de la sécurité. Une politique de \ac{FM} préentraînée et gelée fournit la trajectoire nominale. Un filtre réactif fondé sur un champ de distance signée appris du corps du robot et alimenté par une carte persistante projette cette commande sur les contraintes barrières. L'évaluation mesure séparément l'écart à la commande nominale et les collisions dans les environnements statiques retenus.
 
@@ -26,10 +26,10 @@ Concevoir, implémenter et valider en simulation une architecture découplée qu
 
 \subsection{Objectifs spécifiques}
 \begin{itemize}
-    \item \acs{OS}1 : implémenter une chaîne de perception qui détecte, segmente et suit la cible dans le flux \ac{RGB-D}, puis maintient une carte persistante des obstacles malgré les occlusions ;
+    \item \acs{OS}1 : implémenter une chaîne de perception qui détecte, segmente et suit la cible dans le flux \ac{RGB-D}, puis maintient une carte persistante des obstacles et de la cible malgré les occlusions ;
     \item \acs{OS}2 : développer une politique de génération de trajectoires de poses de l'outil par \ac{FM}, entraînée sur des démonstrations simulées et réelles et conditionnée par la perception ;
     \item \acs{OS}3 : intégrer un bouclier fondé sur des fonctions barrières de contrôle et un champ de distance signée du corps du robot pour corriger la commande en temps réel ;
-    \item \acs{OS}4 : vérifier en simulation les performances du système complet sur les deux tâches retenues et dans des environnements statiques absents des données d'entraînement ;
+    \item \acs{OS}4 : vérifier en simulation les performances du système complet sur les deux tâches retenues, soit l'alimentation assistée et la saisie-dépôt, dans des environnements statiques absents des données d'entraînement ;
     \item \acs{OS}5 : valider la transférabilité de l'architecture du Franka Emika Panda au uFactory xArm7 en adaptant la cinématique, les champs de distance par lien et les calibrations de courbure.
 \end{itemize}
 

@@ -1,63 +1,64 @@
 \babel@toc {french}{}
 \babel@toc {english}{}
 \babel@toc {french}{}
-\contentsline {figure}{\numberline {2.1}{\ignorespaces Trajectoire hors distribution en clonage de comportement}}{6}{figure.caption.9}%
-\contentsline {figure}{\numberline {2.2}{\ignorespaces Champ de vitesse du \textit {Flow Matching}}}{7}{figure.caption.10}%
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Architecture globale du système asynchrone.\relax }}{33}{figure.caption.14}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Exemple de masque obtenu par le modèle de segmentation \ac {SAM}~3 pour la requête \textit {Pink Block}.\relax }}{34}{figure.caption.15}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Définition des repères du système}}{35}{figure.caption.16}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Principe d'éviction spatiale des voxels}}{37}{figure.caption.17}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces Grille d'échantillonnage des cibles et des assiettes}}{38}{figure.caption.18}%
-\contentsline {figure}{\numberline {4.6}{\ignorespaces Géométrie de la fonction barrière et du second membre}}{50}{figure.caption.21}%
-\contentsline {figure}{\numberline {4.7}{\ignorespaces Projection de la vitesse sur le demi-espace sûr}}{54}{figure.caption.24}%
-\contentsline {figure}{\numberline {5.1}{\ignorespaces Isosurface et gradients du SDF de Bernstein}}{64}{figure.caption.29}%
-\contentsline {figure}{\numberline {5.2}{\ignorespaces Précision de la distance du SDF de Bernstein}}{64}{figure.caption.30}%
-\contentsline {figure}{\numberline {5.3}{\ignorespaces Qualité et propriété eikonale du gradient du SDF}}{65}{figure.caption.31}%
-\contentsline {figure}{\numberline {5.4}{\ignorespaces Temps de calcul de la distance selon les requêtes}}{67}{figure.caption.32}%
-\contentsline {figure}{\numberline {5.5}{\ignorespaces Erreur de prédiction du planificateur \ac {FM} le long de l'horizon sur le jeu de validation du banc d'alimentation, avec $200$ fenêtres, $20$ prédictions par fenêtre et $5$ pas d'Euler. Le panneau a présente l'erreur de position et le panneau b l'erreur de rotation à l'effecteur. La médiane et la dispersion croissent avec le rang $k$ du point dans l'horizon.\relax }}{69}{figure.caption.34}%
-\contentsline {figure}{\numberline {5.6}{\ignorespaces Générations multimodales du planificateur Flow Matching}}{70}{figure.caption.35}%
-\contentsline {figure}{\numberline {5.7}{\ignorespaces Trajectoires et barrières publiées dans les quatre régimes}}{77}{figure.caption.42}%
-\contentsline {figure}{\numberline {5.8}{\ignorespaces Évolution temporelle de la barrière publiée}}{78}{figure.caption.43}%
-\contentsline {figure}{\numberline {5.9}{\ignorespaces Évolution du résidu de contrainte avant et après correction}}{79}{figure.caption.44}%
-\contentsline {figure}{\numberline {5.10}{\ignorespaces Profils de vitesses articulaires (tâche d'alimentation)}}{80}{figure.caption.45}%
-\contentsline {figure}{\numberline {5.11}{\ignorespaces Décomposition de la correction de vitesse (alimentation)}}{82}{figure.caption.46}%
-\contentsline {figure}{\numberline {5.12}{\ignorespaces Évolution de la barrière publiée (saisie et dépôt)}}{83}{figure.caption.47}%
-\contentsline {figure}{\numberline {5.13}{\ignorespaces Évolution du résidu de contrainte (saisie et dépôt)}}{84}{figure.caption.48}%
-\contentsline {figure}{\numberline {5.14}{\ignorespaces Décomposition de la correction de vitesse (saisie et dépôt)}}{85}{figure.caption.49}%
-\contentsline {figure}{\numberline {5.15}{\ignorespaces Profils de vitesses articulaires (saisie et dépôt)}}{86}{figure.caption.50}%
-\contentsline {figure}{\numberline {5.16}{\ignorespaces Impact de la carte persistante sur les barrières}}{89}{figure.caption.52}%
-\contentsline {figure}{\numberline {5.17}{\ignorespaces Trajectoires et barrières comparées (Panda vs xArm7)}}{94}{figure.caption.57}%
-\contentsline {figure}{\numberline {5.18}{\ignorespaces Répartition des essais et analyse des échecs}}{102}{figure.caption.72}%
-\contentsline {figure}{\numberline {A.1}{\ignorespaces Architecture du système d'acquisition des données d'entraînement.\relax }}{121}{figure.caption.81}%
-\contentsline {figure}{\numberline {A.2}{\ignorespaces Structure des dossiers du jeu de données brut.\relax }}{124}{figure.caption.88}%
-\contentsline {figure}{\numberline {A.3}{\ignorespaces Structure des dossiers du jeu de données prétraité.\relax }}{125}{figure.caption.89}%
-\contentsline {figure}{\numberline {A.4}{\ignorespaces Phases de la politique experte pour l'alimentation}}{126}{figure.caption.93}%
-\contentsline {figure}{\numberline {A.5}{\ignorespaces Phases de la politique experte pour la saisie et dépôt}}{127}{figure.caption.95}%
-\contentsline {figure}{\numberline {B.1}{\ignorespaces Architecture du réseau ConditionalUnet1D}}{132}{figure.caption.106}%
-\contentsline {figure}{\numberline {B.2}{\ignorespaces Architecture du bloc ConditionalResidualBlock1D}}{133}{figure.caption.107}%
-\contentsline {figure}{\numberline {D.1}{\ignorespaces Principe d'étiquetage des rayons normaux}}{138}{figure.caption.117}%
-\contentsline {figure}{\numberline {F.1}{\ignorespaces Dégénérescence locale de la norme du gradient de contrainte. Le panneau a montre deux points dominants qui produisent des gradients articulaires de sens opposés. Le panneau b montre leur combinaison convexe, dont la norme passe sous le seuil de tolérance. La contrainte associée est alors exclue du système de projection.\relax }}{149}{figure.caption.134}%
-\contentsline {figure}{\numberline {G.1}{\ignorespaces Caractère unilatéral de la constante de courbure}}{153}{figure.caption.138}%
-\contentsline {figure}{\numberline {H.1}{\ignorespaces Calibration de la borne de poursuite $\varepsilon _{\mathrm {p}}$}}{159}{figure.caption.152}%
-\contentsline {figure}{\numberline {I.1}{\ignorespaces Décomposition de la précision du SDF par corps}}{161}{figure.caption.156}%
-\contentsline {figure}{\numberline {I.2}{\ignorespaces Carte d'erreur géométrique projetée sur l'enveloppe de surface du robot.\relax }}{162}{figure.caption.157}%
-\contentsline {figure}{\numberline {I.3}{\ignorespaces Évolution de la perte CFM lors de l'entraînement}}{162}{figure.caption.160}%
-\contentsline {figure}{\numberline {I.4}{\ignorespaces Qualité et coût de la génération selon les pas d'Euler}}{163}{figure.caption.162}%
-\contentsline {figure}{\numberline {I.5}{\ignorespaces Régularité géométrique du chemin selon les pas d'Euler}}{164}{figure.caption.163}%
-\contentsline {figure}{\numberline {I.6}{\ignorespaces Distribution du rapport de rectitude des chemins d'intégration du \textit {Rectified Flow} sur le jeu de validation.\relax }}{165}{figure.caption.165}%
-\contentsline {figure}{\numberline {I.7}{\ignorespaces Dispersion inter-générations en fonction du nombre de pas d'intégration $N$.\relax }}{166}{figure.caption.167}%
-\contentsline {figure}{\numberline {I.8}{\ignorespaces Trajectoires générées dans le plan $XY$ selon le nombre de pas d'intégration $N$.\relax }}{166}{figure.caption.168}%
-\contentsline {figure}{\numberline {I.9}{\ignorespaces Fidélité du planificateur nominal aux démonstrations}}{167}{figure.caption.170}%
-\contentsline {figure}{\numberline {I.10}{\ignorespaces Évolution du déruitage durant l'intégration du flot}}{168}{figure.caption.171}%
-\contentsline {figure}{\numberline {I.11}{\ignorespaces Sélection des points critiques et frontière du SDF}}{168}{figure.caption.173}%
-\contentsline {figure}{\numberline {I.12}{\ignorespaces Construction de la vitesse nominale par articulation}}{170}{figure.caption.176}%
-\contentsline {figure}{\numberline {I.13}{\ignorespaces Taux de variation de la barrière lissée sur la commande publiée et sur la vitesse mesurée.\relax }}{172}{figure.caption.180}%
-\contentsline {figure}{\numberline {I.14}{\ignorespaces Fidélité du planificateur sur la saisie et dépôt}}{173}{figure.caption.183}%
-\contentsline {figure}{\numberline {I.15}{\ignorespaces Erreur de prédiction selon le point $k$ de l'horizon pour la tâche de saisie et dépôt. Le panneau a montre l'erreur de position et le panneau b l'erreur de rotation. Les bandes représentent les percentiles 10 à 90 et l'écart interquartile.\relax }}{174}{figure.caption.186}%
-\contentsline {figure}{\numberline {I.16}{\ignorespaces Générations multiples du planificateur pour une même observation sur la tâche de saisie et dépôt, superposées à la vérité terrain.\relax }}{175}{figure.caption.188}%
-\contentsline {figure}{\numberline {I.17}{\ignorespaces Intégration du flot pour la tâche de saisie et dépôt aux instants $t=0$, $t=0{,}5$ et $t=1$.\relax }}{176}{figure.caption.189}%
-\contentsline {figure}{\numberline {I.18}{\ignorespaces Régularité géométrique du chemin sur la saisie et dépôt}}{177}{figure.caption.191}%
-\contentsline {figure}{\numberline {I.19}{\ignorespaces Qualité et coût de la génération sur la tâche de saisie et dépôt selon le nombre de pas d'Euler $N$. Le panneau a montre la baisse de la déviation \ac {DTW} jusqu'à $N=5$. Le panneau b montre la croissance linéaire du temps d'inférence. Ces durées sont mesurées hors graphe \ac {CUDA} et diffèrent donc du compteur \texttt {fm\_generation} du système déployé selon la Section~\ref {sec:res_temps}.\relax }}{177}{figure.caption.192}%
-\contentsline {figure}{\numberline {I.20}{\ignorespaces Distribution du rapport de rectitude des chemins d'intégration sur la tâche de saisie et dépôt.\relax }}{178}{figure.caption.193}%
-\contentsline {figure}{\numberline {I.21}{\ignorespaces Dispersion inter-générations sur la tâche de saisie et dépôt en fonction du nombre de pas d'intégration $N$.\relax }}{178}{figure.caption.194}%
-\contentsline {figure}{\numberline {I.22}{\ignorespaces Trajectoires générées dans le plan $XY$ sur la tâche de saisie et dépôt, selon le nombre de pas d'intégration $N$, pour une même observation et $24$ tirages initiaux.\relax }}{179}{figure.caption.195}%
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Robot d'assistance à l'alimentation Obi}}{1}{figure.caption.9}%
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Trajectoire hors distribution en clonage de comportement}}{6}{figure.caption.10}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Champ de vitesse du \textit {Flow Matching}}}{7}{figure.caption.11}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Architecture globale du système asynchrone.\relax }}{34}{figure.caption.15}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Exemple de masque obtenu par le modèle de segmentation \ac {SAM}~3 pour la requête \textit {Pink Block}.\relax }}{35}{figure.caption.16}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Définition des repères du système}}{36}{figure.caption.17}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Principe d'éviction spatiale des voxels}}{38}{figure.caption.18}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Grille d'échantillonnage des cibles et des assiettes}}{39}{figure.caption.19}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Géométrie de la fonction barrière et du second membre}}{51}{figure.caption.22}%
+\contentsline {figure}{\numberline {4.7}{\ignorespaces Projection de la vitesse sur le demi-espace sûr}}{55}{figure.caption.25}%
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Isosurface et gradients du SDF de Bernstein}}{65}{figure.caption.30}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Précision de la distance du SDF de Bernstein}}{65}{figure.caption.31}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Qualité et propriété eikonale du gradient du SDF}}{66}{figure.caption.32}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Temps de calcul de la distance selon les requêtes}}{68}{figure.caption.33}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Erreur de prédiction du planificateur \ac {FM} le long de l'horizon sur le jeu de validation du banc d'alimentation, avec $200$ fenêtres, $20$ prédictions par fenêtre et $5$ pas d'Euler. Le panneau a présente l'erreur de position et le panneau b l'erreur de rotation à l'effecteur. La médiane et la dispersion croissent avec le rang $k$ du point dans l'horizon.\relax }}{70}{figure.caption.35}%
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Générations multimodales du planificateur Flow Matching}}{71}{figure.caption.36}%
+\contentsline {figure}{\numberline {5.7}{\ignorespaces Trajectoires et barrières publiées dans les quatre régimes}}{78}{figure.caption.43}%
+\contentsline {figure}{\numberline {5.8}{\ignorespaces Évolution temporelle de la barrière publiée}}{79}{figure.caption.44}%
+\contentsline {figure}{\numberline {5.9}{\ignorespaces Évolution du résidu de contrainte avant et après correction}}{80}{figure.caption.45}%
+\contentsline {figure}{\numberline {5.10}{\ignorespaces Profils de vitesses articulaires (tâche d'alimentation)}}{81}{figure.caption.46}%
+\contentsline {figure}{\numberline {5.11}{\ignorespaces Décomposition de la correction de vitesse (alimentation)}}{83}{figure.caption.47}%
+\contentsline {figure}{\numberline {5.12}{\ignorespaces Évolution de la barrière publiée (saisie et dépôt)}}{84}{figure.caption.48}%
+\contentsline {figure}{\numberline {5.13}{\ignorespaces Évolution du résidu de contrainte (saisie et dépôt)}}{85}{figure.caption.49}%
+\contentsline {figure}{\numberline {5.14}{\ignorespaces Décomposition de la correction de vitesse (saisie et dépôt)}}{86}{figure.caption.50}%
+\contentsline {figure}{\numberline {5.15}{\ignorespaces Profils de vitesses articulaires (saisie et dépôt)}}{87}{figure.caption.51}%
+\contentsline {figure}{\numberline {5.16}{\ignorespaces Impact de la carte persistante sur les barrières}}{90}{figure.caption.53}%
+\contentsline {figure}{\numberline {5.17}{\ignorespaces Trajectoires et barrières comparées (Panda vs xArm7)}}{95}{figure.caption.58}%
+\contentsline {figure}{\numberline {5.18}{\ignorespaces Répartition des essais et analyse des échecs}}{103}{figure.caption.73}%
+\contentsline {figure}{\numberline {A.1}{\ignorespaces Architecture du système d'acquisition des données d'entraînement.\relax }}{123}{figure.caption.82}%
+\contentsline {figure}{\numberline {A.2}{\ignorespaces Structure des dossiers du jeu de données brut.\relax }}{126}{figure.caption.89}%
+\contentsline {figure}{\numberline {A.3}{\ignorespaces Structure des dossiers du jeu de données prétraité.\relax }}{127}{figure.caption.90}%
+\contentsline {figure}{\numberline {A.4}{\ignorespaces Phases de la politique experte pour l'alimentation}}{128}{figure.caption.94}%
+\contentsline {figure}{\numberline {A.5}{\ignorespaces Phases de la politique experte pour la saisie et dépôt}}{129}{figure.caption.96}%
+\contentsline {figure}{\numberline {B.1}{\ignorespaces Architecture du réseau ConditionalUnet1D}}{134}{figure.caption.107}%
+\contentsline {figure}{\numberline {B.2}{\ignorespaces Architecture du bloc ConditionalResidualBlock1D}}{135}{figure.caption.108}%
+\contentsline {figure}{\numberline {D.1}{\ignorespaces Principe d'étiquetage des rayons normaux}}{140}{figure.caption.118}%
+\contentsline {figure}{\numberline {F.1}{\ignorespaces Dégénérescence locale de la norme du gradient de contrainte. Le panneau a montre deux points dominants qui produisent des gradients articulaires de sens opposés. Le panneau b montre leur combinaison convexe, dont la norme passe sous le seuil de tolérance. La contrainte associée est alors exclue du système de projection.\relax }}{151}{figure.caption.135}%
+\contentsline {figure}{\numberline {G.1}{\ignorespaces Caractère unilatéral de la constante de courbure}}{155}{figure.caption.139}%
+\contentsline {figure}{\numberline {H.1}{\ignorespaces Calibration de la borne de poursuite $\varepsilon _{\mathrm {p}}$}}{161}{figure.caption.153}%
+\contentsline {figure}{\numberline {I.1}{\ignorespaces Décomposition de la précision du SDF par corps}}{163}{figure.caption.157}%
+\contentsline {figure}{\numberline {I.2}{\ignorespaces Carte d'erreur géométrique projetée sur l'enveloppe de surface du robot.\relax }}{164}{figure.caption.158}%
+\contentsline {figure}{\numberline {I.3}{\ignorespaces Évolution de la perte CFM lors de l'entraînement}}{164}{figure.caption.161}%
+\contentsline {figure}{\numberline {I.4}{\ignorespaces Qualité et coût de la génération selon les pas d'Euler}}{165}{figure.caption.163}%
+\contentsline {figure}{\numberline {I.5}{\ignorespaces Régularité géométrique du chemin selon les pas d'Euler}}{166}{figure.caption.164}%
+\contentsline {figure}{\numberline {I.6}{\ignorespaces Distribution du rapport de rectitude des chemins d'intégration du \textit {Rectified Flow} sur le jeu de validation.\relax }}{167}{figure.caption.166}%
+\contentsline {figure}{\numberline {I.7}{\ignorespaces Dispersion inter-générations en fonction du nombre de pas d'intégration $N$.\relax }}{168}{figure.caption.168}%
+\contentsline {figure}{\numberline {I.8}{\ignorespaces Trajectoires générées dans le plan $XY$ selon le nombre de pas d'intégration $N$.\relax }}{168}{figure.caption.169}%
+\contentsline {figure}{\numberline {I.9}{\ignorespaces Fidélité du planificateur nominal aux démonstrations}}{169}{figure.caption.171}%
+\contentsline {figure}{\numberline {I.10}{\ignorespaces Évolution du déruitage durant l'intégration du flot}}{170}{figure.caption.172}%
+\contentsline {figure}{\numberline {I.11}{\ignorespaces Sélection des points critiques et frontière du SDF}}{170}{figure.caption.174}%
+\contentsline {figure}{\numberline {I.12}{\ignorespaces Construction de la vitesse nominale par articulation}}{172}{figure.caption.177}%
+\contentsline {figure}{\numberline {I.13}{\ignorespaces Taux de variation de la barrière lissée sur la commande publiée et sur la vitesse mesurée.\relax }}{174}{figure.caption.181}%
+\contentsline {figure}{\numberline {I.14}{\ignorespaces Fidélité du planificateur sur la saisie et dépôt}}{175}{figure.caption.184}%
+\contentsline {figure}{\numberline {I.15}{\ignorespaces Erreur de prédiction selon le point $k$ de l'horizon pour la tâche de saisie et dépôt. Le panneau a montre l'erreur de position et le panneau b l'erreur de rotation. Les bandes représentent les percentiles 10 à 90 et l'écart interquartile.\relax }}{176}{figure.caption.187}%
+\contentsline {figure}{\numberline {I.16}{\ignorespaces Générations multiples du planificateur pour une même observation sur la tâche de saisie et dépôt, superposées à la vérité terrain.\relax }}{177}{figure.caption.189}%
+\contentsline {figure}{\numberline {I.17}{\ignorespaces Intégration du flot pour la tâche de saisie et dépôt aux instants $t=0$, $t=0{,}5$ et $t=1$.\relax }}{178}{figure.caption.190}%
+\contentsline {figure}{\numberline {I.18}{\ignorespaces Régularité géométrique du chemin sur la saisie et dépôt}}{179}{figure.caption.192}%
+\contentsline {figure}{\numberline {I.19}{\ignorespaces Qualité et coût de la génération sur la tâche de saisie et dépôt selon le nombre de pas d'Euler $N$. Le panneau a montre la baisse de la déviation \ac {DTW} jusqu'à $N=5$. Le panneau b montre la croissance linéaire du temps d'inférence. Ces durées sont mesurées hors graphe \ac {CUDA} et diffèrent donc du compteur \texttt {fm\_generation} du système déployé selon la Section~\ref {sec:res_temps}.\relax }}{179}{figure.caption.193}%
+\contentsline {figure}{\numberline {I.20}{\ignorespaces Distribution du rapport de rectitude des chemins d'intégration sur la tâche de saisie et dépôt.\relax }}{180}{figure.caption.194}%
+\contentsline {figure}{\numberline {I.21}{\ignorespaces Dispersion inter-générations sur la tâche de saisie et dépôt en fonction du nombre de pas d'intégration $N$.\relax }}{180}{figure.caption.195}%
+\contentsline {figure}{\numberline {I.22}{\ignorespaces Trajectoires générées dans le plan $XY$ sur la tâche de saisie et dépôt, selon le nombre de pas d'intégration $N$, pour une même observation et $24$ tirages initiaux.\relax }}{181}{figure.caption.196}%
