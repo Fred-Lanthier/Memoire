@@ -238,7 +238,7 @@ où $(f_x,f_y)$ et $(c_x,c_y)$ sont les focales et le point principal de la cam�
 \begin{figure}[htbp!]
     \centering
     \includegraphics[width=0.52\textwidth]{images/Méthodologie/repere_frames.pdf}
-    \caption{Repères du système : $\mathcal{F}_b$ pour la base du robot, $\mathcal{F}_c$ pour la caméra à l'effecteur, $\mathcal{F}_e$ pour le \ac{TCP} et $\mathcal{F}_o$ pour l'outil.}\label{fig:rep}
+    \caption[Définition des repères du système]{Repères du système : $\mathcal{F}_b$ pour la base du robot, $\mathcal{F}_c$ pour la caméra à l'effecteur, $\mathcal{F}_e$ pour le \ac{TCP} et $\mathcal{F}_o$ pour l'outil.}\label{fig:rep}
 \end{figure}
 
 La caméra étant montée au poignet, l'outil peut occuper une part importante du champ de vision et ses pixels projetés créeraient un faux obstacle. Deux mécanismes complémentaires retirent ces pixels. En 2D, un masque obtenu de \ac{SAM}~3, dilaté de $5$~pixels, est soustrait de l'image avant projection. En 3D, un filtre fondé sur le \ac{SDF} du maillage de l'outil supprime les fuites résiduelles : tout point à moins de $5$~mm de la surface du maillage, positionné par la cinématique directe, est écarté. Les obstacles réels situés au-delà de cette coquille demeurent dans le nuage.
@@ -335,7 +335,7 @@ Deux règles régissent la mise à jour d'un voxel selon la Figure~\ref{fig:evic
         \draw[thick, black!60, <->] (0.9,-1.65) -- (5.2,-1.65)
             node[pos=0.5, above, lab, black!80] {Profondeur mesurée $Z$};
     \end{tikzpicture}
-    \caption{Principe d'éviction spatiale des voxels. Un voxel qui vérifie $Z_{\text{voxel}} < Z - \delta_{\text{libre}}$ est traversé par le rayon et évincé. Un voxel qui vérifie $Z_{\text{voxel}} > Z$ est occulté et conservé, comme tout voxel hors du champ de vision.}
+    \caption[Principe d'éviction spatiale des voxels]{Principe d'éviction spatiale des voxels. Un voxel qui vérifie $Z_{\text{voxel}} < Z - \delta_{\text{libre}}$ est traversé par le rayon et évincé. Un voxel qui vérifie $Z_{\text{voxel}} > Z$ est occulté et conservé, comme tout voxel hors du champ de vision.}
     \label{fig:eviction_voxels}
 \end{figure}
 
@@ -350,7 +350,7 @@ Les démonstrations proviennent de deux sources complémentaires : le robot et l
 \begin{figure}[htbp!]
     \centering
     \includegraphics[width=0.48\textwidth]{images/Méthodologie/protocole_echantillonnage.pdf}
-    \caption{Grille d'échantillonnage des cibles et des assiettes dans le repère $\mathcal{F}_b$. La vue de dessus illustre trois des neuf positions de la grille $3\times3$.}\label{fig:protocole_echantillonnage}
+    \caption[Grille d'échantillonnage des cibles et des assiettes]{Grille d'échantillonnage des cibles et des assiettes dans le repère $\mathcal{F}_b$. La vue de dessus illustre trois des neuf positions de la grille $3\times3$.}\label{fig:protocole_echantillonnage}
 \end{figure}
 
 Pour garantir un protocole reproductible, l'échantillonnage des configurations utilise deux repères imbriqués et des positions explicites. L'assiette occupe les $9$ positions d'une grille $3\times3$ dans le repère de base $\mathcal{F}_b$, et la cible $5$ positions en quinconce autour de chaque centre d'assiette, avec orientation aléatoire, soit $9\times5=45$ configurations illustrées à la Figure~\ref{fig:protocole_echantillonnage}. Les valeurs numériques de la grille figurent à l'Annexe~\ref{annexe:data_protocol}. À chaque configuration, l'outil descend verticalement vers la cible en maintenant les dents verticales et alignées sur son axe principal.
@@ -581,7 +581,7 @@ La quantité $\alpha\log M_{\mathrm{eff},l}$ mesure la conservativité d'agréga
 \end{equation}
 Pour $\alpha=2$~mm et $N=64$, cette distance est comprise entre $15$ et $23{,}32$~mm. Le dégagement supplémentaire devient appréciable lorsque plusieurs distances diffèrent de quelques multiples de $\alpha$; il atteint sa borne de $8{,}32$~mm lorsque les $64$ distances sont égales. Le filtre emploie $h_{\mathrm{soft},l}$ en valeur et en gradient, ce qui porte le certificat sur une seule fonction.
 
-Les points du robot et ceux de la cible saisie sont agrégés dans deux groupes séparés. L'effectif $N$ et la borne $\alpha\log N$ se rapportent au groupe concerné.
+L'agrégation soft-min s'effectue sur l'ensemble des points critiques retenus. L'effectif $N$ et la borne $\alpha\log N$ se rapportent à cet ensemble.
 
 \subsection{Gradient analytique de la contrainte}\label{subsec:gradient}
 Le gradient articulaire $\nabla_{\mathbf{q}}h$ fixe la direction et l'amplitude de la correction. Une dérivation analytique de la chaîne de composition fournit sa forme close et évite la différentiation automatique ou les différences finies sur la cinématique directe~\cite{Li2024rdf} :
@@ -719,7 +719,7 @@ b(h) =
     \end{scope}
   \end{tikzpicture}%
   }
-  \caption{Géométrie du filtre de sécurité. Le panneau a représente le régime limite $M_{\mathrm{eff}}\simeq1$, où la frontière lissée coïncide presque avec $d_{\mathrm{safe}}=15$~mm. Dans le cas général, elle se situe à $d_{\mathrm{safe}}+\alpha\log M_{\mathrm{eff}}$, entre $15$ et $23{,}32$~mm. Les grandeurs $h_{\mathrm{act}}$ et $d_{\mathrm{rec}}$ sont des coordonnées de la barrière lissée. Le panneau b montre le second membre saturé $b(h)$, borné par $v_{\mathrm{in}}=v_{\mathrm{rec}}=0{,}50$~m/s.}
+  \caption[Géométrie de la fonction barrière et du second membre]{Géométrie du filtre de sécurité. Le panneau a représente le régime limite $M_{\mathrm{eff}}\simeq1$, où la frontière lissée coïncide presque avec $d_{\mathrm{safe}}=15$~mm. Dans le cas général, elle se situe à $d_{\mathrm{safe}}+\alpha\log M_{\mathrm{eff}}$, entre $15$ et $23{,}32$~mm. Les grandeurs $h_{\mathrm{act}}$ et $d_{\mathrm{rec}}$ sont des coordonnées de la barrière lissée. Le panneau b montre le second membre saturé $b(h)$, borné par $v_{\mathrm{in}}=v_{\mathrm{rec}}=0{,}50$~m/s.}
   \label{fig:cbf_geometrie}
 \end{figure}
 
@@ -912,7 +912,7 @@ puis saturée aux limites articulaires et annulée sous un seuil qui empêche la
         \node[lab, black!55, anchor=west] (eucl_lab) at (4.5,2.25) {projection euclidienne\\$\mathbf{W}=\mathbf{I}$};
         \draw[thin, black!40] (eucl_lab.west) -- ($(Qeucl)+(0.08,-0.08)$);
     \end{tikzpicture}
-    \caption{Projection de sécurité dans un plan des vitesses articulaires. La vitesse cible $\dot{\mathbf{q}}_{\mathrm{cible}}$ est projetée sur les demi-espaces actifs $\nabla h_l^\top\dot{\mathbf{q}} \geq r_l$. Le plus petit ellipsoïde de niveau de $\mathbf{W}$ touche la frontière en $\dot{\mathbf{q}}_{\mathrm{proj}}$. La correction suit $\mathbf{W}^{-1}\nabla h_l$ et perturbe moins le lien contrôlé que la projection euclidienne $\mathbf{W}=\mathbf{I}$ représentée par le point creux.}
+    \caption[Projection de la vitesse sur le demi-espace sûr]{Projection de sécurité dans un plan des vitesses articulaires. La vitesse cible $\dot{\mathbf{q}}_{\mathrm{cible}}$ est projetée sur les demi-espaces actifs $\nabla h_l^\top\dot{\mathbf{q}} \geq r_l$. Le plus petit ellipsoïde de niveau de $\mathbf{W}$ touche la frontière en $\dot{\mathbf{q}}_{\mathrm{proj}}$. La correction suit $\mathbf{W}^{-1}\nabla h_l$ et perturbe moins le lien contrôlé que la projection euclidienne $\mathbf{W}=\mathbf{I}$ représentée par le point creux.}
     \label{fig:projection_cbf}
 \end{figure}
 
@@ -1039,7 +1039,7 @@ Cycle de commande & Dégagement postural, resserrements $\bar{\mu}_l$ et $\varep
 
 \begin{table}[htpb]
 \centering
-\caption{Paramètres du filtre de sécurité \acs{SDF}-\ac{CBF}. Les grandeurs $h_{\mathrm{act}}$ et $d_{\mathrm{rec}}$ s'expriment en coordonnées de barrière lissée $h_{\mathrm{soft}}$.}
+\caption[Paramètres du filtre de sécurité SDF-CBF]{Paramètres du filtre de sécurité \acs{SDF}-\ac{CBF}. Les grandeurs $h_{\mathrm{act}}$ et $d_{\mathrm{rec}}$ s'expriment en coordonnées de barrière lissée $h_{\mathrm{soft}}$.}
 \label{tab:cbf_params}
 \small
 \begin{tabular}{lll}
@@ -1062,7 +1062,7 @@ $\Delta q_{\mathrm{lim}}$ & Bande de garde des limites articulaires & $0{,}15$~r
 $\tau_{\mathrm{nom}}$ & Constante du filtre passe-bas nominal & $0{,}08$~s \\
 $\tau_{\mathrm{safe}}$ & Constante du filtre passe-bas de sécurité & $0{,}1$~s \\
 $\Delta q_{\mathrm{lead}}$ & Avance maximale de la référence & $0{,}05$~rad \\
-$L_a$ & Nombre de corps du robot contraints, hors cible saisie & $9$ \\
+$L_a$ & Nombre de corps du robot contraints & $9$ \\
 $N_{\mathrm{it}}$ & Nombre de balayages de Dykstra & $24$ \\
 $\zeta$ & Facteur de relaxation de Dykstra & $1{,}0$ \\
 $f_{\mathrm{rfx}}$ & Cadence du frein réflexe & $1$~kHz \\
@@ -1101,7 +1101,7 @@ Le Tableau~\ref{tab:hypotheses_certificat} relie chaque hypothèse à sa mesure 
 
 \begin{table}[htbp]
 \centering
-\caption{Hypothèses séparant le certificat théorique de l'exécution réelle, avec leur surveillance en ligne et le comportement du filtre en cas de violation.}
+\caption[Surveillance en ligne des hypothèses du certificat]{Hypothèses séparant le certificat théorique de l'exécution réelle, avec leur surveillance en ligne et le comportement du filtre en cas de violation.}
 \label{tab:hypotheses_certificat}
 \footnotesize
 \begin{tabular}{>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{4.1cm}}

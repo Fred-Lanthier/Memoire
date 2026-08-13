@@ -18,7 +18,7 @@ L'évaluation du \ac{SDF} appris exclut les échantillons situés hors du domain
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/SDF/fig_sdf_iso_preview.svg}
-    \caption{Visualisation qualitative du \ac{SDF} de Bernstein pour trois configurations articulaires avec les gradients $\nabla d$ évalués le long des normales à la surface du \ac{SDF}.}\label{fig:sdf_isosurface}
+    \caption[Isosurface et gradients du SDF de Bernstein]{Visualisation qualitative du \ac{SDF} de Bernstein pour trois configurations articulaires avec les gradients $\nabla d$ évalués le long des normales à la surface du \ac{SDF}.}\label{fig:sdf_isosurface}
 \end{figure}
 
 La Figure~\ref{fig:distance_SDF} compare la distance prédite à la distance exacte. L'erreur absolue moyenne est de $1{,}83$~mm et la corrélation vaut $R = 0{,}9879$. Le biais s'établit à $-0{,}35$~mm : la convention d'erreur étant la différence entre la distance prédite et la distance exacte, ce signe indique un biais conservateur en moyenne. La distribution comporte les deux signes autour de ce biais et son 99\textsuperscript{e} centile en valeur absolue vaut $6{,}7$~mm. La caractérisation complémentaire par corps protégé est rapportée à l'Annexe~\ref{annexe:resultats_complementaires}.
@@ -36,7 +36,7 @@ La Figure~\ref{fig:distance_SDF} compare la distance prédite à la distance exa
         \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/SDF/fig2_distance_error.svg}
         \caption{Distribution de l'erreur signée.}\label{fig:distance_error}
     \end{subfigure}
-    \caption{Précision de la distance du \ac{SDF} de Bernstein. Le panneau a présente le profil le long des normales à la surface du robot. Le panneau b présente l'erreur signée par rapport à la distance exacte calculée sur les maillages.}\label{fig:distance_SDF}
+    \caption[Précision de la distance du SDF de Bernstein]{Précision de la distance du \ac{SDF} de Bernstein. Le panneau a présente le profil le long des normales à la surface du robot. Le panneau b présente l'erreur signée par rapport à la distance exacte calculée sur les maillages.}\label{fig:distance_SDF}
 \end{figure}
 
 La qualité du gradient est évaluée sur les deux propriétés que le filtre exploite : sa direction et sa norme. Le panneau a de la Figure~\ref{fig:erreur_grad_SDF} présente l'erreur angulaire entre le gradient du modèle et la direction exacte, soit le vecteur unitaire allant du point de surface le plus proche au point de requête. Le panneau b montre la norme du gradient. Un \ac{SDF} exact satisfait la propriété eikonale $\|\nabla d\| = 1$ aux points réguliers.
@@ -58,7 +58,7 @@ Ces écarts près de la surface sont compatibles avec l'approximation polynomial
         \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/SDF/fig4_gradient_norm.svg}
         \caption{Norme du gradient et propriété eikonale.}\label{fig:gradient_norm}
     \end{subfigure}
-    \caption{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. Le panneau a présente l'erreur de direction par rapport au gradient exact. Le panneau b présente la norme du gradient et la propriété eikonale.}\label{fig:erreur_grad_SDF}
+    \caption[Qualité et propriété eikonale du gradient du SDF]{Qualité du gradient du \ac{SDF} en fonction de la distance à la surface du robot. Le panneau a présente l'erreur de direction par rapport au gradient exact. Le panneau b présente la norme du gradient et la propriété eikonale.}\label{fig:erreur_grad_SDF}
 \end{figure}
 
 La marge $d_{\mathrm{safe}} = 15$~mm est un choix de conception dimensionné à la Section~\ref{subsec:garanties}. Plus des trois quarts des rayons de supervision se trouvent dans la coquille de $1$ à $10$~mm selon l'Annexe~\ref{annexe:sdf_training}. Le contrôle géométrique sur maillages demeure l'instrument indépendant utilisé pour mesurer le dégagement physique dans les expériences.
@@ -75,7 +75,7 @@ Les durées énoncées plus haut sont des coûts \ac{GPU} synchronisés, relevé
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/SDF/fig5_speed.svg}
-    \caption{Temps de calcul de la distance en fonction du nombre de points de requête. Le modèle de Bernstein sur \ac{GPU} est comparé aux requêtes de proximité sur les maillages exacts avec \texttt{trimesh} sous \texttt{numpy} et Embree en C++. Le point d'opération du filtre est fixé à $4\,096$ points, soit la taille maximale de la carte persistante.}\label{fig:temps_SDF}
+    \caption[Temps de calcul de la distance selon les requêtes]{Temps de calcul de la distance en fonction du nombre de points de requête. Le modèle de Bernstein sur \ac{GPU} est comparé aux requêtes de proximité sur les maillages exacts avec \texttt{trimesh} sous \texttt{numpy} et Embree en C++. Le point d'opération du filtre est fixé à $4\,096$ points, soit la taille maximale de la carte persistante.}\label{fig:temps_SDF}
 \end{figure}
 
 Le Tableau~\ref{tab:gradient_comparison} porte sur l'étape qui agrège les distances en barrières et en Jacobienne de contrainte. La sélection TopK a déjà ramené le nuage à $K=64$ points. Sur ce nuage de taille fixe, la forme close du gradient décrite à la Section~\ref{subsec:gradient} est comparée à la différentiation automatique avec \texttt{torch.autograd} de \texttt{PyTorch}.
@@ -84,7 +84,7 @@ Aux neuf corps protégés, la forme close demande $9{,}7$~ms contre $20{,}1$~ms.
 
 \begin{table}[!htbp]
 \centering
-\caption{Temps d'évaluation conjointe des barrières $h_{\mathrm{soft},l}$ et de la Jacobienne de contrainte complète de taille $L\times 7$ sur les $K = 64$ points pour le gradient analytique en forme close contre différentiation automatique sur 100 répétitions.}
+\caption[Temps d'évaluation des barrières et de la Jacobienne]{Temps d'évaluation conjointe des barrières $h_{\mathrm{soft},l}$ et de la Jacobienne de contrainte complète de taille $L\times 7$ sur les $K = 64$ points pour le gradient analytique en forme close contre différentiation automatique sur 100 répétitions.}
 \label{tab:gradient_comparison}
 \small
 \begin{tabular}{cccc}
@@ -129,7 +129,7 @@ où $\mathrm{VP}$, $\mathrm{FP}$ et $\mathrm{FN}$ dénombrent respectivement les
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/FM/fm_trajectoire_multimodale.svg}
-    \caption{Générations multiples du planificateur pour une même observation du banc d'alimentation, superposées à la vérité terrain et à leur moyenne. Seul le bruit initial varie. Le panneau a présente le plan $XY$ et le panneau b le plan $XZ$.}\label{fig:fm_trajectoire_multimodale}
+    \caption[Générations multimodales du planificateur Flow Matching]{Générations multiples du planificateur pour une même observation du banc d'alimentation, superposées à la vérité terrain et à leur moyenne. Seul le bruit initial varie. Le panneau a présente le plan $XY$ et le panneau b le plan $XZ$.}\label{fig:fm_trajectoire_multimodale}
 \end{figure}
 
 \FloatBarrier
@@ -172,7 +172,7 @@ Sur le banc d'alimentation, les scénarios d'obstacle statique et d'occlusion du
 
 \begin{table}[htbp]
 \centering
-\caption{Matrice des scénarios évalués par banc d'essai, avec $n$ essais par cellule. La ligne concave rassemble le croissant de $0{,}36$~m évalué sur $30$ essais et sa variante de $1$~m évaluée sur $15$ essais.}
+\caption[Matrice des scénarios évalués par banc d'essai]{Matrice des scénarios évalués par banc d'essai, avec $n$ essais par cellule. La ligne concave rassemble le croissant de $0{,}36$~m évalué sur $30$ essais et sa variante de $1$~m évaluée sur $15$ essais.}
 \label{tab:res_scenarios}
 \small
 \begin{tabular}{lccc}
@@ -256,7 +256,7 @@ Aucune ne place d'obstacle matériel sur le chemin de l'outil. La colonne des co
 
 \begin{table}[htbp]
 \centering
-\caption{Comparaison avec et sans filtre \ac{SDF}-\ac{CBF}, agrégée sur $30$ essais par cellule. $h_{\mathrm{soft}}^{\star}$ est le minimum de la barrière LogSumExp publiée. $h_{\mathrm{ex}}^{\star}$ est la marge géométrique minimale obtenue hors ligne sur les maillages. Une valeur $h_{\mathrm{ex}}^{\star}<0$ indique un passage sous $d_{\mathrm{safe}}$; la colonne Collisions applique séparément le seuil de $0{,}5$~mm à la distance brute. Le résidu est absent des conditions sans bouclier. Le pourcentage des cycles contraints y est donné à titre diagnostique. Pour la cellule sans obstacle du banc de saisie et dépôt, $h_{\mathrm{soft}}^{\star}$ exclut les deux épisodes au signal corrompu décrits à la Section~\ref{sec:res_echecs}, tandis que la colonne Réussite les compte comme échecs.}
+\caption[Synthèse de l'évaluation avec et sans filtre SDF-CBF]{Comparaison avec et sans filtre \ac{SDF}-\ac{CBF}, agrégée sur $30$ essais par cellule. $h_{\mathrm{soft}}^{\star}$ est le minimum de la barrière LogSumExp publiée. $h_{\mathrm{ex}}^{\star}$ est la marge géométrique minimale obtenue hors ligne sur les maillages. Une valeur $h_{\mathrm{ex}}^{\star}<0$ indique un passage sous $d_{\mathrm{safe}}$; la colonne Collisions applique séparément le seuil de $0{,}5$~mm à la distance brute. Le résidu est absent des conditions sans bouclier. Le pourcentage des cycles contraints y est donné à titre diagnostique. Pour la cellule sans obstacle du banc de saisie et dépôt, $h_{\mathrm{soft}}^{\star}$ exclut les deux épisodes au signal corrompu décrits à la Section~\ref{sec:res_echecs}, tandis que la colonne Réussite les compte comme échecs.}
 \label{tab:res_master}
 \scriptsize
 \setlength{\tabcolsep}{1.5pt}
@@ -304,7 +304,7 @@ Les cellules sans obstacle critique complètent l'évaluation de la transparence
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/ablation/fig_master_filtre.svg}
-    \caption{Comparaison des quatre conditions sur une même graine du banc de saisie et dépôt avec le prisme statique. Le panneau a montre la trajectoire de la pointe de l'outil dans le plan $yz$, superposée au nuage d'obstacles. Le panneau b montre la barrière publiée $h_{\mathrm{soft},l}$.}\label{fig:comparaison_avec_sans}
+    \caption[Trajectoires et barrières publiées dans les quatre régimes]{Comparaison des quatre conditions sur une même graine du banc de saisie et dépôt avec le prisme statique. Le panneau a montre la trajectoire de la pointe de l'outil dans le plan $yz$, superposée au nuage d'obstacles. Le panneau b montre la barrière publiée $h_{\mathrm{soft},l}$.}\label{fig:comparaison_avec_sans}
 \end{figure}
 
 \subsection{Étude détaillée : tâche d'alimentation}\label{subsec:res_feeding_deep}
@@ -315,7 +315,7 @@ La Figure~\ref{fig:h_ev} présente la barrière publiée $h_{\mathrm{soft},l}$, 
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/v6/h_evolution.svg}
-    \caption{Évolution de la barrière publiée $h_{\mathrm{soft},l}$ en présence d'obstacles. Les bandes ombrées indiquent les cycles où la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ ne satisfait pas la contrainte critique.}\label{fig:h_ev}
+    \caption[Évolution temporelle de la barrière publiée]{Évolution de la barrière publiée $h_{\mathrm{soft},l}$ en présence d'obstacles. Les bandes ombrées indiquent les cycles où la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ ne satisfait pas la contrainte critique.}\label{fig:h_ev}
 \end{figure}
 
 Les sept premiers dixièmes de seconde forment une descente libre depuis $59{,}1$~mm. La barrière se trouve dans la bande d'activation dès le premier cycle, puis la première correction intervient à $0{,}71$~s avec $h_{\mathrm{soft},l}=15{,}6$~mm. Son minimum de $1{,}75$~mm survient à $4{,}15$~s, pendant le mouvement qui suit le piquage réalisé à $3{,}29$~s avec une barrière de $8{,}09$~mm. Le modèle \ac{FM} amène alors les dents de la fourchette à l'horizontale. Après $7$~s, $h_{\mathrm{soft},l}$ se maintient de $2{,}0$ à $9{,}6$~mm, avec une médiane de $6{,}5$~mm, pendant que le robot progresse tangentiellement le long des surfaces. La projection décrite à la Section~\ref{subsec:projection} retire la composante normale interdite. La barrière publiée reste non négative sur tous les cycles de l'essai illustré et des $30$ essais de la cellule.
@@ -325,7 +325,7 @@ La Figure~\ref{fig:constraint_ev} compare la contrainte de sécurité sur $\dot{
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/v6/constraint_residual.svg}
-    \caption{Contrainte de sécurité évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ avant projection et sur la commande publiée $\dot{\mathbf{q}}_{\mathrm{final}}$ après réparation. Les valeurs négatives de la courbe nominale marquent les cycles où $\dot{\mathbf{q}}_{\mathrm{base}}$ ne satisfait pas la contrainte.}\label{fig:constraint_ev}
+    \caption[Évolution du résidu de contrainte avant et après correction]{Contrainte de sécurité évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ avant projection et sur la commande publiée $\dot{\mathbf{q}}_{\mathrm{final}}$ après réparation. Les valeurs négatives de la courbe nominale marquent les cycles où $\dot{\mathbf{q}}_{\mathrm{base}}$ ne satisfait pas la contrainte.}\label{fig:constraint_ev}
 \end{figure}
 
 L'étape de réparation décrite à la Section~\ref{subsec:commande} intervient sur $17{,}2$~\% des cycles contraints de cet essai, sur $23{,}79$~\% de ceux de la cellule et sur $0{,}7$~\% des cycles non contraints. Le lissage est intégré à l'objectif du problème de projection. La réparation corrige ensuite les résidus produits par les saturations et par la troncature des balayages. Son ablation à la Section~\ref{subsec:res_abl_reparation} fait sortir le résidu de la précision machine.
@@ -335,7 +335,7 @@ Les Figures~\ref{fig:feeding_vel_joints} et~\ref{fig:feeding_vel_decomp} déroul
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/v6/feeding_vel_joints.svg}
-    \caption{Vitesses articulaires du même essai que la Figure~\ref{fig:h_ev}, relevées articulation par articulation : vitesse nominale $\dot{q}_{\mathrm{base}}$, commande publiée $\dot{q}_{\mathrm{final}}$ et vitesse mesurée $\dot{q}_{\mathrm{mes}}$. L'échelle verticale est commune aux sept articulations et les bandes ombrées sont celles de la Figure~\ref{fig:h_ev}.}\label{fig:feeding_vel_joints}
+    \caption[Profils de vitesses articulaires (tâche d'alimentation)]{Vitesses articulaires du même essai que la Figure~\ref{fig:h_ev}, relevées articulation par articulation : vitesse nominale $\dot{q}_{\mathrm{base}}$, commande publiée $\dot{q}_{\mathrm{final}}$ et vitesse mesurée $\dot{q}_{\mathrm{mes}}$. L'échelle verticale est commune aux sept articulations et les bandes ombrées sont celles de la Figure~\ref{fig:h_ev}.}\label{fig:feeding_vel_joints}
 \end{figure}
 
 La seconde scinde cet écart en deux termes mesurés, sans modèle intermédiaire. Le n\oe ud journalise la vitesse cible que le problème de projection reçoit effectivement, de sorte que l'identité
@@ -356,7 +356,7 @@ Puisque la cible vaut $(1-\gamma_{\mathrm{safe}})\dot{\mathbf{q}}_{\mathrm{final
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/v6/feeding_vel_decomp.svg}
-    \caption{Décomposition, articulation par articulation, de l'écart $\dot{q}_{\mathrm{final}}-\dot{q}_{\mathrm{base}}$ sur l'essai d'alimentation de la Figure~\ref{fig:h_ev}. Les deux parts sont relevées à chaque cycle selon l'identité~\eqref{eq:decomp_vitesse}, et leur somme donne la courbe totale. La part du lissage pondère par $1-\gamma_{\mathrm{safe}}$ l'écart de la commande publiée au cycle précédent à la nominale courante. Les contributions vectorielles peuvent se compenser partiellement.}\label{fig:feeding_vel_decomp}
+    \caption[Décomposition de la correction de vitesse (alimentation)]{Décomposition, articulation par articulation, de l'écart $\dot{q}_{\mathrm{final}}-\dot{q}_{\mathrm{base}}$ sur l'essai d'alimentation de la Figure~\ref{fig:h_ev}. Les deux parts sont relevées à chaque cycle selon l'identité~\eqref{eq:decomp_vitesse}, et leur somme donne la courbe totale. La part du lissage pondère par $1-\gamma_{\mathrm{safe}}$ l'écart de la commande publiée au cycle précédent à la nominale courante. Les contributions vectorielles peuvent se compenser partiellement.}\label{fig:feeding_vel_decomp}
 \end{figure}
 
 Le frein réflexe réévalue la commande à $1$~kHz. Le facteur d'atténuation $\beta$ vaut $0{,}967$ en médiane et $0{,}314$ au premier décile ; il descend sous $0{,}99$ sur $59{,}0$~\% des relevés de la cellule et annule complètement la commande sur $4{,}7$~\% d'entre eux. La retenue est légère dans le centre de la distribution et devient un arrêt dans sa queue, lorsque la barrière chute entre deux résolutions du bouclier.
@@ -371,7 +371,7 @@ Sur le banc de saisie et dépôt, le prisme barre le transport du cube, la contr
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_h_only.svg}
-    \caption{Évolution de la barrière publiée $h_{\mathrm{soft},l}$ sur un essai représentatif de saisie et dépôt en présence du prisme statique. Les bandes ombrées marquent les cycles où la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ ne satisfait pas la contrainte critique.}\label{fig:pp_deep}
+    \caption[Évolution de la barrière publiée (saisie et dépôt)]{Évolution de la barrière publiée $h_{\mathrm{soft},l}$ sur un essai représentatif de saisie et dépôt en présence du prisme statique. Les bandes ombrées marquent les cycles où la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ ne satisfait pas la contrainte critique.}\label{fig:pp_deep}
 \end{figure}
 
 Sur les $33{,}5$~\% restants, le résidu nominal atteint $-0{,}205$~m/s en pire cas et $-0{,}117$~m/s au premier centile. La trajectoire générée referme alors la distance plus vite que la contrainte resserrée ne le permet. La Figure~\ref{fig:pp_constraint} met les deux régimes en regard sur l'essai illustré. Les deux courbes se confondent lorsque la vitesse nominale satisfait la contrainte. Le résidu nominal descend ensuite à $-0{,}101$~m/s, tandis que celui de la commande publiée demeure exactement nul.
@@ -379,7 +379,7 @@ Sur les $33{,}5$~\% restants, le résidu nominal atteint $-0{,}205$~m/s en pire 
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_constraint.svg}
-    \caption{Contrainte de sécurité du même essai que la Figure~\ref{fig:pp_deep}, évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ avant projection, puis sur la commande publiée $\dot{\mathbf{q}}_{\mathrm{final}}$ après réparation. Les valeurs négatives de la courbe nominale correspondent aux cycles ombrés de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_constraint}
+    \caption[Évolution du résidu de contrainte (saisie et dépôt)]{Contrainte de sécurité du même essai que la Figure~\ref{fig:pp_deep}, évaluée sur la vitesse nominale filtrée $\dot{\mathbf{q}}_{\mathrm{base}}$ avant projection, puis sur la commande publiée $\dot{\mathbf{q}}_{\mathrm{final}}$ après réparation. Les valeurs négatives de la courbe nominale correspondent aux cycles ombrés de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_constraint}
 \end{figure}
 
 L'écart de la commande à la nominale se partage suivant l'identité~\eqref{eq:decomp_vitesse}, entre ce que le solveur ajoute au centre qui lui est fourni et ce que le lissage a déjà retranché en amont. Sur l'essai illustré, l'écart total vaut $0{,}195$~rad/s en médiane sur les cycles contraints, dont $0{,}032$~rad/s pour le bouclier et $0{,}169$~rad/s pour le lissage ; hors contrainte, la part du bouclier est exactement nulle sur la totalité des cycles et le lissage porte seul les $0{,}061$~rad/s restants. La Figure~\ref{fig:pp_vel_decomp} déroule ce partage articulation par articulation. Sur les cycles contraints, la correction médiane du bouclier vaut $0{,}021$, $0{,}017$ et $0{,}010$~rad/s aux articulations $7$, $1$ et $3$. Elle culmine à $0{,}069$~rad/s à l'articulation $1$ pendant le contournement. La part du lissage passe ici de $0{,}061$~rad/s hors contrainte à $0{,}169$~rad/s sous contrainte, alors qu'elle vaut $0{,}045$ puis $0{,}043$~rad/s dans les mêmes conditions au banc d'alimentation. Cette croissance mesure la persistance des corrections du bouclier d'un cycle au suivant.
@@ -387,13 +387,13 @@ L'écart de la commande à la nominale se partage suivant l'identité~\eqref{eq:
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_vel_decomp.svg}
-    \caption{Décomposition, articulation par articulation, de l'écart $\dot{q}_{\mathrm{final}}-\dot{q}_{\mathrm{base}}$ sur l'essai de saisie et dépôt de la Figure~\ref{fig:pp_deep}. Les deux parts sont relevées à chaque cycle selon l'identité~\eqref{eq:decomp_vitesse}, et leur somme donne la courbe totale. La part du lissage pondère par $1-\gamma_{\mathrm{safe}}$ l'écart de la commande publiée au cycle précédent à la nominale courante. Les contributions vectorielles peuvent se compenser partiellement.}\label{fig:pp_vel_decomp}
+    \caption[Décomposition de la correction de vitesse (saisie et dépôt)]{Décomposition, articulation par articulation, de l'écart $\dot{q}_{\mathrm{final}}-\dot{q}_{\mathrm{base}}$ sur l'essai de saisie et dépôt de la Figure~\ref{fig:pp_deep}. Les deux parts sont relevées à chaque cycle selon l'identité~\eqref{eq:decomp_vitesse}, et leur somme donne la courbe totale. La part du lissage pondère par $1-\gamma_{\mathrm{safe}}$ l'écart de la commande publiée au cycle précédent à la nominale courante. Les contributions vectorielles peuvent se compenser partiellement.}\label{fig:pp_vel_decomp}
 \end{figure}
 
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/pp_v4/fig_pp_vel_joints.svg}
-    \caption{Vitesses articulaires du même essai que la Figure~\ref{fig:pp_deep}, relevées articulation par articulation : vitesse nominale $\dot{q}_{\mathrm{base}}$, commande publiée $\dot{q}_{\mathrm{final}}$ et vitesse mesurée $\dot{q}_{\mathrm{mes}}$. L'échelle verticale est commune aux sept articulations et les bandes ombrées sont celles de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_vel_joints}
+    \caption[Profils de vitesses articulaires (saisie et dépôt)]{Vitesses articulaires du même essai que la Figure~\ref{fig:pp_deep}, relevées articulation par articulation : vitesse nominale $\dot{q}_{\mathrm{base}}$, commande publiée $\dot{q}_{\mathrm{final}}$ et vitesse mesurée $\dot{q}_{\mathrm{mes}}$. L'échelle verticale est commune aux sept articulations et les bandes ombrées sont celles de la Figure~\ref{fig:pp_deep}.}\label{fig:pp_vel_joints}
 \end{figure}
 
 L'action médiane du solveur vaut $0{,}032$~rad/s, contre $0{,}003$~rad/s au banc d'alimentation, soit un ordre de grandeur supplémentaire. Le prisme barre franchement le transport du cube, alors que la fourchette longe la paroi du bol. Le cosinus entre la vitesse cible du problème et la vitesse publiée demeure à $0{,}994$ sur ces mêmes cycles, et à $0{,}9935$ sur les cycles contraints de la cellule entière : la correction est d'amplitude appréciable mais réoriente peu, ce qui caractérise la projection minimale de la Section~\ref{subsec:projection}. Hors contrainte, ce cosinus vaut $1{,}0000$, ce qui corrobore par une seconde mesure la nullité exacte de la part du bouclier.
@@ -420,7 +420,7 @@ La barrière $h_{\mathrm{soft}}$ signale seulement six des $23$ essais où $h_{\
 
 \begin{table}[htbp]
 \centering
-\caption{Ablation de la carte persistante sur le banc d'alimentation, avec $30$ graines appariées. La colonne Écart donne le minimum de $h_{\mathrm{ex},l}[k]-h_{\mathrm{soft},l}[k]$ sur les essais, les cycles et les corps. Les deux termes sont évalués au même cycle et pour le même corps. Cet écart combine l'agrégation lissée, l'erreur du \ac{SDF}, la perception et la sélection TopK. La campagne rapporte leur effet conjoint.}
+\caption[Ablation de la carte persistante (alimentation)]{Ablation de la carte persistante sur le banc d'alimentation, avec $30$ graines appariées. La colonne Écart donne le minimum de $h_{\mathrm{ex},l}[k]-h_{\mathrm{soft},l}[k]$ sur les essais, les cycles et les corps. Les deux termes sont évalués au même cycle et pour le même corps. Cet écart combine l'agrégation lissée, l'erreur du \ac{SDF}, la perception et la sélection TopK. La campagne rapporte leur effet conjoint.}
 \label{tab:res_abl_persistance}
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
@@ -444,7 +444,7 @@ Dans la cellule ablatée, les six franchissements signalés proviennent tous d'u
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/ablation/fig_persistance.svg}
-    \caption{Ablation de la carte persistante sur le banc d'alimentation. Le panneau a présente la barrière $h_{\mathrm{soft}}$ publiée en ligne. Le panneau b présente la marge géométrique $h_{\mathrm{ex}}$ calculée hors ligne.}\label{fig:res_persistance}
+    \caption[Impact de la carte persistante sur les barrières]{Ablation de la carte persistante sur le banc d'alimentation. Le panneau a présente la barrière $h_{\mathrm{soft}}$ publiée en ligne. Le panneau b présente la marge géométrique $h_{\mathrm{ex}}$ calculée hors ligne.}\label{fig:res_persistance}
 \end{figure}
 
 \subsection{Métrique de tâche contre métrique euclidienne}\label{subsec:res_abl_metrique}
@@ -454,7 +454,7 @@ Le Tableau~\ref{tab:res_abl_metrique} rapporte les deux conditions sur $30$ grai
 
 \begin{table}[htbp]
 \centering
-\caption{Ablation de la métrique de projection sur le banc de saisie et dépôt, $30$ tirages aléatoires appariés par scénario : le prisme statique avec une sphère au coude, où la contrainte est portée par le corps du bras et par la main, puis le prisme seul. Les écarts appariés cités dans le texte sont les médianes des différences essai par essai. La colonne Complétion est la médiane des épisodes réussis.}
+\caption[Ablation de la métrique de projection]{Ablation de la métrique de projection sur le banc de saisie et dépôt, $30$ tirages aléatoires appariés par scénario : le prisme statique avec une sphère au coude, où la contrainte est portée par le corps du bras et par la main, puis le prisme seul. Les écarts appariés cités dans le texte sont les médianes des différences essai par essai. La colonne Complétion est la médiane des épisodes réussis.}
 \label{tab:res_abl_metrique}
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
@@ -487,7 +487,7 @@ Trois hypothèses ont été posées avant la campagne : des métriques de sécur
 
 \begin{table}[htbp]
 \centering
-\caption{Ablation du dégagement postural, tirages aléatoires appariés, sur le scénario où la contrainte est portée par le corps du bras et sur celui où elle est portée par la main. La fraction de cycles contraints mesure la proportion de cycles où la vitesse nominale ne satisfait pas la contrainte resserrée.}
+\caption[Ablation du dégagement postural]{Ablation du dégagement postural, tirages aléatoires appariés, sur le scénario où la contrainte est portée par le corps du bras et sur celui où elle est portée par la main. La fraction de cycles contraints mesure la proportion de cycles où la vitesse nominale ne satisfait pas la contrainte resserrée.}
 \label{tab:res_abl_clearance}
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
@@ -520,7 +520,7 @@ La réparation multi-contraintes n'existe que dans le graphe \ac{CUDA} de la Sec
 
 \begin{table}[htbp]
 \centering
-\caption{Ablations de la réparation de la commande filtrée, $30$ essais appariés par cellule. Le résidu minimal est la valeur extrême du résidu de contrainte sur la commande $\dot{\mathbf{q}}_{\mathrm{final}}$ publiée au frein réflexe. Le n\oe ud ne l'écrit pas dans les cellules sans réparation, où il est reconstruit hors ligne des enregistrements de télémesure. Les réparations sont rapportées aux cycles où la contrainte est active, et l'astérisque marque les cellules exécutées hors du graphe \ac{CUDA}.}
+\caption[Ablations de la réparation de la commande filtrée]{Ablations de la réparation de la commande filtrée, $30$ essais appariés par cellule. Le résidu minimal est la valeur extrême du résidu de contrainte sur la commande $\dot{\mathbf{q}}_{\mathrm{final}}$ publiée au frein réflexe. Le n\oe ud ne l'écrit pas dans les cellules sans réparation, où il est reconstruit hors ligne des enregistrements de télémesure. Les réparations sont rapportées aux cycles où la contrainte est active, et l'astérisque marque les cellules exécutées hors du graphe \ac{CUDA}.}
 \label{tab:res_abl_reparation}
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
@@ -563,7 +563,7 @@ La position du cube diffère de $5$~cm par rapport au banc Panda afin de tenir c
 
 \begin{table}[htbp]
 \centering
-\caption{Comparaison du Panda et du xArm7 sur les scénarios communs de saisie et dépôt, avec $30$ essais par cellule et les métriques de la Section~\ref{subsec:res_metriques}. Comme au Tableau~\ref{tab:res_master}, $h_{\mathrm{soft}}^{\star}$ exclut les deux épisodes au signal corrompu de la cellule Panda sans obstacle, tandis que la colonne Réussite les compte comme échecs.}
+\caption[Comparaison des performances entre le Panda et le xArm7]{Comparaison du Panda et du xArm7 sur les scénarios communs de saisie et dépôt, avec $30$ essais par cellule et les métriques de la Section~\ref{subsec:res_metriques}. Comme au Tableau~\ref{tab:res_master}, $h_{\mathrm{soft}}^{\star}$ exclut les deux épisodes au signal corrompu de la cellule Panda sans obstacle, tandis que la colonne Réussite les compte comme échecs.}
 \label{tab:res_xarm}
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
@@ -591,7 +591,7 @@ La validation de l'objectif de généralisation \ac{OS}5 reste partielle. Le tra
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false]{images/Results/ablation/fig_xarm_compare.svg}
-    \caption{Panda et xArm7 sur le même tirage aléatoire du scénario à prisme statique. Le panneau a montre la trajectoire de la pointe de l'outil dans le plan $yz$, superposée au nuage d'obstacles. Le panneau b montre la barrière publiée $h_{\mathrm{soft},l}$.}\label{fig:res_xarm}
+    \caption[Trajectoires et barrières comparées (Panda vs xArm7)]{Panda et xArm7 sur le même tirage aléatoire du scénario à prisme statique. Le panneau a montre la trajectoire de la pointe de l'outil dans le plan $yz$, superposée au nuage d'obstacles. Le panneau b montre la barrière publiée $h_{\mathrm{soft},l}$.}\label{fig:res_xarm}
 \end{figure}
 
 \FloatBarrier
@@ -732,7 +732,7 @@ La Figure~\ref{fig:res_sankey} répartit les $255$ essais de la configuration d�
 \begin{figure}[!htbp]
     \centering
     \includesvg[inkscapelatex=false, width=\textwidth]{images/Results/sankeymatic_20260809_171857.svg}
-    \caption{Répartition des $255$ essais de la configuration déployée. Les anomalies de la chaîne de sécurité regroupent deux signaux $h_{\mathrm{soft}}$ corrompus et un franchissement de la marge géométrique $h_{\mathrm{ex}}=0$, sans contact.}
+    \caption[Répartition des essais et analyse des échecs]{Répartition des $255$ essais de la configuration déployée. Les anomalies de la chaîne de sécurité regroupent deux signaux $h_{\mathrm{soft}}$ corrompus et un franchissement de la marge géométrique $h_{\mathrm{ex}}=0$, sans contact.}
     \label{fig:res_sankey}
 \end{figure}
 
