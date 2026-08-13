@@ -26,11 +26,11 @@ Concevoir, implémenter et valider en simulation une architecture découplée qu
 
 \subsection{Objectifs spécifiques}
 \begin{itemize}
-    \item \acs{OS}1 : implémenter une chaîne de perception qui détecte, segmente et suit la cible dans le flux \ac{RGB-D}, puis maintient une carte persistante des obstacles malgré les occlusions et les pertes de détection ;
-    \item \acs{OS}2 : développer une politique de génération de trajectoires articulaires par \ac{FM}, entraînée sur des démonstrations simulées et réelles et conditionnée par la perception ;
+    \item \acs{OS}1 : implémenter une chaîne de perception qui détecte, segmente et suit la cible dans le flux \ac{RGB-D}, puis maintient une carte persistante des obstacles malgré les occlusions ;
+    \item \acs{OS}2 : développer une politique de génération de trajectoires de poses de l'outil par \ac{FM}, entraînée sur des démonstrations simulées et réelles et conditionnée par la perception ;
     \item \acs{OS}3 : intégrer un bouclier fondé sur des fonctions barrières de contrôle et un champ de distance signée du corps du robot pour corriger la commande en temps réel ;
     \item \acs{OS}4 : vérifier en simulation les performances du système complet sur les deux tâches retenues et dans des environnements statiques absents des données d'entraînement ;
-    \item \acs{OS}5 : valider la transférabilité de l'architecture du Franka Emika Panda au uFactory xArm7 en adaptant uniquement la cinématique et les champs de distance par lien.
+    \item \acs{OS}5 : valider la transférabilité de l'architecture du Franka Emika Panda au uFactory xArm7 en adaptant la cinématique, les champs de distance par lien et les calibrations de courbure.
 \end{itemize}
 
 %------------------------------------------------------------------
@@ -47,7 +47,7 @@ La validation évalue la sécurité, la préservation de la tâche, la persistan
 \hline
 Axe & Mesures & Comparaison & Critère d'acceptation \\ \hline
 Sécurité & Collisions définies par une distance au maillage inférieure à $0{,}5$~mm ; minimum de la barrière lissée ; distance exacte minimale aux obstacles ; durées cumulées des franchissements de la barrière et de la marge de $15$~mm & Système complet contre système exécutant la commande nominale non filtrée, scénarios appariés & Aucune collision avec le système complet ; maintien de la barrière lissée dans son domaine sûr ; réduction des collisions lorsque le nominal en produit \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
-Préservation de la tâche & Taux de réussite ; fraction de cycles contraints ; déviation médiane de l'outil & Système complet contre exécution nominale dans l'ensemble des scénarios encombrés & Dégradation du taux de réussite inférieure à 10 points de pourcentage ; déviation médiane inférieure à l'ouverture utile de l'outil décrite à la Section~\ref{subsec:res_fm} \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
+Préservation de la tâche & Taux de réussite ; fraction de cycles contraints ; déviation médiane de l'outil & Cellules appariées avec et sans obstacle critique & Dégradation du taux de réussite inférieure à 10 points de pourcentage ; déviation médiane inférieure à l'ouverture utile de l'outil décrite à la Section~\ref{subsec:res_fm} \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Persistance & Collisions et distance exacte à l'obstacle désigné pendant son occultation & Carte persistante contre perception instantanée, essais appariés & Aucune collision ; distance exacte toujours au moins égale à $15$~mm pendant l'occultation \\ \addlinespace[0.3em] \hline \addlinespace[0.3em]
 Temps réel & Temps médian, centiles de queue et maximum par sous-système ; âge de la commande ; période du frein & Budget de période par module & Cadence du filtre de $50$~Hz ; maintien nominal de $20$~ms ; réévaluation chaque milliseconde ; rétention de la commande au-delà de $40$~ms \\ \hline
 \end{tabular}
